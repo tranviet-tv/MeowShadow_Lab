@@ -41,10 +41,12 @@ Toàn bộ tài liệu phân tích, kiến trúc, thiết kế API và lộ trì
 | **[`1_SRS.md`](./docs/1_SRS.md)** | Đặc tả yêu cầu phần mềm (SRS) | Nghiệp vụ Pacing (0.5s - 1.5s - 3.5s), chuẩn EBU R128 (-16 LUFS), bảng giọng đọc Edge-TTS, tính năng Web & Mobile. |
 | **[`2_ARCHITECTURE_TECHSTACK.md`](./docs/2_ARCHITECTURE_TECHSTACK.md)** | Kiến trúc hệ thống & Database | Sơ đồ Polyglot Microservices, Go Fiber API Gateway, Python AI Workers, Schema PostgreSQL 16 (JSONB & GIN Index), Redis 7. |
 | **[`3_DOCKER_CONTAINERIZATION.md`](./docs/3_DOCKER_CONTAINERIZATION.md)** | Hạ tầng 100% Docker-First | Cấu hình `docker-compose.yml`, multi-stage builds, mạng nội bộ `meowshadow-network` và volume lưu trữ audio. |
-| **[`4_API_AND_DATA_SCHEMAS.md`](./docs/4_API_AND_DATA_SCHEMAS.md)** | Hợp đồng API & Kiểu dữ liệu | RESTful APIs (Auth, Lessons, Progress, Audio), WebSocket Realtime, Error responses và TypeScript Interfaces `@meowshadow/types`. |
-| **[`5_SPRINT_PLAN.md`](./docs/5_SPRINT_PLAN.md)** | Kế hoạch lộ trình 5 Sprint | Kế hoạch triển khai chi tiết từ Hạ tầng Docker & Audio Worker đến Go Gateway, Web Studio và Mobile App. |
+| **[`4_API_AND_DATA_SCHEMAS.md`](./docs/4_API_AND_DATA_SCHEMAS.md)** | Hợp đồng API & Kiểu dữ liệu | RESTful APIs (Auth, Lessons, Progress, Audio 206 Streaming), WebSocket Realtime, Error responses và TypeScript Interfaces `@meowshadow/types`. |
+| **[`5_SPRINT_PLAN.md`](./docs/5_SPRINT_PLAN.md)** | Kế hoạch lộ trình 11 Sprint | Lộ trình chi tiết 11 Sprint qua 5 giai đoạn từ Hạ tầng Docker & Audio Worker đến Go Gateway, Web Studio và Mobile App. |
 | **[`6_DEVELOPMENT_GUIDE_AND_ENV.md`](./docs/6_DEVELOPMENT_GUIDE_AND_ENV.md)** | Quy chuẩn code, Env & Rủi ro | Quy tắc Git, Conventional Commits, Code conventions, bảng biến môi trường `.env`, cấu hình phần cứng và quản trị rủi ro. |
+| **[`adr/`](./docs/adr/)** | Hồ sơ Quyết định Kiến trúc (ADR) | Bộ văn bản quyết định kỹ thuật: Fiber v2, Zero-Copy Streaming, Redis Orchestration, Dual Subtitles, Storage Retention, Embedded Swagger. |
 | **[`assets/logo/README.md`](./assets/logo/README.md)** | Tài nguyên Thương hiệu & Logo | Bộ nhận diện vector SVG, PNG 1024px, Dark/Light Mode, Favicon và mẫu Next.js Brand Component. |
+
 
 ---
 
@@ -113,15 +115,23 @@ cp .env.example .env
 # Edit parameters if needed (see details in docs/6_DEVELOPMENT_GUIDE_AND_ENV.md)
 ```
 
-### 3. Khởi Động Hệ Thống (Mục tiêu Sprint 1)
-Sau khi Sprint 1 được khởi tạo:
+### 3. Khởi Động Toàn Bộ Hệ Thống Backend & Microservices
+Khởi chạy toàn bộ cơ sở dữ liệu PostgreSQL, Redis Broker, Shared Storage, Gateway Core và các Python AI Workers:
 ```bash
-# Start all services with Docker
+# Start all backend services with Docker
 docker compose up --build -d
 
 # Follow system logs
 docker compose logs -f
 ```
+
+### 4. Cổng Truy Cập Dịch Vụ
+* 🚀 **Swagger UI & OpenAPI Docs (Sprint 9):** `http://localhost:8000/swagger`
+* 🩺 **Gateway Core Health Check:** `http://localhost:8000/health` hoặc `http://localhost:8000/api/v1/health`
+* 🌐 **Next.js Web Studio UI (Sprint 10):** `http://localhost:3000`
+* 🗄️ **PostgreSQL Server:** `localhost:5432` (DB: `meowshadow_db`)
+* ⚡ **Redis Broker:** `localhost:6379`
+
 
 ---
 

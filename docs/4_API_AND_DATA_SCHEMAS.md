@@ -36,8 +36,10 @@ Mọi phản hồi lỗi từ Golang Gateway đều bắt buộc tuân theo đ�
 * `AUTH_UNAUTHORIZED` (403): Không có quyền truy cập tài nguyên.
 * `VALIDATION_FAILED` (422): Dữ liệu gửi lên không đúng định dạng.
 * `LESSON_NOT_FOUND` (404): Bài học không tồn tại.
+* `RANGE_NOT_SATISFIABLE` (416): Dải byte yêu cầu nằm ngoài phạm vi dung lượng file audio.
 * `TTS_RATE_LIMITED` (429): Quá giới hạn request TTS tới server.
 * `AUDIO_PROCESSING_ERROR` (500): Lỗi khi ghép audio hoặc chuẩn hóa âm lượng.
+
 
 ---
 
@@ -289,65 +291,138 @@ Mọi phản hồi lỗi từ Golang Gateway đều bắt buộc tuân theo đ�
 
 ---
 
-### 2.5. Nhóm Range Streaming & Phụ Đề Karaoke (Subtitles)
+### 2.5. Nhóm Range Streaming & Tài Nguyên Tĩnh (Audio & Static Assets)
 
-#### 🔹 `GET /api/v1/audio/stream/{lessonId}`
-* **Mô tả:** Phát streaming âm thanh hỗ trợ **HTTP Range Header (`206 Partial Content`)**.
-* **Headers:** `Range: bytes=0-1048576`
-* **Response:** Binary Audio Stream `audio/mpeg` (Bắt đầu phát dưới 100ms trên iOS/Android/Web).
+#### 🔹 `GET /api/v1/audio/stream/:id`
+* **Mô tả:** Phát luồng âm thanh bài học hỗ trợ chuẩn **HTTP Range Requests (`206 Partial Content`)**. Cho phép trình phát Web Studio và Mobile tua tức thì đến bất kỳ vị trí nào (< 100ms) mà không cần tải lại toàn bộ file.
+* **Request Headers:**
+  * Toàn bộ file: Không truyền header `Range` (trả về mã `200 OK`).
+  * Đoạn byte xác định: `Range: bytes=0-1024` (trả về 1025 bytes đầu tiên).
+  * Kiểm tra Safari / iOS AVPlayer: `Range: bytes=0-1` (trả về 2 bytes ban đầu).
+  * Mở rộng: `Range: bytes=1024-` (từ byte 1024 đến hết file).
+* **Response Headers (206 Partial Content):**
+  * `Content-Type: audio/mpeg`
+  * `Content-Range: bytes 0-1024/15894200`
+  * `Content-Length: 1025`
+  * `Accept-Ranges: bytes`
+* **Lỗi dải không hợp lệ (416 Range Not Satisfiable):**
+  * Khi `start >= total_size`: Trả về mã 416 kèm header `Content-Range: bytes */15894200`.
 
-#### 🔹 `GET /api/v1/lessons/{lessonId}/subtitles`
-* **Mô tả:** Lấy danh sách phụ đề chi tiết và mốc thời gian từng câu để đồng bộ Karaoke.
-* **Response Body (200 OK):**
+---
+
+#### 🔹 `GET /api/v1/lessons/:id/subtitles.srt`
+* **Mô tả:** Phân phối file phụ đề gốc định dạng **SubRip (SRT)** chuẩn UTF-8, đồng bộ từng mili-giây với audio. Tự động sinh dự phòng từ database transcript chunks nếu file vật lý chưa tồn tại trên ổ cứng.
+* **Response Headers:** `Content-Type: text/plain; charset=utf-8`
+* **Nội dung mẫu:**
+  ```srt
+  1
+  00:00:01,000 --> 00:00:03,500
+  Chào mừng bạn đến với MeowShadow Lab.
+
+  2
+  00:00:04,000 --> 00:00:07,200
+  Welcome to MeowShadow Lab language training.
+  ```
+
+---
+
+#### 🔹 `GET /api/v1/lessons/:id/subtitles.vtt`
+* **Mô tả:** Phân phối file phụ đề định dạng **WebVTT** chuẩn HTML5 (dùng cho thẻ `<track>` của Video/Audio Player trên Web).
+* **Response Headers:** `Content-Type: text/vtt; charset=utf-8`
+* **Nội dung mẫu:**
+  ```vtt
+  WEBVTT
+
+  00:00:01.000 --> 00:00:03.500
+  Chào mừng bạn đến với MeowShadow Lab.
+
+  00:00:04.000 --> 00:00:07.200
+  Welcome to MeowShadow Lab language training.
+  ```
+
+---
+
+#### 🔹 `GET /api/v1/lessons/:id/waveform.json`
+* **Mô tả:** Phân phối dữ liệu biên độ sóng âm chuẩn hóa (Normalized Waveform Peaks) để vẽ đồ thị âm thanh Karaoke trực quan trên Web/Mobile.
+* **Response Headers:** `Content-Type: application/json`
+* **Response Body mẫu:**
   ```json
   {
-    "lesson_id": "b1828f73-67c8-47c1-84fb-057d62057d38",
-    "subtitles": [
-      {
-        "id": 1,
-        "start_time_sec": 0.5,
-        "end_time_sec": 4.8,
-        "lang": "vi",
-        "text": "Sự tập trung là chìa khóa mở ra mọi thành công."
-      },
-      {
-        "id": 2,
-        "start_time_sec": 6.3,
-        "end_time_sec": 11.2,
-        "lang": "en",
-        "text": "Focus is the ultimate key to unlocking success."
-      }
-    ]
+    "version": 2,
+    "channels": 1,
+    "sample_rate": 44100,
+    "samples_per_pixel": 256,
+    "bits": 8,
+    "length": 200,
+    "data": [-10, 12, -30, 45, -80, 95, -50, 20, -5, 0]
   }
   ```
 
 ---
 
+### 2.6. Nhóm Tài Liệu Tương Tác Swagger / OpenAPI 3.0
+
+#### 🔹 `GET /swagger`
+* **Mô tả:** Giao diện Swagger UI tương tác trực tiếp nhúng thẳng trong Go binary (truy cập tại `http://localhost:8000/swagger`), cho phép kiểm thử toàn bộ API trên trình duyệt mà không cần cài Postman.
+* **Response:** HTML (`text/html; charset=utf-8`)
+
+#### 🔹 `GET /swagger/doc.json`
+* **Mô tả:** File đặc tả JSON chuẩn OpenAPI 3.0.3 dùng cho các công cụ tự động sinh mã client SDK.
+* **Response:** JSON (`application/json`)
+
+---
+
 ## 3. GIAO THỨC WEBSOCKET TIẾN TRÌNH RENDER (REALTIME WS PROTOCOL)
 
-* **Endpoint:** `ws://localhost:8000/ws/v1/progress/{taskId}`
-* **Khung dữ liệu đẩy về Client (Server Push Payload):**
+* **Endpoints kết nối:**
+  * Lắng nghe theo Job ID: `ws://localhost:8000/ws/progress?job_id={jobId}`
+  * Lắng nghe theo Lesson ID: `ws://localhost:8000/ws/lessons/{lessonId}` hoặc `ws://localhost:8000/ws/progress?lesson_id={lessonId}`
+* **State Machine Chuỗi Render:**
+  $$\text{PENDING} \xrightarrow{15\%} \text{PARSING} \xrightarrow{60\%} \text{SYNTHESIZING} \xrightarrow{90\%} \text{MASTERING} \xrightarrow{100\%} \text{COMPLETED / FAILED}$$
+
+* **Khung dữ liệu phát sóng (Server Broadcast Event):**
   ```json
   {
-    "task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "job_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "lesson_id": "b1828f73-67c8-47c1-84fb-057d62057d38",
     "status": "SYNTHESIZING",
-    "progress_percent": 65,
-    "completed_chunks": 42,
-    "total_chunks": 65,
-    "current_step_message": "Đang tổng hợp giọng nói: Đoạn 42/65 (Tiếng Anh)...",
-    "result_lesson_id": null
+    "progress": 60,
+    "step": "SYNTHESIZING",
+    "message": "Đang tổng hợp giọng đọc AI đa ngữ qua TTS Engine...",
+    "estimated_time_remaining_sec": 8,
+    "error": "",
+    "timestamp": "2026-09-12T14:30:00Z"
   }
   ```
-* **Khi hoàn tất (Status = "COMPLETED"):**
+* **Khung dữ liệu khi hoàn tất thành công (Status = "COMPLETED"):**
   ```json
   {
-    "task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "job_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "lesson_id": "b1828f73-67c8-47c1-84fb-057d62057d38",
     "status": "COMPLETED",
-    "progress_percent": 100,
-    "current_step_message": "Đã hoàn thành! File MP3 10 phút và phụ đề đã sẵn sàng.",
-    "result_lesson_id": "b1828f73-67c8-47c1-84fb-057d62057d38"
+    "progress": 100,
+    "step": "COMPLETED",
+    "message": "Render bài học hoàn tất! File MP3 và phụ đề đã sẵn sàng phát.",
+    "estimated_time_remaining_sec": 0,
+    "error": "",
+    "timestamp": "2026-09-12T14:30:15Z"
   }
   ```
+* **Khung dữ liệu khi có lỗi xảy ra (Status = "FAILED"):**
+  ```json
+  {
+    "job_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "lesson_id": "b1828f73-67c8-47c1-84fb-057d62057d38",
+    "status": "FAILED",
+    "progress": 60,
+    "step": "SYNTHESIZING",
+    "message": "Quá trình render thất bại: TTS worker connection timeout",
+    "estimated_time_remaining_sec": 0,
+    "error": "TTS worker connection timeout",
+    "timestamp": "2026-09-12T14:30:16Z"
+  }
+  ```
+
 
 ---
 

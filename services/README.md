@@ -8,10 +8,11 @@ Thư mục `services/` chứa toàn bộ mã nguồn của các vi dịch vụ p
 
 | Vi dịch vụ | Ngôn ngữ & Framework | Cổng Docker | Cẩm nang kỹ thuật chi tiết | Vai trò chính |
 | :--- | :--- | :---: | :--- | :--- |
-| **`gateway-core`** | **Golang 1.22+ (Fiber/Gin)** | `8000` | **[gateway-core/README.md](./gateway-core/README.md)** | API Gateway, Auth, WebSocket Hub, HTTP 206 Streaming, Dispatcher |
+| **`gateway-core`** | **Golang 1.23+ (Fiber v2)** | `8000` | **[gateway-core/README.md](./gateway-core/README.md)** | API Gateway, JWT Auth, WebSocket Hub, HTTP 206 Range Streaming, Static Assets (SRT/VTT/Waveform), Storage Cleanup Worker, Swagger UI |
 | **`script-llm`** | **Python 3.11+ (FastAPI)** | `8001` | **[script-llm/README.md](./script-llm/README.md)** | Regex Parser `[VI]`, `[EN]`, `[JA]`, Phân đoạn 3-4 câu, Ollama Qwen 3 8B |
 | **`tts-engine`** | **Python 3.11+ (FastAPI)** | `8002` | **[tts-engine/README.md](./tts-engine/README.md)** | Multi-engine (Edge-TTS, Kokoro, Fish-Speech), Smart Cache MD5 |
 | **`audio-processor`**| **Python 3.11+ (FFmpeg/Pydub)** | `8003` | **[audio-processor/README.md](./audio-processor/README.md)** | Pacing Silence (1.5s/3.5s), Mastering EBU R128 (-16 LUFS), Sinh SRT/VTT |
+
 
 ---
 

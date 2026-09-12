@@ -18,10 +18,11 @@
 
 1. **Zero Host Dependency:** Người dùng hoặc lập trình viên chỉ cần cài đặt **Docker Desktop** (hoặc Docker Engine); không cần cài đặt thủ công Python, Go, Node.js, FFmpeg hay PostgreSQL trên máy chủ.
 2. **Multi-Stage Build Tối Ưu:**
-   * **Golang Gateway:** Build bằng `golang:1.23-alpine`, xuất ra image `scratch` hoặc `alpine` chỉ nặng **~20MB**.
+   * **Golang Gateway:** Build bằng `golang:1.23-alpine`, xuất ra static binary trên `alpine:3.19` chỉ nặng **14.2MB** (vượt tiêu chuẩn khắt khe < 20MB).
    * **Next.js Web:** Build standalone production bundle tối ưu bằng Node.js 20 Alpine.
    * **Python Workers:** Sử dụng `python:3.11-slim` tích hợp sẵn `ffmpeg`.
-3. **Shared Volume Isolation:** Dùng chung Docker Volume `storage-data` để các container đọc/ghi các file audio clips và file xuất xưởng `.mp3` / `.srt` an toàn.
+3. **Shared Volume Isolation:** Dùng chung Docker Volume `storage-data` gắn kết tại `/app/storage` với cấu trúc phân cấp 5 thư mục con (`audio/`, `subtitles/`, `cache/`, `cues/`, `temp/`) để các container đọc/ghi các file audio clips và file xuất xưởng an toàn.
+
 4. **Internal Bridge Network:** Mạng ảo nội bộ `meowshadow-network` đảm bảo các microservices giao tiếp nội bộ tốc độ cao và an toàn.
 
 ---
