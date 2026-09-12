@@ -10,6 +10,7 @@ from .subtitle_engine import (
     format_timestamp_srt,
     format_timestamp_vtt,
 )
+from .waveform_builder import WaveformBuilder, waveform_builder
 from .pacing_builder import (
     PacingBuilder,
     pacing_builder,
@@ -36,6 +37,9 @@ __all__ = [
     "SubtitleItem",
     "format_timestamp_srt",
     "format_timestamp_vtt",
+    "WaveformBuilder",
+    "waveform_builder",
 ]
+
 
 
