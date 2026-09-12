@@ -3,6 +3,13 @@
 from .silence_generator import SilenceGenerator, silence_generator
 from .cue_sound import CueSoundService, cue_sound_service
 from .audio_master import AudioMaster, audio_master, MasteringMetadata
+from .subtitle_engine import (
+    SubtitleEngine,
+    subtitle_engine,
+    SubtitleItem,
+    format_timestamp_srt,
+    format_timestamp_vtt,
+)
 from .pacing_builder import (
     PacingBuilder,
     pacing_builder,
@@ -24,5 +31,11 @@ __all__ = [
     "AudioMaster",
     "audio_master",
     "MasteringMetadata",
+    "SubtitleEngine",
+    "subtitle_engine",
+    "SubtitleItem",
+    "format_timestamp_srt",
+    "format_timestamp_vtt",
 ]
+
 
