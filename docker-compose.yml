@@ -177,6 +177,8 @@ services:
       dockerfile: services/audio-processor/Dockerfile
     container_name: meowshadow_audio_processor
     restart: unless-stopped
+    ports:
+      - "${AUDIO_PROCESSOR_PORT:-8003}:8003"
     environment:
       - REDIS_ADDR=redis-broker:6379
       - STORAGE_DIR=/app/storage
@@ -188,6 +190,12 @@ services:
         condition: service_healthy
     networks:
       - meowshadow-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8003/api/v1/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   # ============================================================================
   # 7. FRONTEND WEB STUDIO: NEXT.JS 15 (SPRINT 4)

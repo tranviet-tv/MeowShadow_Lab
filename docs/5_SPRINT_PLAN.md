@@ -139,12 +139,13 @@ gantt
 | **SP04-02** | Engine Sinh Phụ Đề Chuẩn Xác SRT & VTT | - Viết `subtitle_engine.py`: Đo duration thực tế từng clip<br>- Tính toán mốc `start_time` và `end_time` xuất file `.srt` và `.vtt`<br>- Đảm bảo mốc thời gian phụ đề khớp hoàn toàn với câu đang đọc | `services/audio-processor/src/services/subtitle_engine.py` | 0.6 ngày | ✅ Hoàn thành |
 | **SP04-03** | Trích Xuất Dữ Liệu Sóng Âm (Waveform Peaks) | - Viết `waveform_builder.py`: Tạo mảng JSON 100–200 điểm đỉnh âm (amplitude peaks) phục vụ hiển thị visualizer trên UI | `services/audio-processor/src/services/waveform_builder.py` | 0.4 ngày | ✅ Hoàn thành |
 | **SP04-04** | API Endpoint & Worker Redis Consumer | - Endpoint `POST /api/v1/process` phục vụ test trực tiếp qua HTTP<br>- Worker `consumer.py` lắng nghe task `AUDIO_MASTERING` từ Redis queue | `services/audio-processor/src/api/v1/endpoints/process.py`<br>`services/audio-processor/src/workers/consumer.py` | 0.5 ngày | ✅ Hoàn thành |
-| **SP04-05** | Đóng Gói Dockerfile & Thử Nghiệm Bài 10 Phút | - Dockerfile đa tầng cài sẵn FFmpeg 6+ và Python 3.11<br>- Chạy render thực tế bài viết mẫu 1.500 từ ra file `lesson.mp3` và `lesson.srt` | `services/audio-processor/Dockerfile`<br>`services/audio-processor/tests/test_audio_master.py` | 0.5 ngày | ⚪ Chờ thực hiện |
+| **SP04-05** | Đóng Gói Dockerfile & Thử Nghiệm Bài 10 Phút | - Dockerfile đa tầng cài sẵn FFmpeg 6+ và Python 3.11<br>- Chạy render thực tế bài viết mẫu 1.500 từ ra file `lesson.mp3` và `lesson.srt` | `services/audio-processor/Dockerfile`<br>`services/audio-processor/tests/test_audio_master.py`<br>`services/audio-processor/tests/test_full_lesson_simulation.py` | 0.5 ngày | ✅ Hoàn thành |
 
 * **Định nghĩa hoàn thành (DoD - Sprint 4):**
-  - Container `audio-processor-service` khởi chạy trên Docker (`:8003`), healthcheck báo `healthy`.
-  - File `lesson.mp3` đầu ra đạt chuẩn EBU R128 (-16.0 LUFS $\pm 0.5$, True Peak $\le -1.5\text{ dBFS}$).
-  - File phụ đề `.srt` mở trên VLC Media Player khớp tiếng 100%.
+  - ✅ Container `audio-processor-service` khởi chạy trên Docker (`:8003`), healthcheck báo `healthy` (`HTTP 200 OK`).
+  - ✅ File `lesson.mp3` đầu ra đạt chuẩn EBU R128 (-16.0 LUFS $\pm 0.5$, True Peak $\le -1.5\text{ dBFS}$).
+  - ✅ File phụ đề `.srt` và `.vtt` khớp tiếng 100%, timeline liên tục, zero drift.
+  - ✅ 57/57 tests Pytest chạy thành công trên cả môi trường host (`make test-audio`) và Docker container (`make test-audio-docker`).
 
 ---
 
@@ -317,7 +318,7 @@ Bảng tổng hợp giúp người phát triển và AI theo dõi trạng thái 
 | **SP 01** | Monorepo Foundation, Shared Types & Tooling | 4 | 1.7 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
 | **SP 02** | Docker Infrastructure, PostgreSQL Schema & Redis | 5 | 2.0 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
 | **SP 03** | Audio Processor: Pacing & Silence Engine | 5 | 2.0 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
-| **SP 04** | Audio Processor: FFmpeg Mastering & Subtitles | 5 | 2.9 ngày | ⚪ Chờ thực hiện | -- |
+| **SP 04** | Audio Processor: FFmpeg Mastering & Subtitles | 5 | 2.9 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
 | **SP 05** | Speech Synthesis Worker (Edge-TTS & MD5 Cache) | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 06** | Script-LLM Worker (Ollama Qwen 2.5 NLP) | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 07** | Golang Core API Gateway & Database Layer | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
@@ -326,7 +327,7 @@ Bảng tổng hợp giúp người phát triển và AI theo dõi trạng thái 
 | **SP 10** | Next.js 15 Web Studio & Script Editor | 5 | 2.7 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 11** | Interactive Karaoke Player & Waveform Audio | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 12** | React Native Mobile App & 1-Click Launch | 5 | 3.7 ngày | ⚪ Chờ thực hiện | -- |
-| **TỔNG** | **Toàn bộ 12 Sprints Dự Án** | **58 Tasks** | **~29.9 ngày** | **3/12 Hoàn thành (25.0%)** | -- |
+| **TỔNG** | **Toàn bộ 12 Sprints Dự Án** | **58 Tasks** | **~29.9 ngày** | **4/12 Hoàn thành (33.3%)** | -- |
 
 ---
 
@@ -334,7 +335,7 @@ Bảng tổng hợp giúp người phát triển và AI theo dõi trạng thái 
 
 | Rủi Ro Kỹ Thuật | Mức Độ | Ảnh Hưởng Tiềm Ẩn | Giải Pháp Giảm Thiểu Chủ Động |
 | :--- | :---: | :--- | :--- |
-| **Lệch mốc thời gian phụ đề (Subtitle Drift)** | **Cao** | Phụ đề SRT bị lệch dần về cuối bài 10 phút, làm hỏng trải nghiệm Karaoke. | Đo đạc thời lượng thực tế của từng clip âm thanh sau khi render thay vì ước tính bằng số từ; Ghi log timestamp mili-giây ở từng câu. |
+| **Lệch mốc thời gian phụ đề (Subtitle Drift)** | **Cao** | Phụ đề SRT bị lệch dần về cuối bài 10 phút, làm hỏng trải nghiệm Karaoke. | Đo đạc thời lượng thực tế của từng clip âm thanh sau khi render thay vì ước tính bằng số từ; Ghi log timestamp mili-giây ở từng câu. *(Đã giải quyết tại SP04-02)* |
 | **Edge-TTS bị Rate Limit hoặc gián đoạn** | **Trung bình** | Quá trình tạo giọng đọc 1.500 từ bị treo hoặc fail giữa chừng. | Triển khai cơ chế Retry với Exponential Backoff; Chia batch nhỏ 10 câu/lần; Tích hợp MD5 Smart Cache để không bao giờ gọi lại câu đã có. |
 | **Bộ nhớ Container FFmpeg tăng cao** | **Trung bình** | Container `audio-processor` bị OOM (Out Of Memory) khi ghép nối file 10 phút. | Sử dụng cơ chế file tạm streaming của FFmpeg; Cắt ghép theo danh sách demuxer (`concat demuxer`) thay vì nạp toàn bộ audio vào RAM. |
 | **Độ trễ tua Audio trên Thiết Bị Di Động** | **Thấp** | Mobile bị giật khựng khi người học bấm lặp câu liên tục. | Áp dụng chuẩn HTTP Range Requests (`206 Partial Content`); Tải trước 30 giây audio vào bộ đệm của native player. |
@@ -344,15 +345,18 @@ Bảng tổng hợp giúp người phát triển và AI theo dõi trạng thái 
 
 ## 5. HƯỚNG DẪN KÍCH HOẠT SPRINT TIẾP THEO (NEXT SPRINT ACTIVATION)
 
-Để bắt đầu thực hiện ngay **Sprint 4: Audio Processor Service - FFmpeg Mastering & Subtitles Engine**, hãy thực hiện lệnh kiểm tra môi trường:
+Để bắt đầu thực hiện ngay **Sprint 5: Speech Synthesis Worker (Edge-TTS & Smart Caching)**, hãy thực hiện lệnh kiểm tra môi trường:
 
 ```bash
-# 1. Kiểm tra bộ kiểm thử đơn vị của audio-processor đã sẵn sàng
+# 1. Kiểm tra toàn bộ test suite âm thanh đã hoàn tất
 make test-audio
+make test-audio-docker
 
-# 2. Kiểm tra FFmpeg hệ thống hỗ trợ loudnorm và libmp3lame
-ffmpeg -version
+# 2. Khởi tạo và kiểm tra cấu trúc tts-engine
+ls -la services/tts-engine
 
-# 3. Chạy thử nghiệm khung container audio-processor
-docker compose up -d postgres-db redis-broker
+# 3. Kiểm tra Redis broker sẵn sàng làm hàng đợi cho TTS
+docker compose up -d redis-broker
+docker exec -it meowshadow_redis redis-cli ping
 ```
+

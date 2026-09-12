@@ -25,7 +25,9 @@ help:
 	@echo "    make db-studio   - Launch Web Database Studio (http://localhost:8080)"
 	@echo ""
 	@echo "  AUDIO PROCESSOR & TESTING:"
-	@echo "    make test-audio  - Run audio-processor unit test suite (Pytest)"
+	@echo "    make test-audio        - Run audio-processor unit test suite (Pytest)"
+	@echo "    make test-audio-docker - Run audio tests inside Docker container with FFmpeg"
+	@echo "    make audio-up          - Start audio-processor service (http://localhost:8003)"
 	@echo "======================================================================"
 
 # Start platform infrastructure services
@@ -109,3 +111,14 @@ db-studio:
 test-audio:
 	@echo "--- Running Audio Processor Unit Tests (Pytest) ---"
 	./services/audio-processor/.venv/bin/pytest services/audio-processor/tests -v
+
+# Run audio processor tests inside Docker container with FFmpeg
+test-audio-docker:
+	@echo "--- Running Audio Processor Tests in Docker with FFmpeg ---"
+	docker run --rm -v $$(pwd)/services/audio-processor:/app 1meowshadow_lab-audio-processor-service pytest tests -v
+
+# Start audio-processor service in background
+audio-up:
+	docker compose up -d audio-processor-service
+	@echo "Audio processor microservice ready at http://localhost:8003"
+

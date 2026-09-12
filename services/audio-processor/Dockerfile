@@ -20,6 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser
 
+# Pre-create storage hierarchy for non-root user
+RUN mkdir -p /app/storage/audio /app/storage/subtitles /app/storage/cache /app/storage/temp \
+    && chown -R appuser:appuser /app
+
 # Copy dependency requirements
 COPY services/audio-processor/requirements.txt /app/requirements.txt
 

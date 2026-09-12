@@ -124,9 +124,13 @@ uvicorn src.main:app --host 0.0.0.0 --port 8003 --reload
 
 Chạy toàn bộ bộ kiểm thử tự động âm thanh:
 ```bash
-# Từ thư mục gốc dự án:
+# Từ thư mục gốc dự án (Pytest cục bộ):
 make test-audio
 
-# Hoặc từ thư mục service:
-./.venv/bin/pytest tests/ -v
+# Hoặc chạy kiểm thử trực tiếp trong Docker container (kèm FFmpeg 7+ đầy đủ):
+make test-audio-docker
+
+# Khởi chạy microservice qua Docker Compose (:8003):
+make audio-up
 ```
+
