@@ -156,6 +156,16 @@ func main() {
 	go hub.Run()
 	defer hub.Close()
 
+	// Initialize Storage Retention & Cleanup Worker (purges temp files > 24h)
+	cleanupSvc := services.NewStorageCleanupService(services.CleanupConfig{
+		StorageDir:        cfg.StorageDir,
+		RetentionDuration: 24 * time.Hour,
+		DryRun:            false,
+	})
+	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
+	defer cleanupCancel()
+	cleanupSvc.StartScheduler(cleanupCtx, 1*time.Hour)
+
 	app := SetupApp(cfg, authSvc, lessonSvc, hub)
 
 	// Channel to listen for OS signals for graceful shutdown
