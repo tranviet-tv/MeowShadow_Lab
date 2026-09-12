@@ -28,7 +28,7 @@ gitGraph
    merge feature/audio-processor id: "PR #1 (Squash & Merge)"
    branch feature/script-llm
    checkout feature/script-llm
-   commit id: "feat(llm): integrate qwen 2.5"
+   commit id: "feat(llm): integrate qwen 3 8b"
    checkout main
    merge feature/script-llm id: "PR #2 (Squash & Merge)"
 ```
