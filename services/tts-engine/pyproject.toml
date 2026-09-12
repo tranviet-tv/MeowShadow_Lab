@@ -1,0 +1,25 @@
+[project]
+name = "msl-tts-engine"
+version = "1.0.0"
+description = "Multi-Engine Speech Synthesis Microservice with Smart MD5 Caching"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110.0,<0.112.0",
+    "uvicorn[standard]>=0.28.0,<0.31.0",
+    "pydantic>=2.6.0,<3.0.0",
+    "pydantic-settings>=2.2.0,<3.0.0",
+    "edge-tts>=6.1.10",
+    "redis>=5.0.0,<6.0.0",
+    "httpx>=0.27.0,<0.28.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
