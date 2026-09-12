@@ -38,13 +38,15 @@ type MockLessonRepository struct {
 
 func (m *MockLessonRepository) CreateLesson(ctx context.Context, params db.CreateLessonParams) (*db.CreateLessonRow, error) {
 	return &db.CreateLessonRow{
-		Title: params.Title,
+		Title:  params.Title,
+		Status: params.Status,
 	}, nil
 }
 
 func (m *MockLessonRepository) GetLessonByID(ctx context.Context, id pgtype.UUID) (*db.GetLessonByIDRow, error) {
 	return &db.GetLessonByIDRow{
-		Title: "Mock Lesson",
+		Title:  "Mock Lesson",
+		Status: "READY",
 	}, nil
 }
 
@@ -64,6 +66,20 @@ func (m *MockLessonRepository) CountAllLessons(ctx context.Context) (int64, erro
 	return int64(len(m.Lessons)), nil
 }
 
+func (m *MockLessonRepository) UpdateLessonStatus(ctx context.Context, id pgtype.UUID, status string) error {
+	return nil
+}
+
+func (m *MockLessonRepository) UpdateLessonRenderResult(ctx context.Context, params db.UpdateLessonRenderResultParams) (*db.UpdateLessonRenderResultRow, error) {
+	return &db.UpdateLessonRenderResultRow{
+		ID:            params.ID,
+		Status:        params.Status,
+		AudioFilePath: params.AudioFilePath,
+		SrtFilePath:   params.SrtFilePath,
+		DurationSec:   params.DurationSec,
+	}, nil
+}
+
 func (m *MockLessonRepository) DeleteLesson(ctx context.Context, id pgtype.UUID) error {
 	return nil
 }
@@ -79,7 +95,7 @@ func TestRepositoryInterfaces(t *testing.T) {
 
 	var lessonRepo LessonRepository = &MockLessonRepository{
 		Lessons: []db.ListAllLessonsRow{
-			{Title: "Shadowing Unit 1"},
+			{Title: "Shadowing Unit 1", Status: "READY"},
 		},
 	}
 	if lessonRepo == nil {

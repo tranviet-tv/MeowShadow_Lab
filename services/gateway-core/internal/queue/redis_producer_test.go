@@ -2,13 +2,23 @@ package queue_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
 	"meowshadow/gateway-core/internal/domain"
-	"meowshadow/gateway-core/internal/orchestrator"
 	"meowshadow/gateway-core/internal/queue"
 )
+
+type sampleJobPayload struct {
+	ID              string              `json:"id"`
+	LessonID        string              `json:"lesson_id"`
+	UserID          string              `json:"user_id"`
+	Title           string              `json:"title"`
+	CurrentState    string              `json:"current_state"`
+	ProgressPercent int                 `json:"progress_percent"`
+	PacingConfig    domain.PacingConfig `json:"pacing_config"`
+}
 
 func TestRedisProducer_IntegrationOrSkip(t *testing.T) {
 	client := queue.NewRedisClient("localhost:6379")
@@ -29,36 +39,38 @@ func TestRedisProducer_IntegrationOrSkip(t *testing.T) {
 	}
 
 	// 2. Test SaveJobState and GetJobState
-	job := orchestrator.NewRenderJob(
-		"test-job-producer-1",
-		"lesson-abc",
-		"user-xyz",
-		"Producer Test Title",
-		"en",
-		"vi",
-		"Test raw script content",
-		domain.PacingConfig{
+	job := sampleJobPayload{
+		ID:              "test-job-producer-1",
+		LessonID:        "lesson-abc",
+		UserID:          "user-xyz",
+		Title:           "Producer Test Title",
+		CurrentState:    "PARSING",
+		ProgressPercent: 15,
+		PacingConfig: domain.PacingConfig{
 			ViVoice:           "vi-VN-HoaiMyNeural",
 			TargetVoice:       "en-US-JennyNeural",
 			SilenceAfterViSec: 1.5,
 		},
-	)
+	}
 
-	_ = job.TransitionTo(orchestrator.StateParsing, "")
-
-	if err := producer.SaveJobState(ctx, job, 5*time.Minute); err != nil {
+	if err := producer.SaveJobState(ctx, job.ID, job, 5*time.Minute); err != nil {
 		t.Fatalf("failed to save job state: %v", err)
 	}
 
-	retrieved, err := producer.GetJobState(ctx, job.ID)
+	rawBytes, err := producer.GetJobState(ctx, job.ID)
 	if err != nil {
 		t.Fatalf("failed to retrieve job state: %v", err)
+	}
+
+	var retrieved sampleJobPayload
+	if err := json.Unmarshal(rawBytes, &retrieved); err != nil {
+		t.Fatalf("failed to unmarshal retrieved job bytes: %v", err)
 	}
 
 	if retrieved.ID != job.ID {
 		t.Fatalf("expected job ID %s, got %s", job.ID, retrieved.ID)
 	}
-	if retrieved.CurrentState != orchestrator.StateParsing {
+	if retrieved.CurrentState != "PARSING" {
 		t.Fatalf("expected state PARSING, got %s", retrieved.CurrentState)
 	}
 	if retrieved.ProgressPercent != 15 {

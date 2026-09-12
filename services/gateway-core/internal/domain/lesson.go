@@ -34,6 +34,7 @@ type CreateLessonRequest struct {
 	TranscriptChunks []ScriptChunk `json:"transcript_chunks"`
 	AudioFilePath    string        `json:"audio_file_path"`
 	SrtFilePath      string        `json:"srt_file_path"`
+	Status           string        `json:"status,omitempty"` // "READY", "PENDING", etc.
 }
 
 // LessonResponse represents a complete lesson returned by API endpoints.
@@ -49,6 +50,7 @@ type LessonResponse struct {
 	TranscriptChunks []ScriptChunk `json:"transcript_chunks"`
 	AudioFilePath    string        `json:"audio_file_path"`
 	SrtFilePath      string        `json:"srt_file_path"`
+	Status           string        `json:"status"`
 	CreatedAt        string        `json:"created_at"`
 	UpdatedAt        string        `json:"updated_at"`
 }

@@ -40,11 +40,11 @@ func (q *Queries) CountLessonsByUserID(ctx context.Context, userID pgtype.UUID) 
 const createLesson = `-- name: CreateLesson :one
 INSERT INTO lessons (
     user_id, title, target_language, source_language, total_words, duration_sec,
-    pacing_config, transcript_chunks, audio_file_path, srt_file_path, embedding
+    pacing_config, transcript_chunks, audio_file_path, srt_file_path, embedding, status
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 )
-RETURNING id, title, created_at
+RETURNING id, title, status, created_at
 `
 
 type CreateLessonParams struct {
@@ -59,11 +59,13 @@ type CreateLessonParams struct {
 	AudioFilePath    string          `json:"audio_file_path"`
 	SrtFilePath      string          `json:"srt_file_path"`
 	Embedding        pgvector.Vector `json:"embedding"`
+	Status           string          `json:"status"`
 }
 
 type CreateLessonRow struct {
 	ID        pgtype.UUID        `json:"id"`
 	Title     string             `json:"title"`
+	Status    string             `json:"status"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
@@ -80,9 +82,15 @@ func (q *Queries) CreateLesson(ctx context.Context, arg CreateLessonParams) (Cre
 		arg.AudioFilePath,
 		arg.SrtFilePath,
 		arg.Embedding,
+		arg.Status,
 	)
 	var i CreateLessonRow
-	err := row.Scan(&i.ID, &i.Title, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Status,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
@@ -134,7 +142,7 @@ func (q *Queries) GetLearningProgress(ctx context.Context, arg GetLearningProgre
 
 const getLessonByID = `-- name: GetLessonByID :one
 SELECT id, user_id, title, target_language, source_language, total_words, duration_sec,
-       pacing_config, transcript_chunks, audio_file_path, srt_file_path, created_at, updated_at
+       pacing_config, transcript_chunks, audio_file_path, srt_file_path, status, created_at, updated_at
 FROM lessons
 WHERE id = $1 LIMIT 1
 `
@@ -151,6 +159,7 @@ type GetLessonByIDRow struct {
 	TranscriptChunks []byte             `json:"transcript_chunks"`
 	AudioFilePath    string             `json:"audio_file_path"`
 	SrtFilePath      string             `json:"srt_file_path"`
+	Status           string             `json:"status"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }
@@ -170,6 +179,7 @@ func (q *Queries) GetLessonByID(ctx context.Context, id pgtype.UUID) (GetLessonB
 		&i.TranscriptChunks,
 		&i.AudioFilePath,
 		&i.SrtFilePath,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -178,7 +188,7 @@ func (q *Queries) GetLessonByID(ctx context.Context, id pgtype.UUID) (GetLessonB
 
 const listAllLessons = `-- name: ListAllLessons :many
 SELECT id, user_id, title, target_language, source_language, total_words, duration_sec,
-       pacing_config, transcript_chunks, audio_file_path, srt_file_path, created_at, updated_at
+       pacing_config, transcript_chunks, audio_file_path, srt_file_path, status, created_at, updated_at
 FROM lessons
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
@@ -201,6 +211,7 @@ type ListAllLessonsRow struct {
 	TranscriptChunks []byte             `json:"transcript_chunks"`
 	AudioFilePath    string             `json:"audio_file_path"`
 	SrtFilePath      string             `json:"srt_file_path"`
+	Status           string             `json:"status"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }
@@ -226,6 +237,7 @@ func (q *Queries) ListAllLessons(ctx context.Context, arg ListAllLessonsParams) 
 			&i.TranscriptChunks,
 			&i.AudioFilePath,
 			&i.SrtFilePath,
+			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -241,7 +253,7 @@ func (q *Queries) ListAllLessons(ctx context.Context, arg ListAllLessonsParams) 
 
 const listLessonsByUserID = `-- name: ListLessonsByUserID :many
 SELECT id, user_id, title, target_language, source_language, total_words, duration_sec,
-       pacing_config, transcript_chunks, audio_file_path, srt_file_path, created_at, updated_at
+       pacing_config, transcript_chunks, audio_file_path, srt_file_path, status, created_at, updated_at
 FROM lessons
 WHERE user_id = $1
 ORDER BY created_at DESC
@@ -266,6 +278,7 @@ type ListLessonsByUserIDRow struct {
 	TranscriptChunks []byte             `json:"transcript_chunks"`
 	AudioFilePath    string             `json:"audio_file_path"`
 	SrtFilePath      string             `json:"srt_file_path"`
+	Status           string             `json:"status"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }
@@ -291,6 +304,7 @@ func (q *Queries) ListLessonsByUserID(ctx context.Context, arg ListLessonsByUser
 			&i.TranscriptChunks,
 			&i.AudioFilePath,
 			&i.SrtFilePath,
+			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -302,6 +316,78 @@ func (q *Queries) ListLessonsByUserID(ctx context.Context, arg ListLessonsByUser
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateLessonRenderResult = `-- name: UpdateLessonRenderResult :one
+UPDATE lessons
+SET status = $2,
+    audio_file_path = $3,
+    srt_file_path = $4,
+    duration_sec = $5,
+    transcript_chunks = $6,
+    total_words = $7,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, title, status, audio_file_path, srt_file_path, duration_sec, updated_at
+`
+
+type UpdateLessonRenderResultParams struct {
+	ID               pgtype.UUID    `json:"id"`
+	Status           string         `json:"status"`
+	AudioFilePath    string         `json:"audio_file_path"`
+	SrtFilePath      string         `json:"srt_file_path"`
+	DurationSec      pgtype.Numeric `json:"duration_sec"`
+	TranscriptChunks []byte         `json:"transcript_chunks"`
+	TotalWords       pgtype.Int4    `json:"total_words"`
+}
+
+type UpdateLessonRenderResultRow struct {
+	ID            pgtype.UUID        `json:"id"`
+	Title         string             `json:"title"`
+	Status        string             `json:"status"`
+	AudioFilePath string             `json:"audio_file_path"`
+	SrtFilePath   string             `json:"srt_file_path"`
+	DurationSec   pgtype.Numeric     `json:"duration_sec"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) UpdateLessonRenderResult(ctx context.Context, arg UpdateLessonRenderResultParams) (UpdateLessonRenderResultRow, error) {
+	row := q.db.QueryRow(ctx, updateLessonRenderResult,
+		arg.ID,
+		arg.Status,
+		arg.AudioFilePath,
+		arg.SrtFilePath,
+		arg.DurationSec,
+		arg.TranscriptChunks,
+		arg.TotalWords,
+	)
+	var i UpdateLessonRenderResultRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Status,
+		&i.AudioFilePath,
+		&i.SrtFilePath,
+		&i.DurationSec,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateLessonStatus = `-- name: UpdateLessonStatus :exec
+UPDATE lessons
+SET status = $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+`
+
+type UpdateLessonStatusParams struct {
+	ID     pgtype.UUID `json:"id"`
+	Status string      `json:"status"`
+}
+
+func (q *Queries) UpdateLessonStatus(ctx context.Context, arg UpdateLessonStatusParams) error {
+	_, err := q.db.Exec(ctx, updateLessonStatus, arg.ID, arg.Status)
+	return err
 }
 
 const upsertLearningProgress = `-- name: UpsertLearningProgress :exec

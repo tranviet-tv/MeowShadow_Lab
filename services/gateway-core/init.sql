@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS lessons (
     -- Audio and subtitle file paths in shared volume
     audio_file_path TEXT NOT NULL,
     srt_file_path TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'READY',
     
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS lessons (
 CREATE INDEX IF NOT EXISTS idx_lessons_chunks ON lessons USING gin (transcript_chunks);
 CREATE INDEX IF NOT EXISTS idx_lessons_user ON lessons (user_id);
 CREATE INDEX IF NOT EXISTS idx_lessons_lang ON lessons (target_language);
+CREATE INDEX IF NOT EXISTS idx_lessons_status ON lessons (status);
 
 -- 5. Learning & Shadowing Progress table
 CREATE TABLE IF NOT EXISTS learning_progress (

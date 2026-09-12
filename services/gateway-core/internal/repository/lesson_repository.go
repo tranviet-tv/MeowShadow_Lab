@@ -15,6 +15,8 @@ type LessonRepository interface {
 	CountLessonsByUserID(ctx context.Context, userID pgtype.UUID) (int64, error)
 	ListAllLessons(ctx context.Context, limit, offset int32) ([]db.ListAllLessonsRow, error)
 	CountAllLessons(ctx context.Context) (int64, error)
+	UpdateLessonStatus(ctx context.Context, id pgtype.UUID, status string) error
+	UpdateLessonRenderResult(ctx context.Context, params db.UpdateLessonRenderResultParams) (*db.UpdateLessonRenderResultRow, error)
 	DeleteLesson(ctx context.Context, id pgtype.UUID) error
 }
 
@@ -66,6 +68,21 @@ func (r *pgxLessonRepository) ListAllLessons(ctx context.Context, limit, offset 
 
 func (r *pgxLessonRepository) CountAllLessons(ctx context.Context) (int64, error) {
 	return r.queries.CountAllLessons(ctx)
+}
+
+func (r *pgxLessonRepository) UpdateLessonStatus(ctx context.Context, id pgtype.UUID, status string) error {
+	return r.queries.UpdateLessonStatus(ctx, db.UpdateLessonStatusParams{
+		ID:     id,
+		Status: status,
+	})
+}
+
+func (r *pgxLessonRepository) UpdateLessonRenderResult(ctx context.Context, params db.UpdateLessonRenderResultParams) (*db.UpdateLessonRenderResultRow, error) {
+	row, err := r.queries.UpdateLessonRenderResult(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	return &row, nil
 }
 
 func (r *pgxLessonRepository) DeleteLesson(ctx context.Context, id pgtype.UUID) error {

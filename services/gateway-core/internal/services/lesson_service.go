@@ -88,6 +88,11 @@ func (s *lessonService) CreateLesson(
 		srtPath = "/app/storage/audio/placeholder.srt"
 	}
 
+	status := req.Status
+	if status == "" {
+		status = "READY"
+	}
+
 	var numDuration pgtype.Numeric
 	_ = numDuration.Scan(fmt.Sprintf("%.2f", req.DurationSec))
 
@@ -102,6 +107,7 @@ func (s *lessonService) CreateLesson(
 		TranscriptChunks: chunksBytes,
 		AudioFilePath:    audioPath,
 		SrtFilePath:      srtPath,
+		Status:           status,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert lesson into database: %w", err)
@@ -121,6 +127,7 @@ func (s *lessonService) CreateLesson(
 		TranscriptChunks: req.TranscriptChunks,
 		AudioFilePath:    audioPath,
 		SrtFilePath:      srtPath,
+		Status:           createdRow.Status,
 		CreatedAt:        createdRow.CreatedAt.Time.Format(time.RFC3339),
 		UpdatedAt:        createdRow.CreatedAt.Time.Format(time.RFC3339),
 	}, nil
@@ -166,6 +173,7 @@ func (s *lessonService) GetLessonByID(ctx context.Context, id string) (*domain.L
 		TranscriptChunks: chunks,
 		AudioFilePath:    row.AudioFilePath,
 		SrtFilePath:      row.SrtFilePath,
+		Status:           row.Status,
 		CreatedAt:        row.CreatedAt.Time.Format(time.RFC3339),
 		UpdatedAt:        row.UpdatedAt.Time.Format(time.RFC3339),
 	}, nil
@@ -224,6 +232,7 @@ func (s *lessonService) ListLessons(
 					TranscriptChunks: chunks,
 					AudioFilePath:    r.AudioFilePath,
 					SrtFilePath:      r.SrtFilePath,
+					Status:           r.Status,
 					CreatedAt:        r.CreatedAt.Time.Format(time.RFC3339),
 					UpdatedAt:        r.UpdatedAt.Time.Format(time.RFC3339),
 				})
@@ -267,6 +276,7 @@ func (s *lessonService) ListLessons(
 			TranscriptChunks: chunks,
 			AudioFilePath:    r.AudioFilePath,
 			SrtFilePath:      r.SrtFilePath,
+			Status:           r.Status,
 			CreatedAt:        r.CreatedAt.Time.Format(time.RFC3339),
 			UpdatedAt:        r.UpdatedAt.Time.Format(time.RFC3339),
 		})

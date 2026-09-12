@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"meowshadow/gateway-core/internal/orchestrator"
 )
 
 // Standard topic and stream names for render pipeline orchestration.
@@ -28,8 +27,8 @@ const (
 type RedisProducer interface {
 	PublishEvent(ctx context.Context, channel string, payload interface{}) error
 	DispatchToStream(ctx context.Context, stream string, values map[string]interface{}) (string, error)
-	SaveJobState(ctx context.Context, job *orchestrator.RenderJob, ttl time.Duration) error
-	GetJobState(ctx context.Context, jobID string) (*orchestrator.RenderJob, error)
+	SaveJobState(ctx context.Context, jobID string, payload interface{}, ttl time.Duration) error
+	GetJobState(ctx context.Context, jobID string) ([]byte, error)
 	Ping(ctx context.Context) error
 	Close() error
 }
@@ -79,13 +78,12 @@ func (p *redisProducer) DispatchToStream(ctx context.Context, stream string, val
 	return entryID, nil
 }
 
-// SaveJobState stores the serialized snapshot of a RenderJob with a time-to-live.
-func (p *redisProducer) SaveJobState(ctx context.Context, job *orchestrator.RenderJob, ttl time.Duration) error {
-	key := fmt.Sprintf("msl:job:%s", job.ID)
-	snapshot := job.GetSnapshot()
-	bytes, err := json.Marshal(snapshot)
+// SaveJobState stores any serializable job payload with a key and time-to-live.
+func (p *redisProducer) SaveJobState(ctx context.Context, jobID string, payload interface{}, ttl time.Duration) error {
+	key := fmt.Sprintf("msl:job:%s", jobID)
+	bytes, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed to serialize job %s: %w", job.ID, err)
+		return fmt.Errorf("failed to serialize job %s: %w", jobID, err)
 	}
 
 	if ttl <= 0 {
@@ -95,20 +93,14 @@ func (p *redisProducer) SaveJobState(ctx context.Context, job *orchestrator.Rend
 	return p.client.Set(ctx, key, bytes, ttl).Err()
 }
 
-// GetJobState retrieves and deserializes a RenderJob by its jobID.
-func (p *redisProducer) GetJobState(ctx context.Context, jobID string) (*orchestrator.RenderJob, error) {
+// GetJobState retrieves raw JSON bytes of a job state by its jobID.
+func (p *redisProducer) GetJobState(ctx context.Context, jobID string) ([]byte, error) {
 	key := fmt.Sprintf("msl:job:%s", jobID)
 	data, err := p.client.Get(ctx, key).Bytes()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get job state %s: %w", jobID, err)
 	}
-
-	var job orchestrator.RenderJob
-	if err := json.Unmarshal(data, &job); err != nil {
-		return nil, fmt.Errorf("failed to deserialize job state %s: %w", jobID, err)
-	}
-
-	return &job, nil
+	return data, nil
 }
 
 // Ping verifies connectivity to the Redis broker.
