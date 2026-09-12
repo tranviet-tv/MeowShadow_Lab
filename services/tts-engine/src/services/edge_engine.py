@@ -124,22 +124,37 @@ class EdgeEngine(BaseTTSEngine):
             norm_volume,
         )
 
-        communicate = edge_tts.Communicate(
-            text=clean_text,
-            voice=voice_id,
-            rate=norm_rate,
-            pitch=norm_pitch,
-            volume=norm_volume,
-        )
+        audio_bytes = b""
+        max_retries = 3
+        for attempt in range(1, max_retries + 1):
+            try:
+                communicate = edge_tts.Communicate(
+                    text=clean_text,
+                    voice=voice_id,
+                    rate=norm_rate,
+                    pitch=norm_pitch,
+                    volume=norm_volume,
+                )
 
-        buffer = io.BytesIO()
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                buffer.write(chunk["data"])
+                buffer = io.BytesIO()
+                async for chunk in communicate.stream():
+                    if chunk["type"] == "audio":
+                        buffer.write(chunk["data"])
 
-        audio_bytes = buffer.getvalue()
-        if not audio_bytes:
-            raise RuntimeError(f"Edge-TTS returned empty audio stream for text: '{clean_text}'")
+                audio_bytes = buffer.getvalue()
+                if audio_bytes:
+                    break
+                raise RuntimeError(f"Edge-TTS returned empty audio stream for text: '{clean_text}'")
+            except Exception as exc:
+                if attempt == max_retries:
+                    logger.error("All %d Edge-TTS synthesis attempts failed for: '%s': %s", max_retries, clean_text[:40], exc)
+                    raise exc
+                backoff = 0.4 * attempt
+                logger.warning(
+                    "Edge-TTS synthesis attempt %d/%d failed (%s). Retrying in %.1fs...",
+                    attempt, max_retries, exc, backoff
+                )
+                await asyncio.sleep(backoff)
 
         if use_cache and cache_key:
             cache_manager.save_to_cache(cache_key, audio_bytes)
