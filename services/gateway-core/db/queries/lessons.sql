@@ -44,3 +44,19 @@ ON CONFLICT (user_id, lesson_id) DO UPDATE SET
 SELECT user_id, lesson_id, playback_offset_sec, shadowing_repeat_count, is_completed, version, last_listened_at
 FROM learning_progress
 WHERE user_id = $1 AND lesson_id = $2 LIMIT 1;
+
+-- name: DeleteLesson :exec
+DELETE FROM lessons
+WHERE id = $1;
+
+-- name: ListAllLessons :many
+SELECT id, user_id, title, target_language, source_language, total_words, duration_sec,
+       pacing_config, transcript_chunks, audio_file_path, srt_file_path, created_at, updated_at
+FROM lessons
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2;
+
+-- name: CountAllLessons :one
+SELECT COUNT(*)
+FROM lessons;
+

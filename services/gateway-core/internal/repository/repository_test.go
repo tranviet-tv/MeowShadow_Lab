@@ -1,0 +1,97 @@
+package repository
+
+import (
+	"context"
+	"testing"
+
+	"github.com/jackc/pgx/v5/pgtype"
+	"meowshadow/gateway-core/internal/repository/db"
+)
+
+// MockUserRepository verifies interface compliance.
+type MockUserRepository struct {
+	Users map[string]*db.User
+}
+
+func (m *MockUserRepository) CreateUser(ctx context.Context, email, passwordHash, fullName string) (*db.CreateUserRow, error) {
+	return &db.CreateUserRow{
+		Email:    email,
+		FullName: pgtype.Text{String: fullName, Valid: true},
+	}, nil
+}
+
+func (m *MockUserRepository) GetUserByEmail(ctx context.Context, email string) (*db.User, error) {
+	if u, ok := m.Users[email]; ok {
+		return u, nil
+	}
+	return nil, nil
+}
+
+func (m *MockUserRepository) GetUserByID(ctx context.Context, id pgtype.UUID) (*db.User, error) {
+	return nil, nil
+}
+
+// MockLessonRepository verifies interface compliance.
+type MockLessonRepository struct {
+	Lessons []db.ListAllLessonsRow
+}
+
+func (m *MockLessonRepository) CreateLesson(ctx context.Context, params db.CreateLessonParams) (*db.CreateLessonRow, error) {
+	return &db.CreateLessonRow{
+		Title: params.Title,
+	}, nil
+}
+
+func (m *MockLessonRepository) GetLessonByID(ctx context.Context, id pgtype.UUID) (*db.GetLessonByIDRow, error) {
+	return &db.GetLessonByIDRow{
+		Title: "Mock Lesson",
+	}, nil
+}
+
+func (m *MockLessonRepository) ListLessonsByUserID(ctx context.Context, userID pgtype.UUID, limit, offset int32) ([]db.ListLessonsByUserIDRow, error) {
+	return []db.ListLessonsByUserIDRow{}, nil
+}
+
+func (m *MockLessonRepository) CountLessonsByUserID(ctx context.Context, userID pgtype.UUID) (int64, error) {
+	return 0, nil
+}
+
+func (m *MockLessonRepository) ListAllLessons(ctx context.Context, limit, offset int32) ([]db.ListAllLessonsRow, error) {
+	return m.Lessons, nil
+}
+
+func (m *MockLessonRepository) CountAllLessons(ctx context.Context) (int64, error) {
+	return int64(len(m.Lessons)), nil
+}
+
+func (m *MockLessonRepository) DeleteLesson(ctx context.Context, id pgtype.UUID) error {
+	return nil
+}
+
+func TestRepositoryInterfaces(t *testing.T) {
+	// Verify that mock types implement interfaces
+	var userRepo UserRepository = &MockUserRepository{
+		Users: make(map[string]*db.User),
+	}
+	if userRepo == nil {
+		t.Fatal("Expected non-nil user repository")
+	}
+
+	var lessonRepo LessonRepository = &MockLessonRepository{
+		Lessons: []db.ListAllLessonsRow{
+			{Title: "Shadowing Unit 1"},
+		},
+	}
+	if lessonRepo == nil {
+		t.Fatal("Expected non-nil lesson repository")
+	}
+
+	ctx := context.Background()
+	total, err := lessonRepo.CountAllLessons(ctx)
+	if err != nil {
+		t.Fatalf("CountAllLessons returned error: %v", err)
+	}
+	if total != 1 {
+		t.Errorf("Expected 1 lesson, got %d", total)
+	}
+}

@@ -12,6 +12,18 @@ import (
 	"github.com/pgvector/pgvector-go"
 )
 
+const countAllLessons = `-- name: CountAllLessons :one
+SELECT COUNT(*)
+FROM lessons
+`
+
+func (q *Queries) CountAllLessons(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countAllLessons)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countLessonsByUserID = `-- name: CountLessonsByUserID :one
 SELECT COUNT(*)
 FROM lessons
@@ -72,6 +84,16 @@ func (q *Queries) CreateLesson(ctx context.Context, arg CreateLessonParams) (Cre
 	var i CreateLessonRow
 	err := row.Scan(&i.ID, &i.Title, &i.CreatedAt)
 	return i, err
+}
+
+const deleteLesson = `-- name: DeleteLesson :exec
+DELETE FROM lessons
+WHERE id = $1
+`
+
+func (q *Queries) DeleteLesson(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteLesson, id)
+	return err
 }
 
 const getLearningProgress = `-- name: GetLearningProgress :one
@@ -152,6 +174,69 @@ func (q *Queries) GetLessonByID(ctx context.Context, id pgtype.UUID) (GetLessonB
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const listAllLessons = `-- name: ListAllLessons :many
+SELECT id, user_id, title, target_language, source_language, total_words, duration_sec,
+       pacing_config, transcript_chunks, audio_file_path, srt_file_path, created_at, updated_at
+FROM lessons
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type ListAllLessonsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type ListAllLessonsRow struct {
+	ID               pgtype.UUID        `json:"id"`
+	UserID           pgtype.UUID        `json:"user_id"`
+	Title            string             `json:"title"`
+	TargetLanguage   string             `json:"target_language"`
+	SourceLanguage   pgtype.Text        `json:"source_language"`
+	TotalWords       pgtype.Int4        `json:"total_words"`
+	DurationSec      pgtype.Numeric     `json:"duration_sec"`
+	PacingConfig     []byte             `json:"pacing_config"`
+	TranscriptChunks []byte             `json:"transcript_chunks"`
+	AudioFilePath    string             `json:"audio_file_path"`
+	SrtFilePath      string             `json:"srt_file_path"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) ListAllLessons(ctx context.Context, arg ListAllLessonsParams) ([]ListAllLessonsRow, error) {
+	rows, err := q.db.Query(ctx, listAllLessons, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllLessonsRow
+	for rows.Next() {
+		var i ListAllLessonsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Title,
+			&i.TargetLanguage,
+			&i.SourceLanguage,
+			&i.TotalWords,
+			&i.DurationSec,
+			&i.PacingConfig,
+			&i.TranscriptChunks,
+			&i.AudioFilePath,
+			&i.SrtFilePath,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listLessonsByUserID = `-- name: ListLessonsByUserID :many

@@ -11,13 +11,16 @@ import (
 )
 
 type Querier interface {
+	CountAllLessons(ctx context.Context) (int64, error)
 	CountLessonsByUserID(ctx context.Context, userID pgtype.UUID) (int64, error)
 	CreateLesson(ctx context.Context, arg CreateLessonParams) (CreateLessonRow, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	DeleteLesson(ctx context.Context, id pgtype.UUID) error
 	GetLearningProgress(ctx context.Context, arg GetLearningProgressParams) (GetLearningProgressRow, error)
 	GetLessonByID(ctx context.Context, id pgtype.UUID) (GetLessonByIDRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
+	ListAllLessons(ctx context.Context, arg ListAllLessonsParams) ([]ListAllLessonsRow, error)
 	ListLessonsByUserID(ctx context.Context, arg ListLessonsByUserIDParams) ([]ListLessonsByUserIDRow, error)
 	UpsertLearningProgress(ctx context.Context, arg UpsertLearningProgressParams) error
 	UpsertUserDevice(ctx context.Context, arg UpsertUserDeviceParams) error
