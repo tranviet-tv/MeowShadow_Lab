@@ -111,5 +111,7 @@ Thumbs.db
 *.swo
 
 # 9. Local AI Assistant Tooling
+.agents/
 .gemini/
 .claude/
+
