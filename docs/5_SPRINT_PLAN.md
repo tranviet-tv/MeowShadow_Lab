@@ -135,7 +135,7 @@ gantt
 
 | Mã Task | Tên Công Việc | Chi Tiết Kỹ Thuật | File Tác Động | Ước Tính | Trạng Thái |
 | :--- | :--- | :--- | :--- | :---: | :---: |
-| **SP04-01** | Module Nối Clips & Mastering EBU R128 | - Viết `audio_master.py` gọi FFmpeg nối audio clips không mất chất lượng<br>- Áp dụng bộ lọc `loudnorm=I=-16:LRA=7:tp=-1.5`<br>- Áp dụng Fade-in (0.5s) đầu bài và Fade-out (1.0s) cuối bài | `services/audio-processor/src/services/audio_master.py` | 0.8 ngày | ⚪ Chờ thực hiện |
+| **SP04-01** | Module Nối Clips & Mastering EBU R128 | - Viết `audio_master.py` gọi FFmpeg nối audio clips không mất chất lượng<br>- Áp dụng bộ lọc `loudnorm=I=-16:LRA=7:tp=-1.5`<br>- Áp dụng Fade-in (0.5s) đầu bài và Fade-out (1.0s) cuối bài | `services/audio-processor/src/services/audio_master.py` | 0.8 ngày | ✅ Hoàn thành |
 | **SP04-02** | Engine Sinh Phụ Đề Chuẩn Xác SRT & VTT | - Viết `subtitle_engine.py`: Đo duration thực tế từng clip<br>- Tính toán mốc `start_time` và `end_time` xuất file `.srt` và `.vtt`<br>- Đảm bảo mốc thời gian phụ đề khớp hoàn toàn với câu đang đọc | `services/audio-processor/src/services/subtitle_engine.py` | 0.6 ngày | ⚪ Chờ thực hiện |
 | **SP04-03** | Trích Xuất Dữ Liệu Sóng Âm (Waveform Peaks) | - Viết `waveform_builder.py`: Tạo mảng JSON 100–200 điểm đỉnh âm (amplitude peaks) phục vụ hiển thị visualizer trên UI | `services/audio-processor/src/services/waveform_builder.py` | 0.4 ngày | ⚪ Chờ thực hiện |
 | **SP04-04** | API Endpoint & Worker Redis Consumer | - Endpoint `POST /api/v1/process` phục vụ test trực tiếp qua HTTP<br>- Worker `consumer.py` lắng nghe task `AUDIO_MASTERING` từ Redis queue | `services/audio-processor/src/api/v1/endpoints/process.py`<br>`services/audio-processor/src/workers/consumer.py` | 0.5 ngày | ⚪ Chờ thực hiện |

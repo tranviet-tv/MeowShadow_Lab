@@ -2,6 +2,7 @@
 
 from .silence_generator import SilenceGenerator, silence_generator
 from .cue_sound import CueSoundService, cue_sound_service
+from .audio_master import AudioMaster, audio_master, MasteringMetadata
 from .pacing_builder import (
     PacingBuilder,
     pacing_builder,
@@ -20,4 +21,8 @@ __all__ = [
     "PacingBuildResult",
     "TimelineSegment",
     "SegmentType",
+    "AudioMaster",
+    "audio_master",
+    "MasteringMetadata",
 ]
+
