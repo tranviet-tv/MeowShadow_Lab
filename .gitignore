@@ -84,6 +84,7 @@ storage/temp/*
 *.m4a
 *.srt
 *.vtt
+!assets/audio/**
 
 # 7. Mobile (React Native / Expo)
 .expo/

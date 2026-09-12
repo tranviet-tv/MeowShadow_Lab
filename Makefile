@@ -1,4 +1,4 @@
-.PHONY: help up down logs ps restart psql redis-cli clean test-infra db-status db-migrate db-rollback db-seed db-studio
+.PHONY: help up down logs ps restart psql redis-cli clean test-infra db-status db-migrate db-rollback db-seed db-reset db-studio
 
 # Default help target
 help:
@@ -21,6 +21,7 @@ help:
 	@echo "    make db-rollback - Rollback 1 migration step"
 	@echo "    make db-status   - Check migration status and history"
 	@echo "    make db-seed     - Seed development testing data into database"
+	@echo "    make db-reset    - Reset database (rollback, re-migrate & re-seed)"
 	@echo "    make db-studio   - Launch Web Database Studio (http://localhost:8080)"
 	@echo "======================================================================"
 
@@ -82,6 +83,15 @@ db-rollback:
 # Seed development testing data
 db-seed:
 	docker compose run --rm db-migration goose -table goose_seed_version -dir /seeds up
+
+# Reset database (clean migrations, re-apply schema & re-seed test data)
+db-reset:
+	@echo "--- Resetting MeowShadow Database ---"
+	docker compose run --rm db-migration goose -table goose_seed_version -dir /seeds reset || true
+	docker compose run --rm db-migration goose -dir /migrations reset
+	docker compose run --rm db-migration goose -dir /migrations up
+	docker compose run --rm db-migration goose -table goose_seed_version -dir /seeds up
+	@echo "Database reset and seeded successfully!"
 
 # Launch Web Database Studio
 db-studio:

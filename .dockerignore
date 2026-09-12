@@ -1,0 +1,35 @@
+# Docker ignore file for MeowShadow Lab
+
+# Version control
+.git
+.gitignore
+
+# Python virtual environments & bytecode
+**/.venv
+**/venv
+**/env
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache
+**/.coverage
+**/htmlcov
+
+# Node.js dependencies & build artifacts
+**/node_modules
+**/.next
+**/dist
+**/build
+**/.turbo
+
+# Local storage and caches
+storage/cache/*
+storage/temp/*
+!storage/cache/.gitkeep
+!storage/temp/.gitkeep
+
+# System & IDE files
+.DS_Store
+.idea
+.vscode
