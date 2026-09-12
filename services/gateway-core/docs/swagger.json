@@ -1,0 +1,268 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "MeowShadow Lab Gateway Core API",
+    "description": "Golang Fiber API Gateway, Authentication Hub, HTTP 206 Range Audio Streaming, Static Subtitles & Waveform Assets, and WebSocket Realtime Hub.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "MeowShadow Lab Engineering Team",
+      "url": "https://github.com/tranviet-tv/MeowShadow_Lab"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local Development Gateway"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Root Identification",
+        "description": "Returns basic service identification and version metadata.",
+        "responses": {
+          "200": {
+            "description": "Service running"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Top-level health check endpoint for Docker and load balancers.",
+        "responses": {
+          "200": {
+            "description": "Healthy"
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "summary": "API v1 Health Check",
+        "tags": ["System"],
+        "responses": {
+          "200": {
+            "description": "API Gateway healthy"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "summary": "Register User",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 6 },
+                  "full_name": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created successfully" },
+          "400": { "description": "Invalid input" },
+          "409": { "description": "Email already exists" }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "Login User",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login successful, returns JWT access and refresh tokens" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/v1/auth/guest": {
+      "post": {
+        "summary": "Guest Session",
+        "tags": ["Authentication"],
+        "responses": {
+          "200": { "description": "Guest session issued with temporary JWT" }
+        }
+      }
+    },
+    "/api/v1/lessons": {
+      "get": {
+        "summary": "List Lessons",
+        "tags": ["Lessons"],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated lessons list" }
+        }
+      },
+      "post": {
+        "summary": "Create Lesson",
+        "tags": ["Lessons"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "transcript_chunks"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "target_language": { "type": "string", "enum": ["en", "ja"] },
+                  "source_language": { "type": "string", "default": "vi" },
+                  "transcript_chunks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "order": { "type": "integer" },
+                        "lang": { "type": "string" },
+                        "text": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Lesson created" }
+        }
+      }
+    },
+    "/api/v1/lessons/{id}": {
+      "get": {
+        "summary": "Get Lesson Detail",
+        "tags": ["Lessons"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Lesson detail with chunks and pacing configuration" },
+          "404": { "description": "Lesson not found" }
+        }
+      },
+      "delete": {
+        "summary": "Delete Lesson",
+        "tags": ["Lessons"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Lesson deleted" },
+          "404": { "description": "Lesson not found" }
+        }
+      }
+    },
+    "/api/v1/audio/stream/{id}": {
+      "get": {
+        "summary": "HTTP 206 Partial Content Audio Streaming",
+        "tags": ["Audio Streaming"],
+        "description": "Streams lesson audio in MP3 format with RFC 7233 byte-range support (<100ms seek latency). Compatible with Safari, Chrome, and iOS AVPlayer.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "Range", "in": "header", "description": "Byte range request (e.g. bytes=0-1024, bytes=0-1)", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Full audio file delivered" },
+          "206": { "description": "Partial content chunk delivered with Content-Range header" },
+          "416": { "description": "Range not satisfiable" },
+          "404": { "description": "Audio file not found" }
+        }
+      }
+    },
+    "/api/v1/lessons/{id}/subtitles.srt": {
+      "get": {
+        "summary": "Get SubRip (SRT) Subtitle File",
+        "tags": ["Static Assets"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "SRT subtitle text content" },
+          "404": { "description": "Subtitles not found" }
+        }
+      }
+    },
+    "/api/v1/lessons/{id}/subtitles.vtt": {
+      "get": {
+        "summary": "Get WebVTT Subtitle File",
+        "tags": ["Static Assets"],
+        "description": "Distributes WebVTT format subtitles for HTML5 video/audio elements, with automatic conversion from SRT timestamps.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "WebVTT subtitle text content" },
+          "404": { "description": "Subtitles not found" }
+        }
+      }
+    },
+    "/api/v1/lessons/{id}/waveform.json": {
+      "get": {
+        "summary": "Get Audio Waveform Peaks JSON",
+        "tags": ["Static Assets"],
+        "description": "Returns normalized 100-point audio waveform peak data for WaveSurfer / Player waveform rendering.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Waveform peaks array and audio duration" }
+        }
+      }
+    },
+    "/ws/progress": {
+      "get": {
+        "summary": "WebSocket Realtime Progress Hub",
+        "tags": ["Realtime WebSockets"],
+        "description": "WebSocket endpoint streaming live render progress percentages (15% -> 60% -> 90% -> 100%) and estimated remaining seconds.",
+        "parameters": [
+          { "name": "job_id", "in": "query", "description": "Filter progress events by Render Job UUID", "schema": { "type": "string" } },
+          { "name": "lesson_id", "in": "query", "description": "Filter progress events by Lesson UUID", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "101": { "description": "Switching Protocols to WebSocket" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

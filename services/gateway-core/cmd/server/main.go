@@ -83,6 +83,10 @@ func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc servic
 	assetsHandler := deliveryHttp.NewAssetsHandler(lessonSvc, cfg.StorageDir)
 	assetsHandler.RegisterRoutes(apiV1)
 
+	// Mount Swagger / OpenAPI 3.0 Documentation routes
+	swaggerHandler := deliveryHttp.NewSwaggerHandler("docs/swagger.json")
+	swaggerHandler.RegisterRoutes(app)
+
 	// WebSocket Protocol Upgrade Middleware
 	app.Use("/ws", func(c *fiber.Ctx) error {
 		if fiberWs.IsWebSocketUpgrade(c) {

@@ -64,3 +64,29 @@ func TestSetupApp_HealthEndpoints(t *testing.T) {
 		t.Errorf("Expected status 404, got %d", resp404.StatusCode)
 	}
 }
+
+func TestSetupApp_SwaggerEndpoints(t *testing.T) {
+	cfg := config.LoadConfig()
+	app := SetupApp(cfg, nil, nil)
+
+	// Test GET /swagger
+	reqSwagger := httptest.NewRequest(http.MethodGet, "/swagger", nil)
+	respSwagger, err := app.Test(reqSwagger, -1)
+	if err != nil {
+		t.Fatalf("Failed to execute request to /swagger: %v", err)
+	}
+	if respSwagger.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200 on /swagger, got %d", respSwagger.StatusCode)
+	}
+
+	// Test GET /swagger/doc.json
+	reqDoc := httptest.NewRequest(http.MethodGet, "/swagger/doc.json", nil)
+	respDoc, err := app.Test(reqDoc, -1)
+	if err != nil {
+		t.Fatalf("Failed to execute request to /swagger/doc.json: %v", err)
+	}
+	if respDoc.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200 on /swagger/doc.json, got %d", respDoc.StatusCode)
+	}
+}
+
