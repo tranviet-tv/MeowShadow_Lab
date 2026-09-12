@@ -14,11 +14,15 @@ import (
 	"meowshadow/gateway-core/config"
 	deliveryHttp "meowshadow/gateway-core/internal/delivery/http"
 	"meowshadow/gateway-core/internal/delivery/middleware"
+	"meowshadow/gateway-core/internal/repository"
+	"meowshadow/gateway-core/internal/repository/db"
+	"meowshadow/gateway-core/internal/repository/postgres"
+	"meowshadow/gateway-core/internal/services"
 	"meowshadow/gateway-core/pkg/response"
 )
 
 // SetupApp builds and configures the Fiber application with all middleware and routes.
-func SetupApp(cfg *config.Config) *fiber.App {
+func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc services.LessonService) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName:      "MeowShadow Gateway Core v1.0.0",
 		ServerHeader: "Fiber",
@@ -37,6 +41,9 @@ func SetupApp(cfg *config.Config) *fiber.App {
 	app.Use(middleware.NewLogger())
 	app.Use(middleware.NewRateLimiter(cfg.RateLimitMaxRequests, cfg.RateLimitExpirationSec))
 
+	// Auth JWT Middleware
+	jwtAuth := middleware.NewJWTAuth(cfg.JWTSecret)
+
 	// Root identification endpoint
 	app.Get("/", func(c *fiber.Ctx) error {
 		return response.Success(c, fiber.StatusOK, "MeowShadow Gateway Core is running", fiber.Map{
@@ -54,6 +61,18 @@ func SetupApp(cfg *config.Config) *fiber.App {
 	apiV1 := app.Group("/api/v1")
 	healthHandler.RegisterRoutes(apiV1)
 
+	// Mount Auth routes if service is provided
+	if authSvc != nil {
+		authHandler := deliveryHttp.NewAuthHandler(authSvc)
+		authHandler.RegisterRoutes(apiV1, jwtAuth)
+	}
+
+	// Mount Lesson CRUD routes if service is provided
+	if lessonSvc != nil {
+		lessonHandler := deliveryHttp.NewLessonHandler(lessonSvc)
+		lessonHandler.RegisterRoutes(apiV1, jwtAuth)
+	}
+
 	// Custom 404 handler
 	app.Use(func(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusNotFound, "Not Found", fmt.Sprintf("Route '%s' not found", c.Path()))
@@ -64,7 +83,31 @@ func SetupApp(cfg *config.Config) *fiber.App {
 
 func main() {
 	cfg := config.LoadConfig()
-	app := SetupApp(cfg)
+	ctx := context.Background()
+
+	// Initialize database connection pool
+	pool, err := postgres.NewPool(ctx, cfg.DatabaseURL)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize PostgreSQL pool: %v", err)
+	}
+	defer func() {
+		if pool != nil {
+			pool.Close()
+		}
+	}()
+
+	var authSvc services.AuthService
+	var lessonSvc services.LessonService
+
+	if pool != nil {
+		queries := db.New(pool)
+		userRepo := repository.NewUserRepository(queries)
+		lessonRepo := repository.NewLessonRepository(queries)
+		authSvc = services.NewAuthService(userRepo, cfg)
+		lessonSvc = services.NewLessonService(lessonRepo)
+	}
+
+	app := SetupApp(cfg, authSvc, lessonSvc)
 
 	// Channel to listen for OS signals for graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)
@@ -82,10 +125,10 @@ func main() {
 	sig := <-shutdownChan
 	log.Printf("Received signal %s. Initiating graceful shutdown...", sig)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := app.ShutdownWithContext(ctx); err != nil {
+	if err := app.ShutdownWithContext(shutdownCtx); err != nil {
 		log.Fatalf("Server forced to shutdown with error: %v", err)
 	}
 

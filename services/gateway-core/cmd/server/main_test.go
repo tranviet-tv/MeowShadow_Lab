@@ -13,7 +13,7 @@ import (
 
 func TestSetupApp_HealthEndpoints(t *testing.T) {
 	cfg := config.LoadConfig()
-	app := SetupApp(cfg)
+	app := SetupApp(cfg, nil, nil)
 
 	// Test 1: GET /health
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
