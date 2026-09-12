@@ -75,11 +75,11 @@ gantt
 | :--- | :--- | :--- | :--- | :---: | :---: |
 | **SP01-01** | Cấu trúc Monorepo & Tooling | - Cấu hình `pnpm-workspace.yaml`, `package.json`<br>- Thiết lập TypeScript Base Configs (`packages/tsconfig`)<br>- Cấu hình Biome/ESLint & Husky pre-commit hooks | `pnpm-workspace.yaml`<br>`packages/tsconfig/`<br>`packages/eslint-config/` | 0.5 ngày | ✅ Hoàn thành |
 | **SP01-02** | Xây dựng `@meowshadow/types` | - Khai báo Interfaces: `ScriptChunk`, `LanguageTag`, `PacingConfig`, `VoiceConfig`<br>- Khai báo Schemas: `Lesson`, `JobProgress`, `AudioMetadata`, `WebSocketMessage` | `packages/shared-types/src/index.ts`<br>`packages/shared-types/package.json` | 0.5 ngày | ✅ Hoàn thành |
-| **SP01-03** | Khởi tạo Gói `@meowshadow/api-client` | - Scaffold thư viện Axios/Fetch Client dùng chung kiểu dữ liệu cho Web và Mobile | `packages/api-client/` | 0.5 ngày | ⚪ Chờ thực hiện |
+| **SP01-03** | Hoàn thiện Gói `@meowshadow/api-client` | - Thư viện HTTP Client (Fetch) & WebSocket wrapper dùng chung cho Web và Mobile, định kiểu từ `@meowshadow/types`, xuất dist sạch lỗi | `packages/api-client/` | 0.5 ngày | ✅ Hoàn thành |
 | **SP01-04** | Kiểm thử Type Check & Build Toàn Repo | - Chạy `pnpm --filter @meowshadow/types build`<br>- Đảm bảo tất cả packages export types sạch lỗi | `packages/shared-types/tsconfig.json` | 0.2 ngày | ✅ Hoàn thành |
 
 * **Định nghĩa hoàn thành (DoD - Sprint 1):**
-  - Gói `@meowshadow/types` biên dịch thành công file `.d.ts` và `.js` ra thư mục `dist/`.
+  - Gói `@meowshadow/types` và `@meowshadow/api-client` biên dịch thành công file `.d.ts` và `.js` ra thư mục `dist/`.
   - Không có lỗi type checking (`pnpm type-check` pass 100%).
 
 ---
@@ -94,8 +94,8 @@ gantt
 | **SP02-01** | Tối ưu Hóa `docker-compose.yml` | - Phân tách Profiles: `db`, `tools`, `services`, `full`<br>- Khởi tạo Volumes: `postgres-data`, `redis-data`, `storage-data`<br>- Cấu hình Bridge Network `meowshadow-network` | `docker-compose.yml`<br>`.env.example` | 0.5 ngày | ✅ Hoàn thành |
 | **SP02-02** | Khởi tạo Goose SQL Migrations | - `00001_init_extensions.sql` (uuid-ossp, pgvector)<br>- `00002_create_users_tables.sql`<br>- `00003_create_lessons_tables.sql` (JSONB chunks, GIN index)<br>- `00004_create_progress_tables.sql` | `services/gateway-core/db/migrations/`<br>`services/gateway-core/Dockerfile.migration` | 0.5 ngày | ✅ Hoàn thành |
 | **SP02-03** | Cấu hình Redis Broker & Adminer Studio | - Thiết lập Redis 7 AOF persistence cho Message Queue<br>- Đưa container Adminer Web Studio (`:8080`) vào profile `tools` | `docker-compose.yml`<br>`services/gateway-core/init.sql` | 0.3 ngày | ✅ Hoàn thành |
-| **SP02-04** | Bộ Dữ Liệu Mẫu (Seed Data 1.500 từ) | - Viết SQL Seed nạp 2 bài học mẫu chuẩn 1.500 từ (EN/VI và JA/VI) kèm các mốc pacing | `services/gateway-core/db/seeds/` | 0.4 ngày | ⚪ Chờ thực hiện |
-| **SP02-05** | Kiểm tra Health Check & Reset Database | - Viết lệnh `make db-up`, `make db-migrate`, `make db-reset` kiểm tra toàn bộ | `Makefile` | 0.3 ngày | ⚪ Chờ thực hiện |
+| **SP02-04** | Bộ Dữ Liệu Mẫu (Seed Data 1.500 từ) | - Nạp 2 bài học mẫu chuẩn 1.500 từ (EN/VI và JA/VI) qua `00002_sample_1500w_lessons.sql` tuân thủ nghiêm ngặt quy chuẩn Tiếng Việt đọc trước, Ngoại ngữ đọc sau kèm các mốc pacing | `services/gateway-core/db/seeds/` | 0.4 ngày | ✅ Hoàn thành |
+| **SP02-05** | Kiểm tra Health Check & Reset Database | - Bổ sung lệnh `make db-reset` vào `Makefile`; Chạy kiểm thử tự động toàn diện trên Docker thành công 100% | `Makefile` | 0.3 ngày | ✅ Hoàn thành |
 
 * **Định nghĩa hoàn thành (DoD - Sprint 2):**
   - Chạy `docker compose up -d postgres-db redis-broker` đạt trạng thái `healthy`.
@@ -108,6 +108,10 @@ gantt
 * **Mục tiêu:** Xây dựng service Python FastAPI `services/audio-processor` chịu trách nhiệm tạo khoảng lặng kỹ thuật số chuẩn mili-giây (`silence_generator.py`) và thuật toán định nhịp xen kẽ (`pacing_builder.py`): 1.5s sau tiếng Việt, 3.5s sau tiếng Anh/Nhật, 0.5s giữa các câu.
 * **Thời lượng dự kiến:** 2 ngày.
 * **Mức độ ưu tiên:** P0 (Cốt lõi thuật toán Shadowing).
+
+> [!IMPORTANT]
+> **Quy Chuẩn Bắt Buộc Thứ Tự Phát (Mandatory Audio Sequencing: Tiếng Việt Đọc Trước):**
+> Mọi file audio đầu ra của hệ thống BẮT BUỘC đọc câu Tiếng Việt trước (`[VI]`), sau đó đến khoảng lặng 1.5s (kèm âm thanh Chime), tiếp đến mới đọc câu Ngoại ngữ (`[EN]` hoặc `[JA]`), và cuối cùng là khoảng lặng 3.5s để người học nhại giọng Shadowing.
 
 | Mã Task | Tên Công Việc | Chi Tiết Kỹ Thuật | File Tác Động | Ước Tính | Trạng Thái |
 | :--- | :--- | :--- | :--- | :---: | :---: |

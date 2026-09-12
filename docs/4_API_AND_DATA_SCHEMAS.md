@@ -217,8 +217,12 @@ Mọi phản hồi lỗi từ Golang Gateway đều bắt buộc tuân theo đ�
 
 ### 2.4. Nhóm Soạn Thảo & Khởi Tạo Audio (Script Studio & Audio Generator)
 
+> [!IMPORTANT]
+> **Quy Chuẩn Bắt Buộc Thứ Tự Phát (Mandatory Audio Sequencing):**
+> Trong toàn bộ file audio và cấu trúc `chunks`, **Tiếng Việt (`lang: "vi"`) BẮT BUỘC được đọc trước** để người học hiểu ngữ nghĩa, sau đó chèn khoảng lặng 1.5s (kèm âm thanh Chime), rồi mới đến **câu Ngoại ngữ tương ứng (`lang: "en"` hoặc `lang: "ja"`) đọc sau** kèm khoảng lặng 3.5s phục vụ nhại giọng Shadowing.
+
 #### 🔹 `POST /api/v1/scripts/auto-translate`
-* **Mô tả:** Nhận văn bản thô 1.300–1.500 từ, gọi Python LLM Worker dịch và phân đoạn thành các cặp 3–4 câu.
+* **Mô tả:** Nhận văn bản thô 1.300–1.500 từ, gọi Python LLM Worker dịch và phân đoạn thành các cặp 3–4 câu tuân thủ nghiêm ngặt quy tắc Tiếng Việt đứng trước, Ngoại ngữ đứng sau.
 * **Request Body:**
   ```json
   {

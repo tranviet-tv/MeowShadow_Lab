@@ -38,11 +38,17 @@ Tài liệu này xác định đầy đủ các yêu cầu chức năng (FR) và
 
 ## 2. QUY CHUẨN ÂM THANH & ĐỊNH NHỊP SHADOWING (AUDIO STANDARDS)
 
+### 2.0. Quy Chuẩn Thứ Tự Phát Bắt Buộc (Mandatory Audio Sequencing: Vietnamese First)
+* **Quy tắc bất biến:** Toàn bộ hệ sinh thái MeowShadow Lab (Audio Processor, Web Studio, Mobile App) **BẮT BUỘC ĐỌC TIẾNG VIỆT TRƯỚC, SAU ĐÓ MỚI ĐỌC TIẾNG ANH HOẶC TIẾNG NHẬT**.
+* **Luồng phát chuẩn cho từng cặp câu (Audio Chunk Flow):**
+  $$\text{[Câu Tiếng Việt (VI)]} \xrightarrow{\text{Lặng 1.5s + Chime}} \text{[Câu Ngoại Ngữ (EN/JA)]} \xrightarrow{\text{Lặng 3.5s Shadowing}} \text{[0.5s Sang khối tiếp theo]}$$
+* **Ý nghĩa sư phạm:** Giúp người học tiếp nhận và hiểu trọn vẹn ngữ nghĩa bằng tiếng mẹ đẻ trước, định hình ý niệm trong não bộ; ngay sau đó tiếp nhận phát âm chuẩn bản ngữ và có trọn vẹn 3.5 giây để nhại lại giọng (Shadowing) thành tiếng.
+
 ### 2.1. Quy tắc Khoảng lặng Nhịp điệu (Smart Silence Pacing)
 * **Khoảng lặng giữa các câu trong cùng một khối:** `0.5s`.
-* **Khoảng lặng sau khối Tiếng Việt (`[VI] -> [EN]/[JA]`):** Mặc định **`1.5s`** (thời gian để não bộ chuyển đổi ngữ cảnh tư duy).
-* **Khoảng lặng sau khối Ngoại ngữ (`[EN]/[JA] -> [VI]`):** Mặc định **`3.5s`** (thời gian vàng để người học nhại giọng hoặc nhẩm lại câu theo phương pháp Shadowing).
-* **Âm thanh hiệu ứng chuyển đoạn (Transition Cue):** Tùy chọn chèn tiếng chuông "ding" êm dịu khi chuyển giữa 2 ngôn ngữ.
+* **Khoảng lặng sau khối Tiếng Việt (`[VI] -> [EN]/[JA]`):** Mặc định **`1.5s`** (thời gian để não bộ chuyển đổi ngữ cảnh tư duy kèm âm thanh báo hiệu Chime).
+* **Khoảng lặng sau khối Ngoại ngữ (`[EN]/[JA] -> Khối tiếp theo`):** Mặc định **`3.5s`** (thời gian vàng để người học nhại giọng hoặc nhẩm lại câu theo phương pháp Shadowing).
+* **Âm thanh hiệu ứng chuyển đoạn (Transition Cue):** Tùy chọn chèn tiếng chuông "ding" êm dịu khi chuyển từ Tiếng Việt sang Ngoại ngữ.
 
 ### 2.2. Tiêu chuẩn Kỹ thuật Âm thanh
 * **Định dạng:** MP3 (192kbps / 320kbps) hoặc WAV Lossless (44.1kHz, 16-bit).

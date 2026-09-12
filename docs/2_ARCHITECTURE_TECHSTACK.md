@@ -82,7 +82,7 @@ flowchart TD
 | **`services/gateway-core`** | **Golang (Fiber / Gin)** | `8000` | API Gateway, Quản lý Auth, WebSocket Hub, HTTP Range Audio Streaming, Orchestrator. |
 | **`services/script-llm`** | **Python (FastAPI, Ollama SDK)** | `8001` | Regex Parser bóc tách thẻ `[VI]`, `[EN]`, `[JA]`, tích hợp Ollama Qwen 2.5 phân đoạn và dịch. |
 | **`services/tts-engine`** | **Python (FastAPI, PyTorch MPS)** | `8002` | Tổng hợp giọng nói song song (`edge-tts`, `Fish-Speech`, `Kokoro`), Smart Cache MD5. |
-| **`services/audio-processor`** | **Python (FastAPI, Pydub, FFmpeg)** | `8003` | Chèn khoảng lặng pacing, ghép nối clip, EBU R128 (-16 LUFS), sinh timestamps SRT/VTT. |
+| **`services/audio-processor`** | **Python (FastAPI, Pydub, FFmpeg)** | `8003` | Chèn khoảng lặng pacing (Quy chuẩn: Tiếng Việt đọc trước -> Lặng 1.5s -> Tiếng Anh/Nhật đọc sau -> Lặng 3.5s), ghép nối clip, EBU R128 (-16 LUFS), sinh timestamps SRT/VTT. |
 | **`postgres-db`** | **PostgreSQL 16 Alpine** | `5432` | Lưu trữ trung tâm (Users, Lessons, JSONB Chunks & Timestamps). |
 | **`redis-broker`** | **Redis 7 Alpine** | `6379` | Message broker phân phối Job Queue và kênh Pub/Sub cho WebSocket Realtime. |
 

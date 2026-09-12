@@ -84,7 +84,7 @@ storage/temp/*
 *.m4a
 *.srt
 *.vtt
-!assets/audio/**
+!assets/audio/*.wav
 
 # 7. Mobile (React Native / Expo)
 .expo/
@@ -109,3 +109,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# 9. Local AI Assistant Tooling
+.gemini/
+.claude/
