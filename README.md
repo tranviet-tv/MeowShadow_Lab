@@ -42,7 +42,7 @@ Toàn bộ tài liệu phân tích, kiến trúc, thiết kế API và lộ trì
 | **[`2_ARCHITECTURE_TECHSTACK.md`](./docs/2_ARCHITECTURE_TECHSTACK.md)** | Kiến trúc hệ thống & Database | Sơ đồ Polyglot Microservices, Go Fiber API Gateway, Python AI Workers, Schema PostgreSQL 16 (JSONB & GIN Index), Redis 7. |
 | **[`3_DOCKER_CONTAINERIZATION.md`](./docs/3_DOCKER_CONTAINERIZATION.md)** | Hạ tầng 100% Docker-First | Cấu hình `docker-compose.yml`, multi-stage builds, mạng nội bộ `meowshadow-network` và volume lưu trữ audio. |
 | **[`4_API_AND_DATA_SCHEMAS.md`](./docs/4_API_AND_DATA_SCHEMAS.md)** | Hợp đồng API & Kiểu dữ liệu | RESTful APIs (Auth, Lessons, Progress, Audio 206 Streaming), WebSocket Realtime, Error responses và TypeScript Interfaces `@meowshadow/types`. |
-| **[`5_SPRINT_PLAN.md`](./docs/5_SPRINT_PLAN.md)** | Kế hoạch lộ trình 11 Sprint | Lộ trình chi tiết 11 Sprint qua 5 giai đoạn từ Hạ tầng Docker & Audio Worker đến Go Gateway, Web Studio và Mobile App. |
+| **[`5_SPRINT_PLAN.md`](./docs/5_SPRINT_PLAN.md)** | Kế hoạch lộ trình 12 Sprint | Lộ trình chi tiết 12 Sprint qua 5 giai đoạn từ Hạ tầng Docker & Audio Worker đến Go Gateway, Web Studio và Mobile App. |
 | **[`6_DEVELOPMENT_GUIDE_AND_ENV.md`](./docs/6_DEVELOPMENT_GUIDE_AND_ENV.md)** | Quy chuẩn code, Env & Rủi ro | Quy tắc Git, Conventional Commits, Code conventions, bảng biến môi trường `.env`, cấu hình phần cứng và quản trị rủi ro. |
 | **[`adr/`](./docs/adr/)** | Hồ sơ Quyết định Kiến trúc (ADR) | Bộ văn bản quyết định kỹ thuật: Fiber v2, Zero-Copy Streaming, Redis Orchestration, Dual Subtitles, Storage Retention, Embedded Swagger. |
 | **[`assets/logo/README.md`](./assets/logo/README.md)** | Tài nguyên Thương hiệu & Logo | Bộ nhận diện vector SVG, PNG 1024px, Dark/Light Mode, Favicon và mẫu Next.js Brand Component. |
@@ -64,7 +64,8 @@ MeowShadow_Lab/
 │   ├── 3_DOCKER_CONTAINERIZATION.md
 │   ├── 4_API_AND_DATA_SCHEMAS.md
 │   ├── 5_SPRINT_PLAN.md
-│   └── 6_DEVELOPMENT_GUIDE_AND_ENV.md
+│   ├── 6_DEVELOPMENT_GUIDE_AND_ENV.md
+│   └── adr/                        # Architecture Decision Records (ADR-0001 -> ADR-0005)
 ├── assets/                         # Bộ nhận diện thương hiệu, icons, logo preview
 │   └── logo/
 ├── apps/                           # Ứng dụng phía người dùng (Frontend & Mobile)
@@ -83,18 +84,28 @@ MeowShadow_Lab/
 
 ---
 
-## 🚦 TRẠNG THÁI HIỆN TẠI & LỘ TRÌNH TRIỂN KHAI
+## 🚦 TRẠNG THÁI HIỆN TẠI & LỘ TRÌNH TRIỂN KHAI (12 SPRINT / 5 GIAI ĐOẠN)
 
-| Giai đoạn / Sprint | Trạng thái | Mục tiêu trọng tâm |
-| :--- | :---: | :--- |
-| **Phase 0: Architecture & Specs** |  **Hoàn tất (Approved)** | Hoàn thiện 100% SRS, Architecture, Docker Spec, API Contract & Sprint Plan. |
-| **Sprint 1: Docker & Audio Processor** | 🟢 **Hoàn thành** | Dựng Monorepo, Shared Types, Docker Compose (Postgres + Redis) và `audio-processor-service` (Python). |
-| **Sprint 2: Script-LLM & TTS Workers** | 🟢 **Hoàn thành** | Worker phân đoạn kịch bản Qwen 3 8B và TTS Engine (Edge-TTS song song). |
-| **Sprint 7: Golang Core Gateway** | 🟢 **Hoàn thành** | Khung Fiber API Gateway, kết nối pgxpool/Postgres, JWT Auth, CRUD bài học. |
-| **Sprint 8: Pipeline Orchestration & WebSocket** | 🟢 **Hoàn thành** | State Machine, Redis Stream/PubSub Producer & Consumer, WebSocket Hub, Push Notification Dispatcher. |
-| **Sprint 9: High-Performance Audio Streaming** | 🟢 **Hoàn thành** | HTTP Range Requests (206 Partial Content), Static Asset Server, Storage Retention, OpenAPI 3.0 / Swagger UI. |
-| **Sprint 10: Next.js 15 Web Studio** | ⚪ Chờ thực hiện | Giao diện soạn thảo kịch bản song ngữ, điều khiển Pacing Studio và Karaoke visualizer. |
-| **Sprint 11: React Native Mobile & Release** | ⚪ Chờ thực hiện | Background Audio, Lock-screen Player, Offline Mode và Đóng gói Release 1-Click. |
+| Giai đoạn / Mã Sprint | Tên Phân Hệ & Mục Tiêu | Trọng Tâm Kỹ Thuật | Trạng Thái |
+| :--- | :--- | :--- | :---: |
+| **Giai đoạn 1: Nền Tảng & Audio Core** | | | |
+| **Sprint 1** | Monorepo Foundation & Tooling | Turborepo, `pnpm`, `@meowshadow/types`, `@meowshadow/api-client`. | 🟢 **Hoàn thành** |
+| **Sprint 2** | Docker Infrastructure & DB Schema | `docker-compose.yml`, PostgreSQL 16 + pgvector, Goose migrations, Redis 7. | 🟢 **Hoàn thành** |
+| **Sprint 3** | Audio Pacing & Silence Engine | Python FastAPI, `silence_generator.py` (1.5s VI / 3.5s EN/JA), timeline continuity. | 🟢 **Hoàn thành** |
+| **Sprint 4** | FFmpeg Mastering & Subtitles | Nối clips, chuẩn hóa EBU R128 (-16 LUFS), sinh phụ đề SRT & WebVTT chuẩn xác. | 🟢 **Hoàn thành** |
+| **Giai đoạn 2: AI & Tổng Hợp Giọng Nói** | | | |
+| **Sprint 5** | Speech Synthesis Worker | Edge-TTS song song (`asyncio.gather`), Smart Cache MD5, Redis task consumer. | 🟢 **Hoàn thành** |
+| **Sprint 6** | Script-LLM Worker | Regex tag tokenizer `[VI]`, `[EN]`, `[JA]`, Ollama Qwen 3 8B Auto-chunking & Translate. | 🟢 **Hoàn thành** |
+| **Giai đoạn 3: Gateway Core & Streaming** | | | |
+| **Sprint 7** | Golang Core API Gateway | Go Fiber v2, `pgxpool` + `sqlc`, JWT Auth, Guest mode, RESTful Lesson CRUD. | 🟢 **Hoàn thành** |
+| **Sprint 8** | Pipeline Orchestration & WebSockets | State Machine, Redis Stream & PubSub, WebSocket Hub Realtime, Push Dispatcher. | 🟢 **Hoàn thành** |
+| **Sprint 9** | High-Performance Audio Streaming | HTTP 206 Range Streaming (seek < 100ms), Static Asset Server, Storage Retention, Swagger UI. | 🟢 **Hoàn thành** |
+| **Giai đoạn 4: Web Studio Trực Quan** | | | |
+| **Sprint 10** | Next.js 15 Web & Script Editor | Next.js 15 App Router, Bilingual Script Editor, Pacing Studio, Dark/Light Mode. | 🟡 **Đang kích hoạt** |
+| **Sprint 11** | Interactive Karaoke & Waveform | Karaoke Player sync phụ đề, Waveform visualizer, Hotkeys `Space`/`J`/`L`/`R`, Export hub. | ⚪ Chờ thực hiện |
+| **Giai đoạn 5: Mobile & Phát Hành 1-Click** | | | |
+| **Sprint 12** | React Native Mobile App & Launch | Background Audio, Lockscreen controls, SQLite Offline Sync, 1-Click script `run.sh`. | ⚪ Chờ thực hiện |
+| **TỔNG KẾT** | **Tiến độ toàn bộ dự án** | **Hoàn tất 9/12 Sprints (75.0%)** | 🟢 **On Track** |
 
 ---
 

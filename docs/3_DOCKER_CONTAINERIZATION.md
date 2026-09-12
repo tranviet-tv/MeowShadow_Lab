@@ -34,6 +34,7 @@ flowchart TD
     subgraph Host Ports [Các Cổng Công Khai Ra Máy Chủ Host]
         P3000[Port 3000: Next.js Web]
         P8000[Port 8000: Go API Gateway]
+        P8080[Port 8080: Adminer Studio]
         P5432[Port 5432: PostgreSQL]
         P6379[Port 6379: Redis]
     end
@@ -41,8 +42,9 @@ flowchart TD
     subgraph Docker Network [meowshadow-network - Docker Bridge]
         WEB[c_frontend_web\nNext.js 15]
         GW[c_gateway_core\nGolang Fiber]
-        PG[(c_postgres_db\nPostgreSQL 16)]
+        PG[(c_postgres_db\nPostgreSQL 16 + pgvector)]
         REDIS[(c_redis_broker\nRedis 7 Alpine)]
+        STUDIO[c_db_studio\nAdminer Web Studio]
         
         SVC1[c_script_llm\nPython FastAPI]
         SVC2[c_tts_engine\nPython FastAPI]
@@ -56,8 +58,10 @@ flowchart TD
 
     P3000 --> WEB
     P8000 --> GW
+    P8080 --> STUDIO
     P5432 --> PG
     P6379 --> REDIS
+    STUDIO --> PG
 
     WEB -->|Gọi API| GW
     GW --> PG
@@ -78,48 +82,86 @@ flowchart TD
 Dưới đây là cấu hình chuẩn của file `docker-compose.yml` ở thư mục gốc:
 
 ```yaml
-version: '3.8'
-
 networks:
   meowshadow-network:
+    name: meowshadow-network
     driver: bridge
 
 volumes:
   postgres-data:
+    name: meowshadow_postgres_data
   redis-data:
+    name: meowshadow_redis_data
   storage-data:
+    name: meowshadow_storage_data
 
 services:
-  # 1. Primary PostgreSQL database
+  # 1. Primary Database: PostgreSQL 16 + pgvector
   postgres-db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: meowshadow_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: meowuser
-      POSTGRES_PASSWORD: meowpassword
-      POSTGRES_DB: meowshadow_db
+      POSTGRES_USER: ${POSTGRES_USER:-meowuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meowpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-meowshadow_db}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./services/gateway-core/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./services/gateway-core/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - meowshadow-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U meowuser -d meowshadow_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-meowuser} -d ${POSTGRES_DB:-meowshadow_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # 2. In-Memory Broker & Cache Redis
+  # 1.1 Migration Engine: Goose (Schema Versioning & Rollback)
+  db-migration:
+    build:
+      context: .
+      dockerfile: services/gateway-core/Dockerfile.migration
+    image: meowshadow/db-migration:v3.24.1
+    container_name: meowshadow_migration
+    profiles: ["tools", "migration"]
+    environment:
+      - GOOSE_DRIVER=postgres
+      - GOOSE_DBSTRING=postgres://${POSTGRES_USER:-meowuser}:${POSTGRES_PASSWORD:-meowpassword}@postgres-db:5432/${POSTGRES_DB:-meowshadow_db}?sslmode=disable
+    volumes:
+      - ./services/gateway-core/db/migrations:/migrations
+      - ./services/gateway-core/db/seeds:/seeds
+    networks:
+      - meowshadow-network
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+
+  # 1.2 Web Database Studio: Adminer (Port 8080)
+  db-studio:
+    image: adminer:latest
+    container_name: meowshadow_db_studio
+    restart: unless-stopped
+    profiles: ["tools", "admin", "full"]
+    ports:
+      - "${DB_STUDIO_PORT:-8080}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres-db
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - meowshadow-network
+
+  # 2. In-Memory Broker & Cache: Redis 7
   redis-broker:
     image: redis:7-alpine
     container_name: meowshadow_redis
     restart: unless-stopped
     command: redis-server --appendonly yes
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     networks:
@@ -132,18 +174,21 @@ services:
 
   # 3. Golang Core API Gateway & Streaming Server
   gateway-core:
+    profiles: ["services", "full"]
     build:
       context: .
       dockerfile: services/gateway-core/Dockerfile
+    image: meowshadow/gateway-core:latest
     container_name: meowshadow_gateway
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
       - PORT=8000
-      - DATABASE_URL=postgres://meowuser:meowpassword@postgres-db:5432/meowshadow_db?sslmode=disable
+      - DATABASE_URL=postgres://${POSTGRES_USER:-meowuser}:${POSTGRES_PASSWORD:-meowpassword}@postgres-db:5432/${POSTGRES_DB:-meowshadow_db}?sslmode=disable
       - REDIS_ADDR=redis-broker:6379
       - STORAGE_DIR=/app/storage
+      - JWT_SECRET=${JWT_SECRET:-meowshadow_super_secret_jwt_key_2026_change_in_production!}
     volumes:
       - storage-data:/app/storage
     depends_on:
@@ -151,19 +196,30 @@ services:
         condition: service_healthy
       redis-broker:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     networks:
       - meowshadow-network
 
   # 4. Python Worker: Script & LLM Translation Service
   script-llm-service:
+    profiles: ["services", "full"]
     build:
       context: .
       dockerfile: services/script-llm/Dockerfile
     container_name: meowshadow_script_llm
     restart: unless-stopped
+    ports:
+      - "${SCRIPT_LLM_PORT:-8001}:8001"
     environment:
+      - PORT=8001
       - REDIS_ADDR=redis-broker:6379
       - OLLAMA_HOST=http://host.docker.internal:11434
+      - LLM_MODEL=${LLM_MODEL:-qwen3:8b}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -171,14 +227,23 @@ services:
         condition: service_healthy
     networks:
       - meowshadow-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   # 5. Python Worker: Multi-TTS Engine Synthesis Service
   tts-engine-service:
+    profiles: ["services", "full"]
     build:
       context: .
       dockerfile: services/tts-engine/Dockerfile
     container_name: meowshadow_tts_engine
     restart: unless-stopped
+    ports:
+      - "${TTS_ENGINE_PORT:-8002}:8002"
     environment:
       - REDIS_ADDR=redis-broker:6379
       - STORAGE_DIR=/app/storage
@@ -192,14 +257,18 @@ services:
 
   # 6. Python Worker: Audio Processor & Subtitle Generator
   audio-processor-service:
+    profiles: ["services", "full"]
     build:
       context: .
       dockerfile: services/audio-processor/Dockerfile
     container_name: meowshadow_audio_processor
     restart: unless-stopped
+    ports:
+      - "${AUDIO_PROCESSOR_PORT:-8003}:8003"
     environment:
       - REDIS_ADDR=redis-broker:6379
       - STORAGE_DIR=/app/storage
+      - DEFAULT_TARGET_LUFS=-16.0
     volumes:
       - storage-data:/app/storage
     depends_on:
@@ -207,9 +276,16 @@ services:
         condition: service_healthy
     networks:
       - meowshadow-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8003/api/v1/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   # 7. Frontend Web Studio (Next.js 15 TypeScript)
   frontend-web:
+    profiles: ["full"]
     build:
       context: .
       dockerfile: apps/web/Dockerfile

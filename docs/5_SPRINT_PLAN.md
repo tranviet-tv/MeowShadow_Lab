@@ -28,8 +28,8 @@ gantt
     section Giai đoạn 1: Nền tảng & Audio
     Sprint 1: Monorepo & Shared Types           :done,    sp1, 2026-09-12, 2d
     Sprint 2: Docker Infra, Postgres & Redis    :done,    sp2, after sp1, 2d
-    Sprint 3: Audio Pacing & Silence Engine     :active,  sp3, after sp2, 2d
-    Sprint 4: FFmpeg Mastering & Subtitles      :         sp4, after sp3, 3d
+    Sprint 3: Audio Pacing & Silence Engine     :done,    sp3, after sp2, 2d
+    Sprint 4: FFmpeg Mastering & Subtitles      :done,    sp4, after sp3, 3d
 
     section Giai đoạn 2: AI & Tổng Hợp Giọng
     Sprint 5: Speech Synthesis & Smart Cache    :done,    sp5, after sp4, 3d
@@ -37,15 +37,16 @@ gantt
 
     section Giai đoạn 3: Gateway & Streaming
     Sprint 7: Go Gateway & Database Layer       :done,    sp7, after sp6, 3d
-    Sprint 8: Redis Pipeline & WebSockets       :active,  sp8, after sp7, 3d
-    Sprint 9: HTTP 206 Streaming & Storage      :         sp9, after sp8, 2d
+    Sprint 8: Redis Pipeline & WebSockets       :done,    sp8, after sp7, 3d
+    Sprint 9: HTTP 206 Streaming & Storage      :done,    sp9, after sp8, 2d
 
     section Giai đoạn 4: Web Studio
-    Sprint 10: Next.js 15 Web & Script Editor   :         sp10, after sp9, 3d
+    Sprint 10: Next.js 15 Web & Script Editor   :active,  sp10, after sp9, 3d
     Sprint 11: Karaoke Player & Waveform Audio  :         sp11, after sp10, 3d
 
     section Giai đoạn 5: Mobile & Phát Hành
     Sprint 12: React Native Mobile & 1-Click    :         sp12, after sp11, 4d
+
 ```
 
 ### Ma Trận Tóm Tắt 5 Giai Đoạn Phát Triển
@@ -201,6 +202,7 @@ gantt
 | **SP07-01** | Khởi tạo Khung Ứng Dụng Go Fiber | - Khởi tạo `cmd/server/main.go`, cấu hình Fiber App<br>- Cài đặt Middleware: Logger, CORS, Recovery, Rate-limiter | `services/gateway-core/cmd/server/main.go`<br>`services/gateway-core/config/config.go`<br>`services/gateway-core/internal/middleware/` | 0.5 ngày | 🟢 Hoàn thành |
 | **SP07-02** | Tích Hợp `pgx/v5` & `sqlc` Query Engine | - Cấu hình connection pool `pgxpool` tối ưu kết nối<br>- Sinh mã Go từ các file SQL bằng `sqlc generate`<br>- Xây dựng Database Repository hoàn chỉnh | `services/gateway-core/internal/repository/`<br>`services/gateway-core/sqlc.yaml` | 0.6 ngày | 🟢 Hoàn thành |
 | **SP07-03** | Phân Hệ Xác Thực & Quản Lý Phiên (JWT) | - Endpoints: `POST /api/v1/auth/register`, `POST /api/v1/auth/login`<br>- Hỗ trợ Guest Mode (phiên khách tạm thời không cần đăng ký tài khoản)<br>- JWT Middleware bảo vệ các endpoint người dùng | `services/gateway-core/internal/api/v1/handlers/auth.go`<br>`services/gateway-core/internal/services/auth_service.go` | 0.6 ngày | 🟢 Hoàn thành |
+| **SP07-04** | RESTful CRUD API Cho Quản Lý Bài Học | - Endpoints: `GET /api/v1/lessons`, `GET /api/v1/lessons/:id`, `DELETE /api/v1/lessons/:id`<br>- Quản lý phân trang, lọc ngôn ngữ, tìm kiếm và lưu trữ transcript chunks JSONB | `services/gateway-core/internal/delivery/http/lesson_handler.go`<br>`services/gateway-core/internal/services/lesson_service.go`<br>`services/gateway-core/internal/domain/lesson.go` | 0.6 ngày | 🟢 Hoàn thành |
 | **SP07-05** | Dockerfile Đa Tầng Cho Go Gateway | - Dockerfile multi-stage (`golang:alpine` build -> `alpine:3.19` runner) siêu nhẹ (14.2 MB < 20MB)<br>- Tích hợp non-root user và Docker healthcheck | `services/gateway-core/Dockerfile`<br>`docker-compose.yml` | 0.3 ngày | 🟢 Hoàn thành |
 
 * **Định nghĩa hoàn thành (DoD - Sprint 7):**
@@ -322,13 +324,13 @@ Bảng tổng hợp giúp người phát triển và AI theo dõi trạng thái 
 | **SP 04** | Audio Processor: FFmpeg Mastering & Subtitles | 5 | 2.9 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
 | **SP 05** | Speech Synthesis Worker (Edge-TTS & MD5 Cache) | 5 | 2.6 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
 | **SP 06** | Script-LLM Worker (Ollama Qwen 3 8B NLP) | 5 | 2.6 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
-| **SP 07** | Golang Core API Gateway & Database Layer | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
-| **SP 08** | Pipeline Orchestration & Realtime WebSockets | 5 | 2.9 ngày | ⚪ Chờ thực hiện | -- |
-| **SP 09** | High-Performance Audio Streaming (HTTP 206) | 4 | 1.6 ngày | ⚪ Chờ thực hiện | -- |
-| **SP 10** | Next.js 15 Web Studio & Script Editor | 5 | 2.7 ngày | ⚪ Chờ thực hiện | -- |
+| **SP 07** | Golang Core API Gateway & Database Layer | 5 | 2.6 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
+| **SP 08** | Pipeline Orchestration & Realtime WebSockets | 5 | 2.9 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
+| **SP 09** | High-Performance Audio Streaming (HTTP 206) | 5 | 2.0 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
+| **SP 10** | Next.js 15 Web Studio & Script Editor | 5 | 2.5 ngày | 🟡 **ĐANG KÍCH HOẠT** | -- |
 | **SP 11** | Interactive Karaoke Player & Waveform Audio | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 12** | React Native Mobile App & 1-Click Launch | 5 | 3.7 ngày | ⚪ Chờ thực hiện | -- |
-| **TỔNG** | **Toàn bộ 12 Sprints Dự Án** | **58 Tasks** | **~29.9 ngày** | **6/12 Hoàn thành (50.0%)** | -- |
+| **TỔNG** | **Toàn bộ 12 Sprints Dự Án** | **59 Tasks** | **~30.1 ngày** | **9/12 Hoàn thành (75.0%)** | -- |
 
 ---
 
@@ -336,28 +338,26 @@ Bảng tổng hợp giúp người phát triển và AI theo dõi trạng thái 
 
 | Rủi Ro Kỹ Thuật | Mức Độ | Ảnh Hưởng Tiềm Ẩn | Giải Pháp Giảm Thiểu Chủ Động |
 | :--- | :---: | :--- | :--- |
-| **Lệch mốc thời gian phụ đề (Subtitle Drift)** | **Cao** | Phụ đề SRT bị lệch dần về cuối bài 10 phút, làm hỏng trải nghiệm Karaoke. | Đo đạc thời lượng thực tế của từng clip âm thanh sau khi render thay vì ước tính bằng số từ; Ghi log timestamp mili-giây ở từng câu. *(Đã giải quyết tại SP04-02)* |
-| **Edge-TTS bị Rate Limit hoặc gián đoạn** | **Trung bình** | Quá trình tạo giọng đọc 1.500 từ bị treo hoặc fail giữa chừng. | Triển khai cơ chế Retry với Exponential Backoff; Chia batch nhỏ 10 câu/lần; Tích hợp MD5 Smart Cache để không bao giờ gọi lại câu đã có. |
-| **Bộ nhớ Container FFmpeg tăng cao** | **Trung bình** | Container `audio-processor` bị OOM (Out Of Memory) khi ghép nối file 10 phút. | Sử dụng cơ chế file tạm streaming của FFmpeg; Cắt ghép theo danh sách demuxer (`concat demuxer`) thay vì nạp toàn bộ audio vào RAM. |
-| **Độ trễ tua Audio trên Thiết Bị Di Động** | **Thấp** | Mobile bị giật khựng khi người học bấm lặp câu liên tục. | Áp dụng chuẩn HTTP Range Requests (`206 Partial Content`); Tải trước 30 giây audio vào bộ đệm của native player. |
-| **Đồng bộ kiểu dữ liệu giữa Go, Python và TypeScript** | **Trung bình** | Lỗi runtime do khác biệt tên trường JSON (camelCase vs snake_case). | Gói `packages/shared-types` là nguồn chân lý duy nhất (Single Source of Truth); Viết unit tests kiểm tra tính tương thích schema JSON. |
+| **Lệch mốc thời gian phụ đề (Subtitle Drift)** | **Cao** | Phụ đề SRT bị lệch dần về cuối bài 10 phút, làm hỏng trải nghiệm Karaoke. | Đo đạc thời lượng thực tế của từng clip âm thanh sau khi render thay vì ước tính bằng số từ; Ghi log timestamp mili-giây ở từng câu. *(Đã giải quyết tại SP04-02 & SP09-02)* |
+| **Edge-TTS bị Rate Limit hoặc gián đoạn** | **Trung bình** | Quá trình tạo giọng đọc 1.500 từ bị treo hoặc fail giữa chừng. | Triển khai cơ chế Retry với Exponential Backoff; Chia batch nhỏ 10 câu/lần; Tích hợp MD5 Smart Cache để không bao giờ gọi lại câu đã có. *(Đã giải quyết tại SP05-02)* |
+| **Bộ nhớ Container FFmpeg tăng cao** | **Trung bình** | Container `audio-processor` bị OOM (Out Of Memory) khi ghép nối file 10 phút. | Sử dụng cơ chế file tạm streaming của FFmpeg; Cắt ghép theo danh sách demuxer (`concat demuxer`) thay vì nạp toàn bộ audio vào RAM. *(Đã giải quyết tại SP04-01)* |
+| **Độ trễ tua Audio trên Thiết Bị Di Động** | **Thấp** | Mobile bị giật khựng khi người học bấm lặp câu liên tục. | Áp dụng chuẩn HTTP Range Requests (`206 Partial Content`); Đo lường thực tế đạt ~74µs seek latency. *(Đã giải quyết tại SP09-01)* |
+| **Đồng bộ kiểu dữ liệu giữa Go, Python và TypeScript** | **Trung bình** | Lỗi runtime do khác biệt tên trường JSON (camelCase vs snake_case). | Gói `packages/shared-types` là nguồn chân lý duy nhất (Single Source of Truth); Viết unit tests kiểm tra tính tương thích schema JSON. *(Đã giải quyết tại SP01-02)* |
 
 ---
 
 ## 5. HƯỚNG DẪN KÍCH HOẠT SPRINT TIẾP THEO (NEXT SPRINT ACTIVATION)
 
-Để bắt đầu thực hiện ngay **Sprint 5: Speech Synthesis Worker (Edge-TTS & Smart Caching)**, hãy thực hiện lệnh kiểm tra môi trường:
+Để bắt đầu thực hiện ngay **Sprint 10: Next.js 15 Web Studio - Script Editor & Pacing Studio**, hãy thực hiện lệnh kiểm tra môi trường:
 
 ```bash
-# 1. Kiểm tra toàn bộ test suite âm thanh đã hoàn tất
-make test-audio
-make test-audio-docker
+# 1. Kiểm tra toàn bộ test suite backend và gateway đã pass 100%
+go test -v ./services/gateway-core/...
 
-# 2. Khởi tạo và kiểm tra cấu trúc tts-engine
-ls -la services/tts-engine
+# 2. Khởi tạo và kiểm tra dependencies của Web Studio (Next.js 15)
+pnpm install
+pnpm --filter web build
 
-# 3. Kiểm tra Redis broker sẵn sàng làm hàng đợi cho TTS
-docker compose up -d redis-broker
-docker exec -it meowshadow_redis redis-cli ping
+# 3. Khởi động Web Studio ở môi trường dev
+pnpm --filter web dev
 ```
-

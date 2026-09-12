@@ -35,13 +35,14 @@ storage/
 
 ---
 
-## 🧹 CHÍNH SÁCH DỌN DẸP FILE RÁC (CLEANUP POLICY)
+## 🧹 CHÍNH SÁCH DỌN DẸP FILE RÁC (CLEANUP POLICY & ADR-0004)
 
 1. **Thư mục `temp/`:**
    - Worker `audio-processor` tự động xóa các file WAV trung gian ngay sau khi lệnh FFmpeg concat & loudnorm kết thúc.
-   - Khi chạy `make clean` hoặc `scripts/clean.sh`, toàn bộ file trong `temp/` sẽ bị xóa sạch.
+   - **Tự động dọn dẹp định kỳ (Storage Retention):** Background Worker `StorageCleanupService` trong `gateway-core` tự động quét thư mục `storage/temp/` mỗi 1 giờ và xóa vĩnh viễn các file tạm có thời gian chỉnh sửa quá 24 giờ ([ADR-0004](../docs/adr/0004-storage-retention-and-temporary-cleanup-policy.md)).
+   - Khi chạy `make clean` hoặc `scripts/clean.sh`, toàn bộ file trong `temp/` sẽ được dọn dẹp lập tức.
 2. **Thư mục `cache/`:**
-   - Được bảo lưu để tối ưu hóa thời gian sinh âm thanh cho các bài học tiếp theo.
+   - Được bảo lưu để tối ưu hóa thời gian sinh âm thanh cho các bài học tiếp theo (Smart MD5 cache).
    - Khi dung lượng ổ đĩa vượt quá 80%, script bảo trì sẽ xóa các file cache có thời gian truy cập (`atime`) lâu hơn 30 ngày.
 3. **Thư mục `audio/` & `subtitles/`:**
    - Chỉ bị xóa khi người dùng thực hiện hành động xóa bài học tương ứng trên giao diện (`DELETE /api/v1/lessons/{id}`).

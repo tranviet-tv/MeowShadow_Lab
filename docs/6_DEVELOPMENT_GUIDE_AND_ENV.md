@@ -134,7 +134,8 @@ graph LR
 | **RSK-01** | **`edge-tts` bị Rate-limit hoặc chặn IP** | Cao | Trung bình | 1. Tích hợp cơ chế tự động xoay vòng User-Agent và exponential backoff.<br>2. Xây dựng **Fallback Engine**: Tự động chuyển hướng sang Kokoro-82M (chạy cục bộ CPU siêu nhẹ) nếu `edge-tts` trả về mã lỗi 429 hoặc timeout. |
 | **RSK-02** | **Tràn Bộ Nhớ Khi Ghép Nối Audio 10 Phút** | Trung bình | Cao | Sử dụng kỹ thuật xử lý audio dạng Stream hoặc chia nhỏ file temp theo từng chunk trên đĩa thay vì nạp toàn bộ mảng dữ liệu 10 phút âm thanh không nén vào RAM của container. |
 | **RSK-03** | **Lệch mốc thời gian phụ đề Karaoke (Subtitle Drift)** | Cao | Cao | Tuyệt đối **không dùng công thức ước tính lý thuyết** `(độ dài text * hệ số)`. Đo đạc chính xác thời lượng thực tế của từng file audio clip MP3 sau khi render qua thư viện `mutagen` / `ffprobe` trước khi tính toán timestamp cho file `.srt`. |
-| **RSK-04** | **Phình to ổ đĩa lưu trữ (Storage Saturation)** | Trung bình | Thấp | 1. Thiết lập Cronjob chạy định kỳ dọn dẹp các audio clips tạm (`/app/storage/cache`) sau 48 giờ.<br>2. Băm mã MD5 nội dung câu để tái sử dụng file clip có sẵn, tránh tạo trùng lặp file. |
+| **RSK-04** | **Phình to ổ đĩa lưu trữ (Storage Saturation)** | Trung bình | Thấp | 1. Tích hợp Background Worker `StorageCleanupService` trong Gateway Core tự động quét `storage/temp/` và dọn dẹp file tạm > 24 giờ mỗi 1 giờ ([ADR-0004](./adr/0004-storage-retention-and-temporary-cleanup-policy.md)).<br>2. Băm mã MD5 nội dung câu để tái sử dụng file clip có sẵn trong `storage/cache/`, tránh tạo trùng lặp file. |
+
 
 ---
 

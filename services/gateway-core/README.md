@@ -51,80 +51,81 @@ flowchart TD
 ```text
 services/gateway-core/
 ├── cmd/
-│   ├── server/
-│   │   └── main.go                 # Entrypoint khởi động Server, nạp DI và Graceful Shutdown
-│   └── cli/                        # Công cụ CLI nội bộ (seed, kiểm tra DB)
-│
+│   └── server/
+│       ├── main.go                 # Entrypoint khởi động HTTP Server & WebSocket Hub
+│       ├── main_test.go            # Test kiểm tra khởi tạo server và routes
+│       └── dod_test.go             # Bộ kiểm thử Definition of Done (DoD) tích hợp
 ├── config/
-│   └── config.go                   # Đọc biến môi trường (.env), validate cổng, database URL, JWT secret
-│
-├── internal/                       # Private Package chỉ dùng trong gateway-core
-│   ├── domain/                     # Entities nghiệp vụ & Interfaces thuần túy
-│   │   ├── user.go                 # Struct User, UserDevice
-│   │   ├── lesson.go               # Struct Lesson, TranscriptChunk, PacingConfig
-│   │   ├── progress.go             # Struct LearningProgress
-│   │   └── task.go                 # Struct RenderTask, TaskStatus
-│   │
-│   ├── usecase/                    # Tầng Business Logic & Orchestration
-│   │   ├── auth_usecase.go         # Logic Đăng ký, Đăng nhập, cấp phát JWT Access/Refresh token
-│   │   ├── lesson_usecase.go       # CRUD thư viện bài học, tìm kiếm ngữ nghĩa với pgvector
-│   │   ├── orchestrator_usecase.go # Điều phối quy trình tạo audio qua Redis Streams
-│   │   ├── streaming_usecase.go    # Đọc file audio nhị phân, tính toán HTTP 206 byte-ranges
-│   │   └── sync_usecase.go         # Xử lý đồng bộ Offline progress từ Mobile
-│   │
-│   ├── delivery/                   # Tầng giao tiếp (Transports)
-│   │   ├── http/                   # Controllers RESTful API
-│   │   │   ├── router.go           # Đăng ký danh sách routes (/api/v1/*)
+│   └── config.go                   # Đọc biến môi trường (Database, Redis, JWT, Storage)
+├── docs/
+│   └── swagger.json                # Đặc tả OpenAPI 3.0.3 phục vụ Swagger UI
+├── internal/                       # Code nội bộ bảo vệ theo chuẩn Go (Private Package)
+│   ├── domain/                     # Entities & Domain Models thuần túy
+│   │   ├── auth.go
+│   │   ├── lesson.go
+│   │   └── notification.go
+│   ├── services/                   # Service Layer (Business Logic & Orchestration)
+│   │   ├── auth_service.go         # Đăng ký, đăng nhập, cấp phát JWT
+│   │   ├── lesson_service.go       # Quản lý thư viện bài học, paging, metadata
+│   │   └── storage_cleanup.go      # Worker dọn dẹp file tạm > 24h chạy nền (ADR-0004)
+│   ├── orchestrator/               # Pipeline Orchestrator & State Machine
+│   │   ├── state_machine.go        # RenderJob state transitions (PENDING -> COMPLETED)
+│   │   └── pipeline_consumer.go    # Consumer nhận event từ Python Workers & cập nhật DB
+│   ├── queue/                      # Message Broker Adapter
+│   │   └── redis_producer.go       # Đẩy task vào Redis Streams / PubSub
+│   ├── websocket/                  # Realtime WebSocket Engine
+│   │   ├── hub.go                  # Quản lý kết nối Client & broadcast tiến độ
+│   │   └── client.go               # ReadPump / WritePump kết nối socket từng client
+│   ├── notifications/              # Module thông báo đẩy
+│   │   └── push_dispatcher.go      # Gửi FCM & Apple APNs khi render xong
+│   ├── delivery/                   # Entrypoints & Transport Adapters
+│   │   ├── http/                   # RESTful API Controllers (Fiber v2)
 │   │   │   ├── auth_handler.go
 │   │   │   ├── lesson_handler.go
-│   │   │   ├── script_handler.go
-│   │   │   └── stream_handler.go   # Endpoint HTTP Range 206 Audio Streaming
-│   │   ├── ws/                     # Quản lý WebSocket
-│   │   │   ├── hub.go              # Quản lý kết nối clients & broadcast messages
-│   │   │   ├── client.go           # Đọc/ghi socket cho từng client
-│   │   │   └── progress_ws.go      # Đẩy tiến độ render % về client
-│   │   └── middleware/             # Middlewares HTTP
-│   │       ├── jwt_auth.go         # Xác thực Bearer Token
-│   │       ├── rate_limiter.go     # Giới hạn tần suất gọi API
+│   │   │   ├── audio_stream_handler.go  # HTTP 206 Range Streaming (Zero-copy)
+│   │   │   ├── assets_handler.go        # Phân phối SRT, WebVTT và Waveform JSON
+│   │   │   ├── health_handler.go
+│   │   │   ├── swagger_handler.go       # Phục vụ Swagger UI & OpenAPI JSON
+│   │   │   └── swagger_ui.html          # Template nhúng qua //go:embed (ADR-0005)
+│   │   └── middleware/             # HTTP Middlewares
+│   │       ├── jwt_auth.go         # Kiểm tra tính hợp lệ của Bearer JWT
+│   │       ├── rate_limiter.go     # Giới hạn tần suất request (chống spam)
 │   │       ├── logger.go           # Structured logging
-│   │       ├── cors.go             # Cấu hình Cross-Origin Resource Sharing
-│   │       └── recover.go          # Chống crash server khi có panic
-│   │
-│   ├── repository/                 # Hiện thực hóa truy xuất dữ liệu
-│   │   ├── postgres/
-│   │   │   ├── db/                 # Generated code từ SQLC (Type-safe SQL)
-│   │   │   │   ├── db.go
-│   │   │   │   ├── models.go
-│   │   │   │   ├── lessons.sql.go
-│   │   │   │   └── users.sql.go
-│   │   │   ├── connection.go       # Quản lý pool kết nối jackc/pgx/v5 (MaxConns=25)
-│   │   │   ├── lesson_repo.go
-│   │   │   └── user_repo.go
-│   │   ├── redis/
-│   │   │   ├── connection.go       # Kết nối go-redis client
-│   │   │   ├── task_publisher.go   # Gửi tác vụ vào Redis Stream / List
-│   │   │   └── progress_sub.go     # Lắng nghe cập nhật % tiến độ từ Python Workers
-│   │   └── storage/
-│   │       └── file_storage.go     # Đọc file MP3 / SRT từ thư mục /app/storage
-│   │
-│   └── client/                     # Tích hợp dịch vụ bên ngoài
-│       └── notification/
-│           └── push_dispatcher.go  # Gửi Firebase Cloud Messaging (FCM) & Apple APNs
-│
-├── pkg/                            # Các thư viện tiện ích dùng chung
-│   ├── logger/                     # Slog / Zap Structured Logger
-│   ├── response/                   # Chuẩn hóa JSON Response (success, data, error)
-│   ├── jwt/                        # Tạo và parse JWT claims
-│   └── audioutil/                  # Phân tích cú pháp Range Header: bytes=start-end
-│
-├── db/                             # Cơ sở dữ liệu & Migrations
-│   ├── migrations/                 # Goose SQL Migrations (00001_..., 00002_...)
+│   │       ├── cors.go
+│   │       └── recover.go          # Bắt Panic, chống crash server
+│   └── repository/                 # Data Access Implementation
+│       ├── user_repository.go
+│       ├── lesson_repository.go
+│       ├── postgres/
+│       │   └── connection.go       # Quản lý pool kết nối jackc/pgx/v5 (MaxConns=25)
+│       └── db/                     # Generated type-safe code từ SQLC
+│           ├── db.go
+│           ├── models.go
+│           ├── lessons.sql.go
+│           └── users.sql.go
+├── pkg/                            # Thư viện tiện ích nội bộ
+│   ├── audioutil/                  # Parser HTTP Range (RFC 7233) & SRT/VTT converter
+│   │   ├── range_parser.go
+│   │   └── vtt_converter.go
+│   ├── jwt/                        # Utility tạo và xác minh token JWT
+│   └── response/                   # Format Response JSON chuẩn (Success / Error)
+├── tests/                          # Integration Tests
+│   ├── integration_pipeline_test.go # Test tích hợp chuỗi render và WebSocket
+│   └── integration_streaming_test.go # Test tích hợp HTTP 206, seek latency, assets
+├── db/                             # Cơ sở dữ liệu & Migration Assets
+│   ├── migrations/                 # Goose SQL Versioned Migrations
+│   │   ├── 00001_init_extensions.sql
+│   │   ├── 00002_create_users_tables.sql
+│   │   ├── 00003_create_lessons_tables.sql
+│   │   └── 00004_create_progress_tables.sql
 │   ├── queries/                    # SQL Queries thuần túy phục vụ SQLC
-│   └── seeds/                      # SQL Seed dữ liệu mẫu ban đầu
-│
-├── Dockerfile                      # Docker multi-stage build cho Go binary siêu nhẹ (<25MB)
-├── Dockerfile.migration            # Docker container chạy Goose migration độc lập
-├── sqlc.yaml                       # Cấu hình trình biên dịch SQLC
+│   │   ├── lessons.sql
+│   │   └── users.sql
+│   └── seeds/                      # Dữ liệu mẫu (Sample data)
+│       └── 00001_dev_seed.sql
+├── Dockerfile                      # Multi-stage Go Binary Container (<15MB)
+├── Dockerfile.migration            # Container chuyên biệt chạy Goose Migrations
+├── sqlc.yaml                       # Cấu hình SQLC sinh code
 ├── go.mod
 └── go.sum
 ```

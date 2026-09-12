@@ -396,64 +396,68 @@ Dưới đây là sơ đồ cấu trúc thư mục chi tiết, chuẩn mực cô
 │   │
 │   ├── gateway-core/                       # Golang API Gateway & Streaming Server (Clean Architecture)
 │   │   ├── cmd/
-│   │   │   ├── server/
-│   │   │   │   └── main.go                 # Entrypoint khởi động HTTP Server & WebSocket Hub
-│   │   │   └── cli/                        # Công cụ dòng lệnh hỗ trợ bảo trì dữ liệu
+│   │   │   └── server/
+│   │   │       ├── main.go                 # Entrypoint khởi động HTTP Server & WebSocket Hub
+│   │   │       ├── main_test.go            # Test kiểm tra khởi tạo server và routes
+│   │   │       └── dod_test.go             # Bộ kiểm thử Definition of Done (DoD) tích hợp
 │   │   ├── config/
 │   │   │   └── config.go                   # Đọc biến môi trường (Database, Redis, JWT, Storage)
+│   │   ├── docs/
+│   │   │   └── swagger.json                # Đặc tả OpenAPI 3.0.3 phục vụ Swagger UI
 │   │   ├── internal/                       # Code nội bộ bảo vệ theo chuẩn Go (Private Package)
-│   │   │   ├── domain/                     # Entities & Business Interfaces thuần túy
-│   │   │   │   ├── user.go
+│   │   │   ├── domain/                     # Entities & Domain Models thuần túy
+│   │   │   │   ├── auth.go
 │   │   │   │   ├── lesson.go
-│   │   │   │   ├── progress.go
-│   │   │   │   └── task.go
-│   │   │   ├── usecase/                    # Business Logic Layer (Use Cases & Orchestration)
-│   │   │   │   ├── auth_usecase.go         # Đăng ký, đăng nhập, cấp phát JWT
-│   │   │   │   ├── lesson_usecase.go       # Quản lý thư viện bài học, tìm kiếm ngữ nghĩa
-│   │   │   │   ├── orchestrator_usecase.go # Điều phối quy trình tạo audio qua Redis Streams
-│   │   │   │   ├── streaming_usecase.go    # Xử lý HTTP Range Byte-serving cho Audio
-│   │   │   │   └── sync_usecase.go         # Đồng bộ tiến trình Offline từ Client
+│   │   │   │   └── notification.go
+│   │   │   ├── services/                   # Service Layer (Business Logic & Orchestration)
+│   │   │   │   ├── auth_service.go         # Đăng ký, đăng nhập, cấp phát JWT
+│   │   │   │   ├── lesson_service.go       # Quản lý thư viện bài học, paging, metadata
+│   │   │   │   └── storage_cleanup.go      # Worker dọn dẹp file tạm > 24h chạy nền (ADR-0004)
+│   │   │   ├── orchestrator/               # Pipeline Orchestrator & State Machine
+│   │   │   │   ├── state_machine.go        # RenderJob state transitions (PENDING -> COMPLETED)
+│   │   │   │   └── pipeline_consumer.go    # Consumer nhận event từ Python Workers & cập nhật DB
+│   │   │   ├── queue/                      # Message Broker Adapter
+│   │   │   │   └── redis_producer.go       # Đẩy task vào Redis Streams / PubSub
+│   │   │   ├── websocket/                  # Realtime WebSocket Engine
+│   │   │   │   ├── hub.go                  # Quản lý kết nối Client & broadcast tiến độ
+│   │   │   │   └── client.go               # ReadPump / WritePump kết nối socket từng client
+│   │   │   ├── notifications/              # Module thông báo đẩy
+│   │   │   │   └── push_dispatcher.go      # Gửi FCM & Apple APNs khi render xong
 │   │   │   ├── delivery/                   # Entrypoints & Transport Adapters
-│   │   │   │   ├── http/                   # RESTful API Controllers (Fiber / Gin)
-│   │   │   │   │   ├── router.go           # Đăng ký danh mục routes API
+│   │   │   │   ├── http/                   # RESTful API Controllers (Fiber v2)
 │   │   │   │   │   ├── auth_handler.go
 │   │   │   │   │   ├── lesson_handler.go
-│   │   │   │   │   ├── script_handler.go
-│   │   │   │   │   └── stream_handler.go   # HTTP 206 Partial Content Streamer
-│   │   │   │   ├── ws/                     # WebSocket Manager
-│   │   │   │   │   ├── hub.go              # Quản lý kết nối Client & kênh Broadcast
-│   │   │   │   │   ├── client.go           # Đọc/ghi Socket từng Client
-│   │   │   │   │   └── progress_handler.go # Đẩy % tiến độ render về UI
+│   │   │   │   │   ├── audio_stream_handler.go  # HTTP 206 Range Streaming (Zero-copy)
+│   │   │   │   │   ├── assets_handler.go        # Phân phối SRT, WebVTT và Waveform JSON
+│   │   │   │   │   ├── health_handler.go
+│   │   │   │   │   ├── swagger_handler.go       # Phục vụ Swagger UI & OpenAPI JSON
+│   │   │   │   │   └── swagger_ui.html          # Template nhúng qua //go:embed (ADR-0005)
 │   │   │   │   └── middleware/             # HTTP Middlewares
-│   │   │   │       ├── jwt_auth.go         # Kiểm tra tính hợp lệ của Access Token
+│   │   │   │       ├── jwt_auth.go         # Kiểm tra tính hợp lệ của Bearer JWT
 │   │   │   │       ├── rate_limiter.go     # Giới hạn tần suất request (chống spam)
-│   │   │   │       ├── logger.go           # Ghi log request có định dạng
+│   │   │   │       ├── logger.go           # Structured logging
 │   │   │   │       ├── cors.go
-│   │   │   │       └── recover.go          # Bắt Panic, chống sập server
-│   │   │   ├── repository/                 # Data Access Implementation
-│   │   │   │   ├── postgres/               # Truy vấn PostgreSQL thông qua SQLC & pgxpool
-│   │   │   │   │   ├── db/                 # Generated code từ SQLC
-│   │   │   │   │   │   ├── db.go
-│   │   │   │   │   │   ├── models.go
-│   │   │   │   │   │   ├── lessons.sql.go
-│   │   │   │   │   │   └── users.sql.go
-│   │   │   │   │   ├── connection.go       # Quản lý kết nối pgxpool (MaxConns=25)
-│   │   │   │   │   ├── lesson_repo.go
-│   │   │   │   │   └── user_repo.go
-│   │   │   │   ├── redis/                  # Giao tiếp Redis 7
-│   │   │   │   │   ├── connection.go       # Kết nối go-redis
-│   │   │   │   │   ├── task_publisher.go   # Đẩy Task vào Queue / Streams
-│   │   │   │   │   └── progress_sub.go     # Lắng nghe cập nhật tiến độ từ Python Workers
-│   │   │   │   └── storage/                # Thao tác đọc/ghi File Storage cục bộ
-│   │   │   │       └── file_storage.go
-│   │   │   └── client/                     # Tích hợp dịch vụ bên ngoài
-│   │   │       └── notification/           # Gửi Push Notification (FCM / APNs)
-│   │   │           └── push_dispatcher.go
-│   │   ├── pkg/                            # Thư viện dùng chung có thể tái sử dụng (Public)
-│   │   │   ├── logger/                     # Slog / Zap Structured Logger
-│   │   │   ├── response/                   # Format Response JSON chuẩn (Success / Error)
-│   │   │   ├── jwt/                        # Utility tạo và xác minh JSON Web Token
-│   │   │   └── audioutil/                  # Tiện ích phân tích HTTP Range header
+│   │   │   │       └── recover.go          # Bắt Panic, chống crash server
+│   │   │   └── repository/                 # Data Access Implementation
+│   │   │       ├── user_repository.go
+│   │   │       ├── lesson_repository.go
+│   │   │       ├── postgres/
+│   │   │       │   └── connection.go       # Quản lý pool kết nối jackc/pgx/v5 (MaxConns=25)
+│   │   │       └── db/                     # Generated type-safe code từ SQLC
+│   │   │           ├── db.go
+│   │   │           ├── models.go
+│   │   │           ├── lessons.sql.go
+│   │   │           └── users.sql.go
+│   │   ├── pkg/                            # Thư viện tiện ích nội bộ
+│   │   │   ├── audioutil/                  # Parser HTTP Range (RFC 7233) & SRT/VTT converter
+│   │   │   │   ├── range_parser.go
+│   │   │   │   └── vtt_converter.go
+│   │   │   ├── jwt/                        # Utility tạo và xác minh token JWT
+│   │   │   └── response/                   # Format Response JSON chuẩn (Success / Error)
+│   │   ├── tests/                          # Integration Tests
+│   │   │   ├── integration_pipeline_test.go # Test tích hợp chuỗi render và WebSocket
+│   │   │   └── integration_streaming_test.go # Test tích hợp HTTP 206, seek latency, assets
+
 │   │   ├── db/                             # Cơ sở dữ liệu & Migration Assets
 │   │   │   ├── migrations/                 # Goose SQL Versioned Migrations
 │   │   │   │   ├── 00001_init_extensions.sql

@@ -15,7 +15,8 @@ Chào mừng bạn đến với trung tâm tài liệu kỹ thuật của dự �
 | **[`2_ARCHITECTURE_TECHSTACK.md`](./2_ARCHITECTURE_TECHSTACK.md)** | **Kiến Trúc Hệ Thống & Database** | Sơ đồ Microservices (Go Gateway + Python Workers), Cơ sở dữ liệu (**PostgreSQL 16 + pgx Connection Pool + JSONB** + **Redis 7** + **Expo SQLite**). |
 | **[`3_DOCKER_CONTAINERIZATION.md`](./3_DOCKER_CONTAINERIZATION.md)** | **Triển Khai 100% Docker-First** | Đặc tả `docker-compose.yml`, multi-stage Dockerfiles, cấu hình Network, Volume chia sẻ, và cấu hình chạy ngầm. |
 | **[`4_API_AND_DATA_SCHEMAS.md`](./4_API_AND_DATA_SCHEMAS.md)** | **Giao Kèo API & Kiểu Dữ Liệu** | Chuẩn RESTful API (Auth, Lessons, Progress), HTTP 206 Streaming, WebSocket Realtime, Error responses chuẩn hóa, và gói kiểu TypeScript `@meowshadow/types`. |
-| **[`5_SPRINT_PLAN.md`](./5_SPRINT_PLAN.md)** | **Kế Hoạch Triển Khai 11 Sprint** | Lộ trình chi tiết 11 Sprint qua 5 giai đoạn: Docker nền tảng, Audio Processor, AI Workers, Go Gateway, Next.js Web đến React Native Mobile App. |
+| **[`5_SPRINT_PLAN.md`](./5_SPRINT_PLAN.md)** | **Kế Hoạch Triển Khai 12 Sprint** | Lộ trình chi tiết 12 Sprint qua 5 giai đoạn: Docker nền tảng, Audio Processor, AI Workers, Go Gateway, Next.js Web đến React Native Mobile App. |
+
 | **[`6_DEVELOPMENT_GUIDE_AND_ENV.md`](./6_DEVELOPMENT_GUIDE_AND_ENV.md)** | **Quy Chuẩn Code, Env & Rủi Ro** | Git Workflow, Conventional Commits, Coding Conventions (Go, Python, TypeScript), Ma trận `.env`, Yêu cầu phần cứng và Quản trị rủi ro. |
 | **[`adr/`](./adr/)** | **Hồ Sơ Quyết Định Kiến Trúc (ADR)** | Bộ văn bản quyết định kỹ thuật then chốt: Fiber v2, Zero-Copy Streaming, Redis Orchestration, Dual Subtitles, Storage Retention, Embedded Swagger. |
 
@@ -41,7 +42,7 @@ Dự án áp dụng mô hình phân tầng tài liệu chuẩn Enterprise: Mỗi
 
 ## 🚦 Trạng Thái Hiện Tại & Các Bước Bắt Đầu
 
-Dự án hiện đã hoàn tất **100% Giai đoạn 1, 2, 3 (Backend, AI Audio Engine & Gateway Core: Sprint 1, 2, 7, 8, 9)** và đang bước vào **Giai đoạn 4: Sprint 10: Next.js 15 Web Studio - Script Editor & Pacing Studio**.
+Dự án hiện đã hoàn tất **100% Giai đoạn 1, 2, 3 (Toàn bộ Backend, AI Audio Engine & Gateway Core: Sprint 1 đến 9 - 9/12 Sprints, 75.0%)** và đang bước vào **Giai đoạn 4: Sprint 10: Next.js 15 Web Studio - Script Editor & Pacing Studio**.
 
 ### 1. Chuẩn bị file cấu hình môi trường
 Trước khi khởi chạy hệ thống, sao chép file cấu hình mẫu ở thư mục gốc:
