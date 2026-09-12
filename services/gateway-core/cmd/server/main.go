@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	fiberWs "github.com/gofiber/websocket/v2"
 	"meowshadow/gateway-core/config"
 	deliveryHttp "meowshadow/gateway-core/internal/delivery/http"
 	"meowshadow/gateway-core/internal/delivery/middleware"
@@ -18,11 +19,12 @@ import (
 	"meowshadow/gateway-core/internal/repository/db"
 	"meowshadow/gateway-core/internal/repository/postgres"
 	"meowshadow/gateway-core/internal/services"
+	ws "meowshadow/gateway-core/internal/websocket"
 	"meowshadow/gateway-core/pkg/response"
 )
 
 // SetupApp builds and configures the Fiber application with all middleware and routes.
-func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc services.LessonService) *fiber.App {
+func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc services.LessonService, hubs ...*ws.Hub) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName:      "MeowShadow Gateway Core v1.0.0",
 		ServerHeader: "Fiber",
@@ -73,6 +75,40 @@ func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc servic
 		lessonHandler.RegisterRoutes(apiV1, jwtAuth)
 	}
 
+	// WebSocket Protocol Upgrade Middleware
+	app.Use("/ws", func(c *fiber.Ctx) error {
+		if fiberWs.IsWebSocketUpgrade(c) {
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
+	})
+
+	// Mount WebSocket Realtime Hub routes if hub is provided
+	var hub *ws.Hub
+	if len(hubs) > 0 && hubs[0] != nil {
+		hub = hubs[0]
+	}
+
+	if hub != nil {
+		app.Get("/ws/progress", fiberWs.New(func(c *fiberWs.Conn) {
+			jobID := c.Query("job_id")
+			lessonID := c.Query("lesson_id")
+			client := ws.NewClient(hub, c, jobID, lessonID)
+			hub.Register(client)
+			go client.WritePump()
+			client.ReadPump()
+		}))
+
+		app.Get("/ws/lessons/:id", fiberWs.New(func(c *fiberWs.Conn) {
+			lessonID := c.Params("id")
+			jobID := c.Query("job_id")
+			client := ws.NewClient(hub, c, jobID, lessonID)
+			hub.Register(client)
+			go client.WritePump()
+			client.ReadPump()
+		}))
+	}
+
 	// Custom 404 handler
 	app.Use(func(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusNotFound, "Not Found", fmt.Sprintf("Route '%s' not found", c.Path()))
@@ -107,7 +143,12 @@ func main() {
 		lessonSvc = services.NewLessonService(lessonRepo)
 	}
 
-	app := SetupApp(cfg, authSvc, lessonSvc)
+	// Initialize WebSocket Hub
+	hub := ws.NewHub()
+	go hub.Run()
+	defer hub.Close()
+
+	app := SetupApp(cfg, authSvc, lessonSvc, hub)
 
 	// Channel to listen for OS signals for graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)
