@@ -156,6 +156,8 @@ services:
       dockerfile: services/tts-engine/Dockerfile
     container_name: meowshadow_tts_engine
     restart: unless-stopped
+    ports:
+      - "${TTS_ENGINE_PORT:-8002}:8002"
     environment:
       - REDIS_ADDR=redis-broker:6379
       - STORAGE_DIR=/app/storage

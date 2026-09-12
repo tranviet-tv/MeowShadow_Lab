@@ -32,8 +32,8 @@ gantt
     Sprint 4: FFmpeg Mastering & Subtitles      :         sp4, after sp3, 3d
 
     section Giai đoạn 2: AI & Tổng Hợp Giọng
-    Sprint 5: Speech Synthesis & Smart Cache    :         sp5, after sp4, 3d
-    Sprint 6: Script-LLM & NLP Pipeline         :         sp6, after sp5, 3d
+    Sprint 5: Speech Synthesis & Smart Cache    :done,    sp5, after sp4, 3d
+    Sprint 6: Script-LLM & NLP Pipeline         :active,  sp6, after sp5, 3d
 
     section Giai đoạn 3: Gateway & Streaming
     Sprint 7: Go Gateway & Database Layer       :         sp7, after sp6, 3d
@@ -162,7 +162,7 @@ gantt
 | **SP05-02** | Module Edge-TTS Synthesis Bất Đồng Bộ | - Viết `edge_engine.py` gọi thư viện `edge-tts`<br>- Hỗ trợ điều chỉnh tốc độ đọc (`--rate=+0%`), cao độ (`--pitch=+0Hz`)<br>- Xử lý song song danh sách câu với `asyncio.gather` và kiểm soát concurrency limiter | `services/tts-engine/src/services/edge_engine.py` | 0.8 ngày | 🟢 Hoàn thành |
 | **SP05-03** | Smart Caching Engine Băm Mã MD5 | - Viết `cache_manager.py`: Tính `hash = md5(text + voice_id + rate + pitch)`<br>- Kiểm tra file cache tồn tại trước khi gọi TTS, giúp tăng tốc tái sử dụng 100x | `services/tts-engine/src/services/cache_manager.py` | 0.4 ngày | 🟢 Hoàn thành |
 | **SP05-04** | Redis Worker Consumer & Job Dispatcher | - Lắng nghe task `TTS_SYNTHESIS` từ Redis Stream / Queue<br>- Tự động chia nhỏ mảng câu, tổng hợp đồng loạt và đẩy kết quả đường dẫn clips về Redis | `services/tts-engine/src/workers/tts_worker.py` | 0.5 ngày | 🟢 Hoàn thành |
-| **SP05-05** | Dockerfile & Đánh Giá Tốc Độ Render | - Dockerfile tối ưu hóa kích thước cho `tts-engine`<br>- Benchmark: Tổng hợp 100 câu ngắn dưới **15 giây** với tỷ lệ lỗi < 0.1% | `services/tts-engine/Dockerfile`<br>`services/tts-engine/tests/test_tts_speed.py` | 0.5 ngày | ⚪ Chờ thực hiện |
+| **SP05-05** | Dockerfile & Đánh Giá Tốc Độ Render | - Dockerfile tối ưu hóa kích thước cho `tts-engine`<br>- Benchmark: Tổng hợp 100 câu ngắn dưới **15 giây** với tỷ lệ lỗi < 0.1% | `services/tts-engine/Dockerfile`<br>`services/tts-engine/tests/test_tts_speed.py` | 0.5 ngày | 🟢 Hoàn thành |
 
 * **Định nghĩa hoàn thành (DoD - Sprint 5):**
   - Container `tts-engine-service` khởi chạy trên Docker (`:8002`).
