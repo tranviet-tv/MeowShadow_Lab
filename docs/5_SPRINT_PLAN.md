@@ -115,15 +115,16 @@ gantt
 
 | Mã Task | Tên Công Việc | Chi Tiết Kỹ Thuật | File Tác Động | Ước Tính | Trạng Thái |
 | :--- | :--- | :--- | :--- | :---: | :---: |
-| **SP03-01** | Khởi tạo Khung Service `audio-processor` | - Khởi tạo FastAPI App, cấu hình `config.py` đọc biến môi trường<br>- Khai báo Pydantic schemas: `ProcessRequest`, `PacingParams`, `AudioClipItem` | `services/audio-processor/src/main.py`<br>`services/audio-processor/src/config.py`<br>`services/audio-processor/src/schemas/` | 0.4 ngày | 🟡 Sẵn sàng code |
-| **SP03-02** | Module Tạo Khoảng Lặng Kỹ Thuật Số | - Viết `silence_generator.py` dùng `pydub.AudioSegment.silent` tạo audio im lặng với độ dài chính xác từng mili-giây | `services/audio-processor/src/services/silence_generator.py` | 0.4 ngày | ⚪ Chờ thực hiện |
-| **SP03-03** | Thuật Toán Định Nhịp Pacing Builder | - Viết `pacing_builder.py`: Lắp ghép chuỗi theo cấu trúc `VI -> 1.5s Silence -> EN/JA -> 3.5s Silence -> 0.5s Inter-chunk`<br>- Hỗ trợ tùy biến tham số khoảng lặng linh hoạt từ request | `services/audio-processor/src/services/pacing_builder.py` | 0.6 ngày | ⚪ Chờ thực hiện |
-| **SP03-04** | Chèn Âm Thanh Báo Hiệu (Transition Cue) | - Tạo âm thanh hiệu ứng "chime" nhẹ nhàng phân cách giữa hai ngôn ngữ khi người dùng bật tùy chọn | `services/audio-processor/src/services/pacing_builder.py`<br>`assets/audio/chime.wav` | 0.3 ngày | ⚪ Chờ thực hiện |
-| **SP03-05** | Bộ Kiểm Thử Đơn Vị Pacing & Silence | - Viết unit test Pytest kiểm tra độ dài chính xác của từng phân đoạn âm thanh sau khi chèn khoảng lặng | `services/audio-processor/tests/test_silence_generator.py`<br>`services/audio-processor/tests/test_pacing_builder.py` | 0.3 ngày | ⚪ Chờ thực hiện |
+| **SP03-01** | Khởi tạo Khung Service `audio-processor` | - Khởi tạo FastAPI App, cấu hình `config.py` đọc biến môi trường<br>- Khai báo Pydantic schemas: `ProcessRequest`, `PacingParams`, `AudioClipItem` | `services/audio-processor/src/main.py`<br>`services/audio-processor/src/config.py`<br>`services/audio-processor/src/schemas/` | 0.4 ngày | ✅ Hoàn thành |
+| **SP03-02** | Module Tạo Khoảng Lặng Kỹ Thuật Số | - Viết `silence_generator.py` dùng `pydub.AudioSegment.silent` tạo audio im lặng với độ dài chính xác từng mili-giây | `services/audio-processor/src/services/silence_generator.py` | 0.4 ngày | ✅ Hoàn thành |
+| **SP03-03** | Thuật Toán Định Nhịp Pacing Builder | - Viết `pacing_builder.py`: Lắp ghép chuỗi theo cấu trúc `VI -> 1.5s Silence -> EN/JA -> 3.5s Silence -> 0.5s Inter-chunk`<br>- Hỗ trợ tùy biến tham số khoảng lặng linh hoạt từ request | `services/audio-processor/src/services/pacing_builder.py` | 0.6 ngày | ✅ Hoàn thành |
+| **SP03-04** | Chèn Âm Thanh Báo Hiệu (Transition Cue) | - Tạo âm thanh hiệu ứng "chime" nhẹ nhàng phân cách giữa hai ngôn ngữ khi người dùng bật tùy chọn | `services/audio-processor/src/services/pacing_builder.py`<br>`assets/audio/chime.wav` | 0.3 ngày | ✅ Hoàn thành |
+| **SP03-05** | Bộ Kiểm Thử Đơn Vị Pacing & Silence | - Viết unit test Pytest kiểm tra độ dài chính xác của từng phân đoạn âm thanh sau khi chèn khoảng lặng, kiểm tra PCM buffer zero-byte và tính toàn vẹn của timeline | `services/audio-processor/tests/test_silence_generator.py`<br>`services/audio-processor/tests/test_pacing_builder.py` | 0.3 ngày | ✅ Hoàn thành |
 
 * **Định nghĩa hoàn thành (DoD - Sprint 3):**
-  - Tất cả Pytest tests trong `services/audio-processor/tests/` chạy thành công (`100% pass`).
-  - Hàm ghép nối pacing tạo ra chuỗi audio có sai số thời lượng khoảng lặng không vượt quá $\pm 5$ mili-giây.
+  - Tất cả 27 bài kiểm thử Pytest trong `services/audio-processor/tests/` chạy thành công (`100% pass`).
+  - Hàm ghép nối pacing tạo ra chuỗi audio có sai số thời lượng khoảng lặng không vượt quá $\pm 1$ mili-giây (vượt chuẩn DoD $\pm 5$ mili-giây).
+  - Khung thời gian Timeline liên tục 100%, không bị hổng (gap) hoặc chồng lấn (overlap) giữa các phân đoạn.
 
 ---
 
@@ -315,7 +316,7 @@ Bảng tổng hợp giúp người phát triển và AI theo dõi trạng thái 
 | :---: | :--- | :---: | :---: | :---: | :---: |
 | **SP 01** | Monorepo Foundation, Shared Types & Tooling | 4 | 1.7 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
 | **SP 02** | Docker Infrastructure, PostgreSQL Schema & Redis | 5 | 2.0 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
-| **SP 03** | Audio Processor: Pacing & Silence Engine | 5 | 2.0 ngày | 🟡 **ĐANG THỰC HIỆN** | Dự kiến +2 ngày |
+| **SP 03** | Audio Processor: Pacing & Silence Engine | 5 | 2.0 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
 | **SP 04** | Audio Processor: FFmpeg Mastering & Subtitles | 5 | 2.9 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 05** | Speech Synthesis Worker (Edge-TTS & MD5 Cache) | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 06** | Script-LLM Worker (Ollama Qwen 2.5 NLP) | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
@@ -325,7 +326,7 @@ Bảng tổng hợp giúp người phát triển và AI theo dõi trạng thái 
 | **SP 10** | Next.js 15 Web Studio & Script Editor | 5 | 2.7 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 11** | Interactive Karaoke Player & Waveform Audio | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 12** | React Native Mobile App & 1-Click Launch | 5 | 3.7 ngày | ⚪ Chờ thực hiện | -- |
-| **TỔNG** | **Toàn bộ 12 Sprints Dự Án** | **58 Tasks** | **~29.9 ngày** | **2/12 Hoàn thành (16.7%)** | -- |
+| **TỔNG** | **Toàn bộ 12 Sprints Dự Án** | **58 Tasks** | **~29.9 ngày** | **3/12 Hoàn thành (25.0%)** | -- |
 
 ---
 
@@ -343,15 +344,15 @@ Bảng tổng hợp giúp người phát triển và AI theo dõi trạng thái 
 
 ## 5. HƯỚNG DẪN KÍCH HOẠT SPRINT TIẾP THEO (NEXT SPRINT ACTIVATION)
 
-Để bắt đầu thực hiện ngay **Sprint 3: Audio Processor Service - Pacing & Silence Engine**, hãy thực hiện lệnh kiểm tra môi trường:
+Để bắt đầu thực hiện ngay **Sprint 4: Audio Processor Service - FFmpeg Mastering & Subtitles Engine**, hãy thực hiện lệnh kiểm tra môi trường:
 
 ```bash
-# 1. Khởi động hạ tầng cơ sở dữ liệu và message broker
+# 1. Kiểm tra bộ kiểm thử đơn vị của audio-processor đã sẵn sàng
+make test-audio
+
+# 2. Kiểm tra FFmpeg hệ thống hỗ trợ loudnorm và libmp3lame
+ffmpeg -version
+
+# 3. Chạy thử nghiệm khung container audio-processor
 docker compose up -d postgres-db redis-broker
-
-# 2. Kiểm tra trạng thái hoạt động của các container
-docker compose ps
-
-# 3. Chạy thử nghiệm kiểm tra module audio-processor
-cd services/audio-processor && pytest tests/
 ```
