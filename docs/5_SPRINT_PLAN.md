@@ -221,11 +221,11 @@ gantt
 | **SP08-02** | Kết Nối Worker Responses & Cập Nhật DB | - Consumer trong Go lắng nghe sự kiện hoàn thành từ các Python Workers<br>- Cập nhật trạng thái bài học, đường dẫn file audio MP3 và file phụ đề SRT vào PostgreSQL | `services/gateway-core/internal/orchestrator/pipeline_consumer.go` | 0.6 ngày | 🟢 Hoàn thành |
 | **SP08-03** | Kênh WebSocket Hub Thời Gian Thực | - Xây dựng WebSocket Hub: `/ws/progress?job_id=xxx` hoặc `/ws/lessons/:id`<br>- Quản lý clients kết nối, broadcast % hoàn thành (0% $\rightarrow$ 100%) và thời gian ước tính còn lại | `services/gateway-core/internal/websocket/hub.go`<br>`services/gateway-core/internal/websocket/client.go` | 0.7 ngày | 🟢 Hoàn thành |
 | **SP08-04** | Dispatcher Thông Báo Đẩy (FCM / APNs) | - Xây dựng module gửi Push Notification tới thiết bị Mobile khi quá trình render hoàn tất | `services/gateway-core/internal/notifications/push_dispatcher.go` | 0.4 ngày | 🟢 Hoàn thành |
-| **SP08-05** | Kiểm Thử Tích Hợp Luồng Render Toàn Diện | - Chạy test tích hợp end-to-end từ lúc nhận lệnh tạo bài học đến khi nhận thông điệp 100% qua WebSocket | `services/gateway-core/tests/integration_pipeline_test.go` | 0.4 ngày | ⚪ Chờ thực hiện |
+| **SP08-05** | Kiểm Thử Tích Hợp Luồng Render Toàn Diện | - Chạy test tích hợp end-to-end từ lúc nhận lệnh tạo bài học đến khi nhận thông điệp 100% qua WebSocket | `services/gateway-core/tests/integration_pipeline_test.go` | 0.4 ngày | 🟢 Hoàn thành |
 
 * **Định nghĩa hoàn thành (DoD - Sprint 8):**
-  - Kết nối WebSocket bằng công cụ test nhận đủ các sự kiện tiến trình: `15% (Parsed) -> 60% (TTS Done) -> 90% (Mastered) -> 100% (Completed)`.
-  - Tự động bắt lỗi và đánh dấu `FAILED` nếu có bất kỳ worker nào bị ngắt kết nối đột ngột.
+  - [x] Kết nối WebSocket bằng công cụ test nhận đủ các sự kiện tiến trình: `15% (Parsed) -> 60% (TTS Done) -> 90% (Mastered) -> 100% (Completed)` (`TestSprint8_DoD_FullRenderPipeline` pass 100%).
+  - [x] Tự động bắt lỗi và đánh dấu `FAILED` nếu có bất kỳ worker nào bị ngắt kết nối đột ngột (`TestSprint8_DoD_WorkerFailure` pass 100%).
 
 ---
 

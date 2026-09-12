@@ -23,7 +23,7 @@
 
 **MeowShadow Lab** là hệ thống luyện nghe và phản xạ nhại giọng đa ngữ (**Việt - Anh - Nhật**) thông minh, được thiết kế để giải quyết bài toán cốt lõi của người học ngoại ngữ: **Nghe hiểu thụ động (Passive Listening) kết hợp nhại giọng chủ động (Shadowing) theo chuẩn âm thanh Podcast chuyên nghiệp.**
 
-Hệ thống cho phép người dùng đưa vào văn bản thô 1.300 – 1.500 từ, sử dụng AI (Qwen 2.5) tự động phân đoạn và dịch thuật, sau đó ghép nối âm thanh với quy tắc khoảng lặng thông minh (**Smart Silence Pacing**):
+Hệ thống cho phép người dùng đưa vào văn bản thô 1.300 – 1.500 từ, sử dụng AI (Qwen 3 8B) tự động phân đoạn và dịch thuật, sau đó ghép nối âm thanh với quy tắc khoảng lặng thông minh (**Smart Silence Pacing**):
 * **`0.5s`** giữa các câu trong cùng khối.
 * **`1.5s`** sau khối Tiếng Việt (chuyển đổi ngữ cảnh tư duy).
 * **`3.5s`** sau khối Ngoại ngữ (thời gian vàng để người học nhại lại câu - Shadowing).
@@ -73,7 +73,7 @@ MeowShadow_Lab/
 │   └── api-client/                 # SDK API Client dùng chung cho Web & Mobile
 ├── services/                       # Hệ thống Backend & AI Microservices
 │   ├── gateway-core/               # Golang Fiber Core API Gateway, Auth & Audio Streaming
-│   ├── script-llm/                 # Python FastAPI + Ollama Qwen 2.5 Dịch thuật & Phân đoạn
+│   ├── script-llm/                 # Python FastAPI + Ollama Qwen 3 8B Dịch thuật & Phân đoạn
 │   ├── tts-engine/                 # Python FastAPI + Edge-TTS & Local AI TTS Engine
 │   └── audio-processor/            # Python FastAPI + FFmpeg chèn Pacing & EBU R128
 └── storage/                        # Shared Docker Volume chứa Audio MP3, SRT & Clip Cache
@@ -83,14 +83,16 @@ MeowShadow_Lab/
 
 ## 🚦 TRẠNG THÁI HIỆN TẠI & LỘ TRÌNH TRIỂN KHAI
 
-| Giai đoạn | Trạng thái | Mục tiêu trọng tâm |
+| Giai đoạn / Sprint | Trạng thái | Mục tiêu trọng tâm |
 | :--- | :---: | :--- |
 | **Phase 0: Architecture & Specs** |  **Hoàn tất (Approved)** | Hoàn thiện 100% SRS, Architecture, Docker Spec, API Contract & Sprint Plan. |
-| **Sprint 1: Docker & Audio Processor** | ⏳ **Sẵn sàng triển khai** | Dựng Monorepo, Shared Types, Docker Compose (Postgres + Redis) và `audio-processor-service` (Python). |
-| **Sprint 2: Script-LLM & TTS Workers** | ⚪ Chờ thực hiện | Worker phân đoạn kịch bản Qwen 2.5 và TTS Engine (Edge-TTS song song). |
-| **Sprint 3: Golang Core API Gateway** | ⚪ Chờ thực hiện | Xây dựng API Gateway, WebSocket Hub, HTTP Range Audio Streaming và DB Sync. |
-| **Sprint 4: Next.js 15 Web Studio** | ⚪ Chờ thực hiện | Soạn thảo kịch bản, điều khiển Pacing và Trình phát Audio Karaoke đồng bộ phụ đề. |
-| **Sprint 5: React Native Mobile & Release** | ⚪ Chờ thực hiện | Background Audio, Lock-screen Player, Offline Mode và Đóng gói Release 1-Click. |
+| **Sprint 1: Docker & Audio Processor** | 🟢 **Hoàn thành** | Dựng Monorepo, Shared Types, Docker Compose (Postgres + Redis) và `audio-processor-service` (Python). |
+| **Sprint 2: Script-LLM & TTS Workers** | 🟢 **Hoàn thành** | Worker phân đoạn kịch bản Qwen 3 8B và TTS Engine (Edge-TTS song song). |
+| **Sprint 7: Golang Core Gateway** | 🟢 **Hoàn thành** | Khung Fiber API Gateway, kết nối pgxpool/Postgres, JWT Auth, CRUD bài học. |
+| **Sprint 8: Pipeline Orchestration & WebSocket** | 🟢 **Hoàn thành** | State Machine, Redis Stream/PubSub Producer & Consumer, WebSocket Hub, Push Notification Dispatcher. |
+| **Sprint 9: High-Performance Audio Streaming** | ⚪ Chờ thực hiện | HTTP Range Requests (206 Partial Content), Static Asset Server, Storage Retention. |
+| **Sprint 10: Next.js 15 Web Studio** | ⚪ Chờ thực hiện | Giao diện soạn thảo kịch bản song ngữ, điều khiển Pacing Studio và Karaoke visualizer. |
+| **Sprint 11: React Native Mobile & Release** | ⚪ Chờ thực hiện | Background Audio, Lock-screen Player, Offline Mode và Đóng gói Release 1-Click. |
 
 ---
 
@@ -101,7 +103,7 @@ MeowShadow_Lab/
 * **Node.js** v20+ & **pnpm** v9+ (cho Web và Shared Packages).
 * **Go** v1.23+ (nếu muốn debug độc lập Gateway ngoài Docker).
 * **Python** v3.11+ & **FFmpeg** (nếu muốn debug độc lập Audio Services ngoài Docker).
-* **Ollama** (tùy chọn, để chạy Local LLM Qwen 2.5).
+* **Ollama** (tùy chọn, để chạy Local LLM Qwen 3 8B).
 
 ### 2. Thiết Lập Cấu Hình Môi Trường
 ```bash

@@ -200,18 +200,23 @@ Tài liệu Swagger API: `http://localhost:8000/swagger/index.html`.
 | `POST` | `/api/v1/lessons` | Bearer JWT | Tạo bài học mới kèm nội dung JSONB `transcript_chunks` & `pacing_config` |
 | `GET` | `/api/v1/lessons/:id` | Bearer JWT | Lấy thông tin chi tiết bài học theo UUID |
 | `DELETE` | `/api/v1/lessons/:id` | Bearer JWT | Xóa bài học theo UUID |
+| `GET` | `/ws/progress` | Public / Query `?job_id=xxx` | WebSocket kết nối lắng nghe tiến trình render realtime (0% -> 100%) |
+| `GET` | `/ws/lessons/:id` | Public / Param `:id` | WebSocket lắng nghe cập nhật trạng thái bài học cụ thể |
 
 ---
 
 ## 6. HƯỚNG DẪN KIỂM THỬ (TESTING)
 
 ```bash
-# Chạy toàn bộ test suite bao gồm Unit Test và Integration Flow (DoD Sprint 7):
+# Chạy toàn bộ test suite bao gồm Unit Test và Integration Pipeline:
 cd services/gateway-core
 go test -v ./...
 
-# Chạy riêng integration test kiểm thử trọn vẹn luồng DoD:
+# Chạy riêng integration test kiểm thử trọn vẹn luồng DoD Sprint 7:
 go test -v ./cmd/server -run TestSprint7_DefinitionOfDone_IntegrationFlow
+
+# Chạy riêng integration test kiểm thử trọn vẹn chuỗi Render Pipeline & WebSocket DoD Sprint 8:
+go test -v ./tests -run TestSprint8_DoD
 ```
 
 ---
