@@ -76,8 +76,13 @@ storage/*
 !storage/README.md
 storage/cache/*
 storage/temp/*
+storage/audio/*
+storage/subtitles/*
 !storage/cache/.gitkeep
 !storage/temp/.gitkeep
+!storage/audio/.gitkeep
+!storage/subtitles/.gitkeep
+services/*/storage/
 *.mp3
 *.wav
 *.aac

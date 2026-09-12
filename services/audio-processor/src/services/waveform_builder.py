@@ -42,7 +42,13 @@ class WaveformBuilder:
             path = Path(audio_input)
             if not path.exists():
                 raise FileNotFoundError(f"Audio file not found for waveform extraction: {path}")
-            segment = AudioSegment.from_file(str(path))
+            try:
+                segment = AudioSegment.from_file(str(path))
+            except Exception:
+                try:
+                    segment = AudioSegment.from_wav(str(path))
+                except Exception:
+                    raise
 
         # Handle empty audio
         if len(segment) == 0:

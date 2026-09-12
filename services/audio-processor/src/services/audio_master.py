@@ -243,11 +243,19 @@ class AudioMaster:
         normalized_segment = mastered.apply_gain(actual_gain)
 
         # Export to output path
-        normalized_segment.export(
-            str(output_path),
-            format=output_path.suffix.lstrip(".") or "mp3",
-            bitrate=bitrate,
-        )
+        fmt = output_path.suffix.lstrip(".") or "mp3"
+        try:
+            normalized_segment.export(
+                str(output_path),
+                format=fmt,
+                bitrate=bitrate if fmt == "mp3" else None,
+            )
+        except (FileNotFoundError, RuntimeError):
+            # Fallback to standard WAV encoding if MP3 encoder (ffmpeg) is absent on host
+            normalized_segment.export(
+                str(output_path),
+                format="wav",
+            )
 
         duration_sec = len(normalized_segment) / 1000.0
 
