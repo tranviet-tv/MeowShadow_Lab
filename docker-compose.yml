@@ -134,10 +134,13 @@ services:
       dockerfile: services/script-llm/Dockerfile
     container_name: meowshadow_script_llm
     restart: unless-stopped
+    ports:
+      - "${SCRIPT_LLM_PORT:-8001}:8001"
     environment:
+      - PORT=8001
       - REDIS_ADDR=redis-broker:6379
       - OLLAMA_HOST=http://host.docker.internal:11434
-      - LLM_MODEL=${LLM_MODEL:-qwen2.5:14b}
+      - LLM_MODEL=${LLM_MODEL:-qwen3:8b}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -145,6 +148,12 @@ services:
         condition: service_healthy
     networks:
       - meowshadow-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   # ============================================================================
   # 5. PYTHON WORKER: MULTI-TTS SYNTHESIS SERVICE (SPRINT 2)

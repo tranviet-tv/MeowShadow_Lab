@@ -33,10 +33,10 @@ gantt
 
     section Giai đoạn 2: AI & Tổng Hợp Giọng
     Sprint 5: Speech Synthesis & Smart Cache    :done,    sp5, after sp4, 3d
-    Sprint 6: Script-LLM & NLP Pipeline         :active,  sp6, after sp5, 3d
+    Sprint 6: Script-LLM & NLP Pipeline         :done,    sp6, after sp5, 3d
 
     section Giai đoạn 3: Gateway & Streaming
-    Sprint 7: Go Gateway & Database Layer       :         sp7, after sp6, 3d
+    Sprint 7: Go Gateway & Database Layer       :active,  sp7, after sp6, 3d
     Sprint 8: Redis Pipeline & WebSockets       :         sp8, after sp7, 3d
     Sprint 9: HTTP 206 Streaming & Storage      :         sp9, after sp8, 2d
 
@@ -53,7 +53,7 @@ gantt
 | Giai Đoạn | Mã Sprint | Trọng Tâm Kỹ Thuật | Thành Phần Mục Tiêu | Đầu Ra Định Lượng |
 | :--- | :--- | :--- | :--- | :--- |
 | **Giai đoạn 1: Nền Tảng & Audio Core** | **Sprint 1 – 4** | Khung Monorepo, Docker hạ tầng, Cơ sở dữ liệu, Thuật toán Pacing & Mastering EBU R128. | `packages/shared-types`, `docker-compose.yml`, `services/gateway-core/db/`, `services/audio-processor/` | Docker Compose chạy sạch sẽ Postgres/Redis; Render thử nghiệm file audio 10 phút chuẩn -16 LUFS kèm `.srt`. |
-| **Giai đoạn 2: AI & Speech Synthesis** | **Sprint 5 – 6** | Tổng hợp đa ngữ Edge-TTS, Bộ nhớ đệm MD5, Phân đoạn tự động Qwen 2.5 LLM & Dịch thuật. | `services/tts-engine/`, `services/script-llm/` | 2 Worker AI hoạt động song song; Dịch và chia 1.500 từ trong < 10s, sinh giọng đọc trong < 15s. |
+| **Giai đoạn 2: AI & Speech Synthesis** | **Sprint 5 – 6** | Tổng hợp đa ngữ Edge-TTS, Bộ nhớ đệm MD5, Phân đoạn tự động Qwen 3 8B LLM & Dịch thuật. | `services/tts-engine/`, `services/script-llm/` | 2 Worker AI hoạt động song song; Dịch và chia 1.500 từ trong < 10s, sinh giọng đọc trong < 15s. |
 | **Giai đoạn 3: Gateway Core & Streaming** | **Sprint 7 – 9** | API Gateway Golang (Fiber/Gin), Điều phối tác vụ hàng đợi Redis, WebSocket Realtime & HTTP Range Streaming. | `services/gateway-core/` | Gateway `:8000` điều phối trơn tru end-to-end chuỗi render; Stream audio độ trễ tua < 100ms. |
 | **Giai đoạn 4: Web Studio Trực Quan** | **Sprint 10 – 11** | Giao diện Web Studio Next.js 15, Bảng soạn thảo thẻ song ngữ, Trình phát Karaoke đồng bộ phụ đề & Waveform. | `apps/web/` | Web Studio `:3000` tương tác mượt mà, phản hồi WebSocket real-time, phím tắt hotkeys Space/J/L/R. |
 | **Giai đoạn 5: Mobile & Phát Hành 1-Click** | **Sprint 12** | Ứng dụng di động React Native / Expo, Phát âm thanh chạy nền (Background Audio), Màn hình khóa, Offline Sync & Script `run.sh`. | `apps/mobile/`, `scripts/run.sh`, `Makefile` | Mobile App nghe được khi tắt màn hình; Kích hoạt toàn bộ hệ thống bằng đúng 1 câu lệnh duy nhất. |
@@ -170,8 +170,8 @@ gantt
 
 ---
 
-#### 🏃 SPRINT 6: Script-LLM Worker (Ollama Qwen 2.5 & NLP Pipeline)
-* **Mục tiêu:** Xây dựng service Python FastAPI `services/script-llm` kết nối Ollama (Qwen 2.5 14B/7B), tự động phân tích cấu trúc bài viết thô, phân đoạn logic 3–4 câu song ngữ (`[VI] - [EN]` hoặc `[VI] - [JA]`), và hỗ trợ dịch thuật chuẩn ngữ cảnh.
+#### 🏃 SPRINT 6: Script-LLM Worker (Ollama Qwen 3 8B & NLP Pipeline)
+* **Mục tiêu:** Xây dựng service Python FastAPI `services/script-llm` kết nối Ollama (Qwen 3 8B), tự động phân tích cấu trúc bài viết thô, phân đoạn logic 3–4 câu song ngữ (`[VI] - [EN]` hoặc `[VI] - [JA]`), và hỗ trợ dịch thuật chuẩn ngữ cảnh.
 * **Thời lượng dự kiến:** 2.5 – 3 ngày.
 * **Mức độ ưu tiên:** P1 (Trợ thủ AI thông minh).
 
@@ -181,7 +181,7 @@ gantt
 | **SP06-02** | Regex Tokenizer & Tag Parser | - Viết `script_tokenizer.py`: Bóc tách triệt để các thẻ cú pháp `[VI]`, `[EN]`, `[JA]`<br>- Chuẩn hóa ký tự khoảng trắng, ngắt dòng và dấu câu | `services/script-llm/src/services/script_tokenizer.py` | 0.5 ngày | 🟢 Hoàn thành |
 | **SP06-03** | Tích Hợp Ollama Qwen 3 8B Prompt Engine | - Viết `llm_pipeline.py`: Xây dựng System Prompt tối ưu hóa cho Qwen 3 8B<br>- Tính năng 1: Tự động phân đoạn bài viết 1.500 từ thành các cặp 3–4 câu trọn vẹn ngữ nghĩa<br>- Tính năng 2: Dịch tự động một chiều VI $\rightarrow$ EN/JA hoặc EN/JA $\rightarrow$ VI | `services/script-llm/src/services/llm_pipeline.py`<br>`services/script-llm/src/prompts/chunking.py` | 0.8 ngày | 🟢 Hoàn thành |
 | **SP06-04** | Bộ Đo Đạc & Dự Đoán Thời Lượng Audio | - Viết `metrics_estimator.py`: Đếm số từ, ước tính độ dài đọc dựa trên WPM (Words Per Minute) và tham số khoảng lặng Pacing | `services/script-llm/src/services/metrics_estimator.py` | 0.4 ngày | 🟢 Hoàn thành |
-| **SP06-05** | Dockerfile & Kiểm Thử Xử Lý Kịch Bản Thô | - Viết Dockerfile hỗ trợ kết nối `host.docker.internal`<br>- Kiểm thử phân đoạn bài viết mẫu không làm rớt chữ hoặc sai cú pháp | `services/script-llm/Dockerfile`<br>`services/script-llm/tests/test_parser.py` | 0.5 ngày | ⚪ Chờ thực hiện |
+| **SP06-05** | Dockerfile & Kiểm Thử Xử Lý Kịch Bản Thô | - Viết Dockerfile hỗ trợ kết nối `host.docker.internal`<br>- Kiểm thử phân đoạn bài viết mẫu không làm rớt chữ hoặc sai cú pháp | `services/script-llm/Dockerfile`<br>`services/script-llm/tests/test_parser.py` | 0.5 ngày | 🟢 Hoàn thành |
 
 * **Định nghĩa hoàn thành (DoD - Sprint 6):**
   - Container `script-llm-service` chạy trên cổng `:8001`.
@@ -319,15 +319,15 @@ Bảng tổng hợp giúp người phát triển và AI theo dõi trạng thái 
 | **SP 02** | Docker Infrastructure, PostgreSQL Schema & Redis | 5 | 2.0 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
 | **SP 03** | Audio Processor: Pacing & Silence Engine | 5 | 2.0 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
 | **SP 04** | Audio Processor: FFmpeg Mastering & Subtitles | 5 | 2.9 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
-| **SP 05** | Speech Synthesis Worker (Edge-TTS & MD5 Cache) | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
-| **SP 06** | Script-LLM Worker (Ollama Qwen 2.5 NLP) | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
+| **SP 05** | Speech Synthesis Worker (Edge-TTS & MD5 Cache) | 5 | 2.6 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
+| **SP 06** | Script-LLM Worker (Ollama Qwen 3 8B NLP) | 5 | 2.6 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
 | **SP 07** | Golang Core API Gateway & Database Layer | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 08** | Pipeline Orchestration & Realtime WebSockets | 5 | 2.9 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 09** | High-Performance Audio Streaming (HTTP 206) | 4 | 1.6 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 10** | Next.js 15 Web Studio & Script Editor | 5 | 2.7 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 11** | Interactive Karaoke Player & Waveform Audio | 5 | 2.6 ngày | ⚪ Chờ thực hiện | -- |
 | **SP 12** | React Native Mobile App & 1-Click Launch | 5 | 3.7 ngày | ⚪ Chờ thực hiện | -- |
-| **TỔNG** | **Toàn bộ 12 Sprints Dự Án** | **58 Tasks** | **~29.9 ngày** | **4/12 Hoàn thành (33.3%)** | -- |
+| **TỔNG** | **Toàn bộ 12 Sprints Dự Án** | **58 Tasks** | **~29.9 ngày** | **6/12 Hoàn thành (50.0%)** | -- |
 
 ---
 

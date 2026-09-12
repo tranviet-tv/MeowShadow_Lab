@@ -91,7 +91,7 @@ Bảng giải thích mục đích và giá trị khuyến nghị của các bi�
 | `JWT_SECRET` | `meowshadow_super_secret...` | Có | `gateway-core` | Khóa bí mật ký JWT Token (Tối thiểu 32 ký tự ngẫu nhiên khi lên Production). |
 | `STORAGE_DIR` | `/app/storage` | Có | Gateway, Audio/TTS | Thư mục gắn Docker Volume lưu Audio MP3 và file SRT. |
 | `OLLAMA_HOST` | `http://host.docker.internal:11434` | Tùy chọn | `script-llm` | Địa chỉ Ollama Local LLM trên máy host. |
-| `LLM_MODEL` | `qwen2.5:14b` | Có | `script-llm` | Tên model Ollama thực hiện dịch thuật và phân đoạn. |
+| `LLM_MODEL` | `qwen3:8b` | Có | `script-llm` | Tên model Ollama thực hiện dịch thuật và phân đoạn. |
 | `DEFAULT_TTS_ENGINE` | `edge-tts` | Có | `tts-engine` | Engine TTS mặc định (`edge-tts` hoặc `kokoro`). |
 | `DEFAULT_TARGET_LUFS`| `-16.0` | Có | `audio-processor`| Chuẩn âm lượng phát thanh Podcast EBU R128. |
 | `NEXT_PUBLIC_API_URL`| `http://localhost:8000` | Có | `apps/web` | URL gọi REST API từ trình duyệt người dùng. |
@@ -109,20 +109,20 @@ graph LR
     B -->|Không có GPU / RAM 8GB-16GB| C[Chế Độ Standard Cloud-Hybrid]
     B -->|GPU Apple Silicon M-series / Nvidia RTX 12GB+| D[Chế Độ 100% Local AI Offline]
     
-    C --> C1[Edge-TTS Miễn Phí Tốc Độ Cao\nOllama Qwen 2.5 7B Q4 hoặc Cloud API]
-    D --> D1[Fish-Speech / Kokoro TTS\nOllama Qwen 2.5 14B Q8 Metal MPS/CUDA]
+    C --> C1[Edge-TTS Miễn Phí Tốc Độ Cao\nOllama Qwen 3 8B hoặc Cloud API]
+    D --> D1[Fish-Speech / Kokoro TTS\nOllama Qwen 3 8B Metal MPS/CUDA]
 ```
 
 ### 5.1. Chế Độ 1: Standard Cloud-Hybrid (Khuyến nghị cho mọi máy tính)
 * **Cấu hình tối thiểu:** CPU 4 Cores, 8GB RAM, 10GB dung lượng ổ đĩa trống.
-* **Cách thức:** Sử dụng `edge-tts` (kết nối máy chủ Microsoft Neural TTS tốc độ siêu cao) và Ollama chạy model nhẹ `qwen2.5:7b-instruct-q4_K_M`.
+* **Cách thức:** Sử dụng `edge-tts` (kết nối máy chủ Microsoft Neural TTS tốc độ siêu cao) và Ollama chạy model `qwen3:8b`.
 * **Hiệu năng:** Tạo file audio 10 phút (~1.500 từ) chỉ mất **15 – 25 giây**.
 
 ### 5.2. Chế Độ 2: 100% Local AI Offline (Dành cho máy trạm / GPU rời)
 * **Cấu hình tối ưu:**
   * **macOS:** Apple Silicon (M1/M2/M3/M4 Pro/Max) với tối thiểu **16GB Unified Memory** (tận dụng PyTorch Metal MPS).
   * **Windows / Linux:** NVIDIA GPU với tối thiểu **12GB VRAM** (RTX 3060, 4060, 4070 trở lên, hỗ trợ CUDA 12).
-* **Cách thức:** Tự động nạp model TTS cục bộ (`Fish-Speech 1.5`, `F5-TTS` hoặc `Kokoro-82M`) và `qwen2.5:14b`.
+* **Cách thức:** Tự động nạp model TTS cục bộ (`Fish-Speech 1.5`, `F5-TTS` hoặc `Kokoro-82M`) và `qwen3:8b`.
 * **Ưu điểm:** Hoạt động không cần kết nối Internet, bảo mật tuyệt đối dữ liệu cá nhân.
 
 ---

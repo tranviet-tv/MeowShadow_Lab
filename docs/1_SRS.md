@@ -24,7 +24,7 @@ Tài liệu này xác định đầy đủ các yêu cầu chức năng (FR) và
 ### 1.2. Đối tượng Người Dùng & Hành Trình Trải Nghiệm (User Journeys)
 1. **Trên Web Studio (Máy tính / Laptop):**
    - Soạn thảo hoặc dán bài viết thô (1.300 – 1.500 từ).
-   - Sử dụng AI (Qwen 2.5) tự động dịch và phân đoạn 3–4 câu song ngữ `[VI] - [EN]` hoặc `[VI] - [JA]`.
+   - Sử dụng AI (Qwen 3 8B) tự động dịch và phân đoạn 3–4 câu song ngữ `[VI] - [EN]` hoặc `[VI] - [JA]`.
    - Nghe thử câu lẻ (*Preview Chunk*), tùy chỉnh khoảng lặng Pacing.
    - Bấm "Tạo Audio 10 Phút", theo dõi thanh tiến trình thời gian thực.
    - Nghe trực tiếp trên trình phát Karaoke Transcript hoặc xuất file `.mp3`, `.srt`, `.zip`.
@@ -69,7 +69,7 @@ Tài liệu này xác định đầy đủ các yêu cầu chức năng (FR) và
 
 ### 3.1. Phân Hệ Soạn Thảo & Dịch Thuật AI (Script Studio)
 * **FR-1.1 (Cú pháp Tag Đa ngữ):** Hỗ trợ nhập liệu theo thẻ cú pháp `[VI] ... [EN] ...` hoặc `[VI] ... [JA] ...`.
-* **FR-1.2 (AI Auto-Chunking & Translate):** Sử dụng Local LLM **Qwen 2.5 (14B/7B)** qua Ollama tự động nhận diện ngôn ngữ, chia bài viết dài thành từng cặp 3–4 câu hoàn chỉnh ngữ nghĩa và dịch chuẩn văn phong bản xứ.
+* **FR-1.2 (AI Auto-Chunking & Translate):** Sử dụng Local LLM **Qwen 3 8B** qua Ollama tự động nhận diện ngôn ngữ, chia bài viết dài thành từng cặp 3–4 câu hoàn chỉnh ngữ nghĩa và dịch chuẩn văn phong bản xứ.
 * **FR-1.3 (Metrics & Estimator):** Đếm từ thời gian thực, tự động dự toán chính xác độ dài audio đầu ra theo mili-giây dựa trên tham số Pacing.
 
 ### 3.2. Phân Hệ Tổng Hợp Giọng Nói (Speech Synthesis)

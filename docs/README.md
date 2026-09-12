@@ -27,7 +27,7 @@ Dự án áp dụng mô hình phân tầng tài liệu chuẩn Enterprise: Mỗi
 | Phân hệ | Vị trí tài liệu | Vai trò & Trọng tâm kỹ thuật | Cổng Dev |
 | :--- | :--- | :--- | :---: |
 | **Golang Gateway** | **[`services/gateway-core/README.md`](../services/gateway-core/README.md)** | Go Clean Architecture, `pgxpool`, `sqlc`, HTTP 206 Streaming, WebSocket Hub | `8000` |
-| **Script-LLM Worker** | **[`services/script-llm/README.md`](../services/script-llm/README.md)** | FastAPI, Regex Tag Parser (`[VI]`, `[EN]`, `[JA]`), Ollama Qwen 2.5 Driver | `8001` |
+| **Script-LLM Worker** | **[`services/script-llm/README.md`](../services/script-llm/README.md)** | FastAPI, Regex Tag Parser (`[VI]`, `[EN]`, `[JA]`), Ollama Qwen 3 8B Driver | `8001` |
 | **TTS Engine Worker** | **[`services/tts-engine/README.md`](../services/tts-engine/README.md)** | Multi-TTS Strategy (Edge-TTS, Kokoro, Fish-Speech), MD5 Cache, Async Batch | `8002` |
 | **Audio Processor** | **[`services/audio-processor/README.md`](../services/audio-processor/README.md)** | FFmpeg & Pydub, Pacing Silence (1.5s/3.5s), EBU R128 (-16 LUFS), SRT/VTT Engine | `8003` |
 | **Web Studio** | **[`apps/web/README.md`](../apps/web/README.md)** | Next.js 15 App Router, Zustand, Interactive Karaoke Player, Waveform | `3000` |

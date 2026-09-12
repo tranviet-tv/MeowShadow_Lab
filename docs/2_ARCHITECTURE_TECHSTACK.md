@@ -50,7 +50,7 @@ flowchart TD
     end
 
     subgraph AI Workers Layer [Specialized Python FastAPI Microservices]
-        SVC_SCRIPT[Script-LLM Worker\nOllama Qwen 2.5 14B/7B\n:8001]
+        SVC_SCRIPT[Script-LLM Worker\nOllama Qwen 3 8B\n:8001]
         SVC_TTS[TTS Engine Worker\nEdge-TTS, Fish-Speech, Kokoro\n:8002]
         SVC_AUDIO[Audio Processor Worker\nPydub, FFmpeg, EBU R128, SRT\n:8003]
     end
@@ -80,7 +80,7 @@ flowchart TD
 | **`apps/web`** | **Next.js 15, TypeScript, Tailwind** | `3000` | Giao diện Web Studio, Soạn thảo kịch bản, Karaoke Transcript player, Waveform visualizer. |
 | **`apps/mobile`** | **React Native / Expo (TypeScript)** | `-` | Mobile App iOS/Android, Background Audio, Lock-screen player, Offline storage. |
 | **`services/gateway-core`** | **Golang (Fiber / Gin)** | `8000` | API Gateway, Quản lý Auth, WebSocket Hub, HTTP Range Audio Streaming, Orchestrator. |
-| **`services/script-llm`** | **Python (FastAPI, Ollama SDK)** | `8001` | Regex Parser bóc tách thẻ `[VI]`, `[EN]`, `[JA]`, tích hợp Ollama Qwen 2.5 phân đoạn và dịch. |
+| **`services/script-llm`** | **Python (FastAPI, Ollama SDK)** | `8001` | Regex Parser bóc tách thẻ `[VI]`, `[EN]`, `[JA]`, tích hợp Ollama Qwen 3 8B phân đoạn và dịch. |
 | **`services/tts-engine`** | **Python (FastAPI, PyTorch MPS)** | `8002` | Tổng hợp giọng nói song song (`edge-tts`, `Fish-Speech`, `Kokoro`), Smart Cache MD5. |
 | **`services/audio-processor`** | **Python (FastAPI, Pydub, FFmpeg)** | `8003` | Chèn khoảng lặng pacing (Quy chuẩn: Tiếng Việt đọc trước -> Lặng 1.5s -> Tiếng Anh/Nhật đọc sau -> Lặng 3.5s), ghép nối clip, EBU R128 (-16 LUFS), sinh timestamps SRT/VTT. |
 | **`postgres-db`** | **PostgreSQL 16 Alpine** | `5432` | Lưu trữ trung tâm (Users, Lessons, JSONB Chunks & Timestamps). |
@@ -480,7 +480,7 @@ Dưới đây là sơ đồ cấu trúc thư mục chi tiết, chuẩn mực cô
 │   │   │   ├── services/                   # Logic nghiệp vụ xử lý văn bản
 │   │   │   │   ├── tag_parser.py           # Regex Engine bóc tách nhãn ngôn ngữ
 │   │   │   │   ├── chunker.py              # Thuật toán gom nhóm 3–4 câu Shadowing
-│   │   │   │   └── ollama_client.py        # Driver giao tiếp Ollama Qwen 2.5 (14B/7B)
+│   │   │   │   └── ollama_client.py        # Driver giao tiếp Ollama Qwen 3 8B
 │   │   │   ├── workers/                    # Redis Task Consumer (Chạy nền)
 │   │   │   │   ├── consumer.py             # Lắng nghe job từ Redis Queue
 │   │   │   │   └── task_handlers.py        # Thực thi parse & publish kết quả
@@ -572,7 +572,7 @@ Dưới đây là sơ đồ cấu trúc thư mục chi tiết, chuẩn mực cô
 
 * **Backend Services:**
   - [services/gateway-core/README.md](../services/gateway-core/README.md): Go Clean Architecture, `pgxpool`, `sqlc`, HTTP 206 Streaming, WebSocket Hub.
-  - [services/script-llm/README.md](../services/script-llm/README.md): FastAPI, Regex Tag Parser (`[VI]`, `[EN]`, `[JA]`), Ollama Qwen 2.5 Driver.
+  - [services/script-llm/README.md](../services/script-llm/README.md): FastAPI, Regex Tag Parser (`[VI]`, `[EN]`, `[JA]`), Ollama Qwen 3 8B Driver.
   - [services/tts-engine/README.md](../services/tts-engine/README.md): Strategy Pattern (Edge-TTS, Kokoro, Fish-Speech), Smart Cache MD5, Async Batching.
   - [services/audio-processor/README.md](../services/audio-processor/README.md): Pacing Silence (1.5s/3.5s), Mastering EBU R128 (-16 LUFS), Subtitle Engine.
 * **Client Applications:**
