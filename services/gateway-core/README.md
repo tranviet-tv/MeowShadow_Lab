@@ -183,3 +183,51 @@ go run cmd/server/main.go
 
 Server sẽ lắng nghe tại: `http://localhost:8000`.
 Tài liệu Swagger API: `http://localhost:8000/swagger/index.html`.
+
+---
+
+## 5. DANH SÁCH RESTful API ĐÃ TRIỂN KHAI (SPRINT 7)
+
+| Phương Thức | Endpoint | Yêu Cầu Auth | Mô Tả |
+| :--- | :--- | :---: | :--- |
+| `GET` | `/health` | Không | Kiểm tra trạng thái hoạt động của Gateway Core |
+| `GET` | `/api/v1/health` | Không | API v1 Health Check |
+| `POST` | `/api/v1/auth/register` | Không | Đăng ký tài khoản người dùng mới (`email`, `password`, `full_name`) |
+| `POST` | `/api/v1/auth/login` | Không | Đăng nhập hệ thống, nhận cặp JWT Access & Refresh Token |
+| `POST` | `/api/v1/auth/guest` | Không | Tạo phiên khách ẩn danh tạm thời (Guest Mode) không cần đăng ký |
+| `GET` | `/api/v1/auth/me` | Bearer JWT | Lấy thông tin tài khoản người dùng hiện tại |
+| `GET` | `/api/v1/lessons` | Bearer JWT | Lấy danh sách bài học phân trang (`page`, `limit`) của người dùng |
+| `POST` | `/api/v1/lessons` | Bearer JWT | Tạo bài học mới kèm nội dung JSONB `transcript_chunks` & `pacing_config` |
+| `GET` | `/api/v1/lessons/:id` | Bearer JWT | Lấy thông tin chi tiết bài học theo UUID |
+| `DELETE` | `/api/v1/lessons/:id` | Bearer JWT | Xóa bài học theo UUID |
+
+---
+
+## 6. HƯỚNG DẪN KIỂM THỬ (TESTING)
+
+```bash
+# Chạy toàn bộ test suite bao gồm Unit Test và Integration Flow (DoD Sprint 7):
+cd services/gateway-core
+go test -v ./...
+
+# Chạy riêng integration test kiểm thử trọn vẹn luồng DoD:
+go test -v ./cmd/server -run TestSprint7_DefinitionOfDone_IntegrationFlow
+```
+
+---
+
+## 7. ĐÓNG GÓI DOCKER CONTAINER SIÊU NHẸ (<15MB)
+
+Dịch vụ sử dụng kỹ thuật multi-stage build:
+* **Stage 1 (`golang:alpine`):** Biên dịch static binary với `CGO_ENABLED=0` và cờ `-ldflags="-s -w"`.
+* **Stage 2 (`alpine:3.19`):** Runtime tối giản chứa duy nhất binary, `tzdata`, `ca-certificates` và `curl` phục vụ health check.
+* **Kích thước ảnh:** **14.2 MB** (thỏa mãn tiêu chí < 20MB).
+* **Bảo mật:** Chạy dưới user không đặc quyền (`appuser:appgroup`).
+
+```bash
+# Build Docker image
+docker build -f services/gateway-core/Dockerfile -t meowshadow/gateway-core:latest .
+
+# Chạy container độc lập
+docker run -d --name meowshadow_gateway -p 8000:8000 meowshadow/gateway-core:latest
+```

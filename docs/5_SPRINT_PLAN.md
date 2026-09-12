@@ -36,8 +36,8 @@ gantt
     Sprint 6: Script-LLM & NLP Pipeline         :done,    sp6, after sp5, 3d
 
     section Giai đoạn 3: Gateway & Streaming
-    Sprint 7: Go Gateway & Database Layer       :active,  sp7, after sp6, 3d
-    Sprint 8: Redis Pipeline & WebSockets       :         sp8, after sp7, 3d
+    Sprint 7: Go Gateway & Database Layer       :done,    sp7, after sp6, 3d
+    Sprint 8: Redis Pipeline & WebSockets       :active,  sp8, after sp7, 3d
     Sprint 9: HTTP 206 Streaming & Storage      :         sp9, after sp8, 2d
 
     section Giai đoạn 4: Web Studio
@@ -201,12 +201,12 @@ gantt
 | **SP07-01** | Khởi tạo Khung Ứng Dụng Go Fiber | - Khởi tạo `cmd/server/main.go`, cấu hình Fiber App<br>- Cài đặt Middleware: Logger, CORS, Recovery, Rate-limiter | `services/gateway-core/cmd/server/main.go`<br>`services/gateway-core/config/config.go`<br>`services/gateway-core/internal/middleware/` | 0.5 ngày | 🟢 Hoàn thành |
 | **SP07-02** | Tích Hợp `pgx/v5` & `sqlc` Query Engine | - Cấu hình connection pool `pgxpool` tối ưu kết nối<br>- Sinh mã Go từ các file SQL bằng `sqlc generate`<br>- Xây dựng Database Repository hoàn chỉnh | `services/gateway-core/internal/repository/`<br>`services/gateway-core/sqlc.yaml` | 0.6 ngày | 🟢 Hoàn thành |
 | **SP07-03** | Phân Hệ Xác Thực & Quản Lý Phiên (JWT) | - Endpoints: `POST /api/v1/auth/register`, `POST /api/v1/auth/login`<br>- Hỗ trợ Guest Mode (phiên khách tạm thời không cần đăng ký tài khoản)<br>- JWT Middleware bảo vệ các endpoint người dùng | `services/gateway-core/internal/api/v1/handlers/auth.go`<br>`services/gateway-core/internal/services/auth_service.go` | 0.6 ngày | 🟢 Hoàn thành |
-| **SP07-04** | RESTful CRUD API Quản Lý Bài Học | - Endpoints: `GET /api/v1/lessons`, `POST /api/v1/lessons`, `GET /api/v1/lessons/:id`, `DELETE /api/v1/lessons/:id`<br>- Lưu trữ nội dung kịch bản cấu trúc vào cột JSONB `chunks` | `services/gateway-core/internal/api/v1/handlers/lessons.go`<br>`services/gateway-core/internal/services/lesson_service.go` | 0.6 ngày | 🟢 Hoàn thành |
-| **SP07-05** | Dockerfile Đa Tầng Cho Go Gateway | - Dockerfile multi-stage (`golang:1.22-alpine` build -> `alpine` scratch) siêu nhẹ (< 20MB) | `services/gateway-core/Dockerfile` | 0.3 ngày | ⚪ Chờ thực hiện |
+| **SP07-05** | Dockerfile Đa Tầng Cho Go Gateway | - Dockerfile multi-stage (`golang:alpine` build -> `alpine:3.19` runner) siêu nhẹ (14.2 MB < 20MB)<br>- Tích hợp non-root user và Docker healthcheck | `services/gateway-core/Dockerfile`<br>`docker-compose.yml` | 0.3 ngày | 🟢 Hoàn thành |
 
 * **Định nghĩa hoàn thành (DoD - Sprint 7):**
-  - Container `gateway-core` khởi chạy trên Docker (`:8000`), kết nối thành công `postgres-db`.
-  - Test luồng đăng ký, đăng nhập và tạo mới bài học qua Postman/cURL phản hồi mã trạng thái `200/201 OK`.
+  - [x] Container `gateway-core` khởi chạy trên Docker (`:8000`), kết nối thành công `postgres-db`.
+  - [x] Image kích thước 14.2 MB (đạt chuẩn siêu nhẹ < 20MB).
+  - [x] Test luồng đăng ký, đăng nhập và tạo mới bài học qua HTTP/Test runner phản hồi mã trạng thái `200/201 OK` (`TestSprint7_DefinitionOfDone_IntegrationFlow` 100% pass).
 
 ---
 

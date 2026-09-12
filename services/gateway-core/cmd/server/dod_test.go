@@ -1,0 +1,278 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"meowshadow/gateway-core/config"
+	"meowshadow/gateway-core/internal/domain"
+	"meowshadow/gateway-core/internal/services"
+	pkgJwt "meowshadow/gateway-core/pkg/jwt"
+	"meowshadow/gateway-core/pkg/response"
+)
+
+// mockDoDAuthService implements services.AuthService for DoD integration testing.
+type mockDoDAuthService struct {
+	secret string
+}
+
+func (m *mockDoDAuthService) Register(ctx context.Context, req services.RegisterRequest) (*services.AuthResponse, error) {
+	userId := uuid.New().String()
+	tokens, err := pkgJwt.GenerateTokenPair(userId, req.Email, false, m.secret, 15, 7)
+	if err != nil {
+		return nil, err
+	}
+	return &services.AuthResponse{
+		User: services.UserDTO{
+			ID:        userId,
+			Email:     req.Email,
+			FullName:  req.FullName,
+			IsGuest:   false,
+			CreatedAt: time.Now().UTC().Format(time.RFC3339),
+		},
+		Tokens: *tokens,
+	}, nil
+}
+
+func (m *mockDoDAuthService) Login(ctx context.Context, req services.LoginRequest) (*services.AuthResponse, error) {
+	userId := uuid.New().String()
+	tokens, err := pkgJwt.GenerateTokenPair(userId, req.Email, false, m.secret, 15, 7)
+	if err != nil {
+		return nil, err
+	}
+	return &services.AuthResponse{
+		User: services.UserDTO{
+			ID:        userId,
+			Email:     req.Email,
+			FullName:  "Test User",
+			IsGuest:   false,
+			CreatedAt: time.Now().UTC().Format(time.RFC3339),
+		},
+		Tokens: *tokens,
+	}, nil
+}
+
+func (m *mockDoDAuthService) GuestLogin(ctx context.Context) (*services.AuthResponse, error) {
+	guestId := uuid.New().String()
+	tokens, err := pkgJwt.GenerateTokenPair(guestId, "guest@meowshadow.local", true, m.secret, 15, 7)
+	if err != nil {
+		return nil, err
+	}
+	return &services.AuthResponse{
+		User: services.UserDTO{
+			ID:        guestId,
+			Email:     "guest@meowshadow.local",
+			FullName:  "Guest User",
+			IsGuest:   true,
+			CreatedAt: time.Now().UTC().Format(time.RFC3339),
+		},
+		Tokens: *tokens,
+	}, nil
+}
+
+func (m *mockDoDAuthService) GetProfile(ctx context.Context, userID string) (*services.UserDTO, error) {
+	return &services.UserDTO{
+		ID:        userID,
+		Email:     "test@meowshadow.local",
+		FullName:  "Test User",
+		IsGuest:   false,
+		CreatedAt: time.Now().UTC().Format(time.RFC3339),
+	}, nil
+}
+
+// mockDoDLessonService implements services.LessonService for DoD integration testing.
+type mockDoDLessonService struct {
+	lessons map[string]domain.LessonResponse
+}
+
+func (m *mockDoDLessonService) CreateLesson(
+	ctx context.Context,
+	userID string,
+	isGuest bool,
+	req domain.CreateLessonRequest,
+) (*domain.LessonResponse, error) {
+	lessonId := uuid.New().String()
+	res := domain.LessonResponse{
+		ID:               lessonId,
+		UserID:           userID,
+		Title:            req.Title,
+		TargetLanguage:   req.TargetLanguage,
+		SourceLanguage:   req.SourceLanguage,
+		TotalWords:       req.TotalWords,
+		DurationSec:      req.DurationSec,
+		PacingConfig:     req.PacingConfig,
+		TranscriptChunks: req.TranscriptChunks,
+		AudioFilePath:    req.AudioFilePath,
+		SrtFilePath:      req.SrtFilePath,
+		CreatedAt:        time.Now().UTC().Format(time.RFC3339),
+		UpdatedAt:        time.Now().UTC().Format(time.RFC3339),
+	}
+	m.lessons[lessonId] = res
+	return &res, nil
+}
+
+func (m *mockDoDLessonService) GetLessonByID(ctx context.Context, id string) (*domain.LessonResponse, error) {
+	lesson, exists := m.lessons[id]
+	if !exists {
+		return nil, services.ErrLessonNotFound
+	}
+	return &lesson, nil
+}
+
+func (m *mockDoDLessonService) ListLessons(
+	ctx context.Context,
+	userID string,
+	isGuest bool,
+	page, limit int64,
+) ([]domain.LessonResponse, int64, error) {
+	list := make([]domain.LessonResponse, 0)
+	for _, l := range m.lessons {
+		if l.UserID == userID {
+			list = append(list, l)
+		}
+	}
+	return list, int64(len(list)), nil
+}
+
+func (m *mockDoDLessonService) DeleteLesson(ctx context.Context, id string) error {
+	_, exists := m.lessons[id]
+	if !exists {
+		return services.ErrLessonNotFound
+	}
+	delete(m.lessons, id)
+	return nil
+}
+
+func TestSprint7_DefinitionOfDone_IntegrationFlow(t *testing.T) {
+	cfg := config.LoadConfig()
+	cfg.JWTSecret = "dod_secret_key_testing_123456789012"
+
+	authSvc := &mockDoDAuthService{secret: cfg.JWTSecret}
+	lessonSvc := &mockDoDLessonService{lessons: make(map[string]domain.LessonResponse)}
+
+	app := SetupApp(cfg, authSvc, lessonSvc)
+
+	// Step 1: Health Check (200 OK)
+	healthReq := httptest.NewRequest(http.MethodGet, "/health", nil)
+	healthResp, err := app.Test(healthReq, -1)
+	if err != nil || healthResp.StatusCode != http.StatusOK {
+		t.Fatalf("DoD Step 1 Failed: GET /health returned status %d, err: %v", healthResp.StatusCode, err)
+	}
+
+	// Step 2: Auth Register (201 Created)
+	regPayload := services.RegisterRequest{
+		Email:    "dod_user@meowshadow.local",
+		Password: "SecretPass123!",
+		FullName: "DoD Tester",
+	}
+	regBody, _ := json.Marshal(regPayload)
+	regReq := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(regBody))
+	regReq.Header.Set("Content-Type", "application/json")
+	regResp, err := app.Test(regReq, -1)
+	if err != nil || regResp.StatusCode != http.StatusCreated {
+		t.Fatalf("DoD Step 2 Failed: POST /api/v1/auth/register returned status %d, err: %v", regResp.StatusCode, err)
+	}
+
+	// Step 3: Auth Login (200 OK) & Token Retrieval
+	loginPayload := services.LoginRequest{
+		Email:    "dod_user@meowshadow.local",
+		Password: "SecretPass123!",
+	}
+	loginBody, _ := json.Marshal(loginPayload)
+	loginReq := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader(loginBody))
+	loginReq.Header.Set("Content-Type", "application/json")
+	loginResp, err := app.Test(loginReq, -1)
+	if err != nil || loginResp.StatusCode != http.StatusOK {
+		t.Fatalf("DoD Step 3 Failed: POST /api/v1/auth/login returned status %d, err: %v", loginResp.StatusCode, err)
+	}
+
+	var authRes response.Response
+	_ = json.NewDecoder(loginResp.Body).Decode(&authRes)
+	authDataBytes, _ := json.Marshal(authRes.Data)
+	var authResponse services.AuthResponse
+	_ = json.Unmarshal(authDataBytes, &authResponse)
+	if authResponse.Tokens.AccessToken == "" {
+		t.Fatalf("DoD Step 3 Failed: No access token in login response")
+	}
+	authToken := authResponse.Tokens.AccessToken
+
+	// Step 4: Unauthenticated Lesson Creation (Expect 401 Unauthorized)
+	createLessonPayload := domain.CreateLessonRequest{
+		Title:          "Shadowing Lesson: Daily Greetings",
+		SourceLanguage: "vi",
+		TargetLanguage: "ja",
+		TotalWords:     12,
+		DurationSec:    5.5,
+		TranscriptChunks: []domain.ScriptChunk{
+			{ID: "c1", Order: 1, Lang: "ja", Text: "Konnichiwa."},
+			{ID: "c2", Order: 2, Lang: "vi", Text: "Xin chào."},
+		},
+		PacingConfig: domain.PacingConfig{
+			SilenceAfterViSec:     1.0,
+			SilenceAfterTargetSec: 1.5,
+			InsertCueSound:        true,
+		},
+	}
+	createBody, _ := json.Marshal(createLessonPayload)
+	unauthReq := httptest.NewRequest(http.MethodPost, "/api/v1/lessons", bytes.NewReader(createBody))
+	unauthReq.Header.Set("Content-Type", "application/json")
+	unauthResp, _ := app.Test(unauthReq, -1)
+	if unauthResp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("Expected 401 Unauthorized for unauthenticated request, got %d", unauthResp.StatusCode)
+	}
+
+	// Step 5: Authenticated Lesson Creation (201 Created)
+	authLessonReq := httptest.NewRequest(http.MethodPost, "/api/v1/lessons", bytes.NewReader(createBody))
+	authLessonReq.Header.Set("Content-Type", "application/json")
+	authLessonReq.Header.Set("Authorization", "Bearer "+authToken)
+	createResp, err := app.Test(authLessonReq, -1)
+	if err != nil || createResp.StatusCode != http.StatusCreated {
+		t.Fatalf("DoD Step 5 Failed: POST /api/v1/lessons returned status %d, err: %v", createResp.StatusCode, err)
+	}
+
+	var createLessonRes response.Response
+	_ = json.NewDecoder(createResp.Body).Decode(&createLessonRes)
+	lessonDataBytes, _ := json.Marshal(createLessonRes.Data)
+	var createdLesson domain.LessonResponse
+	_ = json.Unmarshal(lessonDataBytes, &createdLesson)
+	if createdLesson.ID == "" {
+		t.Fatalf("DoD Step 5 Failed: Invalid lesson ID created")
+	}
+
+	// Step 6: Get Lesson by ID (200 OK)
+	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/lessons/"+createdLesson.ID, nil)
+	getReq.Header.Set("Authorization", "Bearer "+authToken)
+	getResp, err := app.Test(getReq, -1)
+	if err != nil || getResp.StatusCode != http.StatusOK {
+		t.Fatalf("DoD Step 6 Failed: GET /api/v1/lessons/:id returned status %d, err: %v", getResp.StatusCode, err)
+	}
+
+	// Step 7: List User Lessons (200 OK)
+	listReq := httptest.NewRequest(http.MethodGet, "/api/v1/lessons", nil)
+	listReq.Header.Set("Authorization", "Bearer "+authToken)
+	listResp, err := app.Test(listReq, -1)
+	if err != nil || listResp.StatusCode != http.StatusOK {
+		t.Fatalf("DoD Step 7 Failed: GET /api/v1/lessons returned status %d, err: %v", listResp.StatusCode, err)
+	}
+
+	// Step 8: Delete Lesson by ID (200 OK)
+	delReq := httptest.NewRequest(http.MethodDelete, "/api/v1/lessons/"+createdLesson.ID, nil)
+	delReq.Header.Set("Authorization", "Bearer "+authToken)
+	delResp, err := app.Test(delReq, -1)
+	if err != nil || delResp.StatusCode != http.StatusOK {
+		t.Fatalf("DoD Step 8 Failed: DELETE /api/v1/lessons/:id returned status %d, err: %v", delResp.StatusCode, err)
+	}
+
+	// Step 9: Guest Mode Session Creation (200 OK)
+	guestReq := httptest.NewRequest(http.MethodPost, "/api/v1/auth/guest", nil)
+	guestResp, err := app.Test(guestReq, -1)
+	if err != nil || guestResp.StatusCode != http.StatusOK {
+		t.Fatalf("DoD Step 9 Failed: POST /api/v1/auth/guest returned status %d, err: %v", guestResp.StatusCode, err)
+	}
+}

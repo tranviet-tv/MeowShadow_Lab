@@ -104,6 +104,7 @@ services:
     build:
       context: .
       dockerfile: services/gateway-core/Dockerfile
+    image: meowshadow/gateway-core:latest
     container_name: meowshadow_gateway
     restart: unless-stopped
     ports:
@@ -121,6 +122,12 @@ services:
         condition: service_healthy
       redis-broker:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     networks:
       - meowshadow-network
 
