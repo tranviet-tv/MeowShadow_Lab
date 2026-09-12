@@ -79,6 +79,10 @@ func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc servic
 	audioStreamHandler := deliveryHttp.NewAudioStreamHandler(lessonSvc, cfg.StorageDir)
 	audioStreamHandler.RegisterRoutes(apiV1)
 
+	// Mount Static Asset Server routes (SRT, VTT, Waveform JSON)
+	assetsHandler := deliveryHttp.NewAssetsHandler(lessonSvc, cfg.StorageDir)
+	assetsHandler.RegisterRoutes(apiV1)
+
 	// WebSocket Protocol Upgrade Middleware
 	app.Use("/ws", func(c *fiber.Ctx) error {
 		if fiberWs.IsWebSocketUpgrade(c) {
