@@ -192,3 +192,92 @@ class TestPacingBuilder:
         ]
         with pytest.raises(FileNotFoundError, match="not found"):
             builder.build_pacing(clips=clips)
+
+    def test_timeline_continuity_and_non_overlapping(self, builder: PacingBuilder):
+        """Verify timeline events form a continuous timeline with no gaps or overlaps."""
+        vi_audio = create_tone(600, 440)
+        target_audio = create_tone(1400, 550)
+
+        config = PacingParams(
+            silence_after_vi_sec=1.5,
+            silence_after_target_sec=3.5,
+            insert_cue_sound=True,
+        )
+
+        res = builder.build_pacing_from_segments(
+            pairs=[(vi_audio, target_audio)],
+            pacing_config=config,
+            metadata=[({"id": "vi_1", "text": "Câu một"}, {"id": "en_1", "text": "Sentence one"})],
+        )
+
+        timeline = res.timeline
+        assert len(timeline) > 0
+
+        # Timeline must start at 0
+        assert timeline[0].start_ms == 0
+
+        # Each segment must connect seamlessly to the next
+        for i in range(len(timeline) - 1):
+            curr_item = timeline[i]
+            next_item = timeline[i + 1]
+            assert curr_item.end_ms == next_item.start_ms, (
+                f"Discontinuity at index {i}: end {curr_item.end_ms} != next start {next_item.start_ms}"
+            )
+            assert curr_item.end_ms > curr_item.start_ms, (
+                f"Non-positive duration in segment {curr_item.segment_type}"
+            )
+
+        # Final segment must match total combined audio duration
+        assert timeline[-1].end_ms == res.total_duration_ms
+        assert res.total_duration_ms == len(res.combined_audio)
+
+    def test_vietnamese_first_sequencing_enforcement(self, builder: PacingBuilder):
+        """Verify Vietnamese sentence strictly precedes target foreign language and chime."""
+        vi_audio = create_tone(500, 440)
+        target_audio = create_tone(1000, 880)
+
+        config = PacingParams(
+            silence_after_vi_sec=1.5,
+            silence_after_target_sec=3.5,
+            insert_cue_sound=True,
+        )
+
+        res = builder.build_pacing_from_segments(
+            pairs=[(vi_audio, target_audio)],
+            pacing_config=config,
+            metadata=[({"id": "vi_1", "lang": "vi"}, {"id": "ja_1", "lang": "ja"})],
+        )
+
+        types = [item.segment_type for item in res.timeline]
+        # Order must strictly be: SOURCE -> VI_SILENCE -> CUE_CHIME -> TARGET -> TARGET_SILENCE
+        expected_types = [
+            SegmentType.SOURCE_SENTENCE,
+            SegmentType.VI_SILENCE,
+            SegmentType.CUE_CHIME,
+            SegmentType.TARGET_SENTENCE,
+            SegmentType.TARGET_SILENCE,
+        ]
+        assert types == expected_types
+
+    def test_zero_duration_silence_params(self, builder: PacingBuilder):
+        """Verify pacing handles 0s silence correctly without timeline corruption."""
+        vi_audio = create_tone(400, 440)
+        target_audio = create_tone(600, 660)
+
+        config = PacingParams(
+            silence_after_vi_sec=0.0,
+            silence_after_target_sec=0.0,
+            silence_between_sentences_sec=0.0,
+            insert_cue_sound=False,
+        )
+
+        res = builder.build_pacing_from_segments(
+            pairs=[(vi_audio, target_audio)],
+            pacing_config=config,
+        )
+
+        assert res.total_duration_ms == 400 + 600
+        assert len(res.combined_audio) == 1000
+        assert len(res.timeline) == 2
+        assert res.timeline[0].segment_type == SegmentType.SOURCE_SENTENCE
+        assert res.timeline[1].segment_type == SegmentType.TARGET_SENTENCE

@@ -124,5 +124,9 @@ uvicorn src.main:app --host 0.0.0.0 --port 8003 --reload
 
 Chạy toàn bộ bộ kiểm thử tự động âm thanh:
 ```bash
-pytest tests/ -v
+# Từ thư mục gốc dự án:
+make test-audio
+
+# Hoặc từ thư mục service:
+./.venv/bin/pytest tests/ -v
 ```

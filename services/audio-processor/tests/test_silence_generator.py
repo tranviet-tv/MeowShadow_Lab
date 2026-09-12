@@ -101,3 +101,26 @@ class TestSilenceGenerator:
         reconstructed = AudioSegment.from_file(io.BytesIO(wav_bytes), format="wav")
         assert len(reconstructed) == 800
         assert reconstructed.rms == 0
+
+    def test_raw_pcm_silence_buffer(self, generator: SilenceGenerator):
+        """Verify that the underlying raw audio frame data consists strictly of zero bytes."""
+        segment = generator.generate_silence_ms(100, sample_rate=44100, channels=2)
+        expected_byte_count = int(44100 * (100 / 1000.0) * 2 * 2)  # rate * sec * ch * width
+        raw_bytes = segment.raw_data
+
+        assert len(raw_bytes) == expected_byte_count
+        assert raw_bytes == b"\x00" * expected_byte_count
+
+    def test_rapid_silence_generation_performance(self, generator: SilenceGenerator):
+        """Verify that generating multiple silence segments executes with high performance."""
+        segments = [generator.generate_silence_ms(1500) for _ in range(50)]
+        assert len(segments) == 50
+        assert all(len(s) == 1500 for s in segments)
+
+    def test_millisecond_precision_tolerance(self, generator: SilenceGenerator):
+        """Verify that generated silence duration has zero drift (within 1ms tolerance)."""
+        test_durations = [17, 333, 1499, 1500, 3500]
+        for dur in test_durations:
+            segment = generator.generate_silence_ms(dur)
+            actual_len = len(segment)
+            assert abs(actual_len - dur) <= 1, f"Drift exceeded 1ms: expected {dur}, got {actual_len}"

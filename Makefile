@@ -1,4 +1,4 @@
-.PHONY: help up down logs ps restart psql redis-cli clean test-infra db-status db-migrate db-rollback db-seed db-reset db-studio
+.PHONY: help up down logs ps restart psql redis-cli clean test-infra db-status db-migrate db-rollback db-seed db-reset db-studio test-audio
 
 # Default help target
 help:
@@ -23,6 +23,9 @@ help:
 	@echo "    make db-seed     - Seed development testing data into database"
 	@echo "    make db-reset    - Reset database (rollback, re-migrate & re-seed)"
 	@echo "    make db-studio   - Launch Web Database Studio (http://localhost:8080)"
+	@echo ""
+	@echo "  AUDIO PROCESSOR & TESTING:"
+	@echo "    make test-audio  - Run audio-processor unit test suite (Pytest)"
 	@echo "======================================================================"
 
 # Start platform infrastructure services
@@ -97,3 +100,12 @@ db-reset:
 db-studio:
 	docker compose up -d db-studio
 	@echo "Web Database Studio ready at: http://localhost:8080"
+
+# ==============================================================================
+# AUDIO PROCESSOR & TESTING
+# ==============================================================================
+
+# Run audio processor unit tests
+test-audio:
+	@echo "--- Running Audio Processor Unit Tests (Pytest) ---"
+	./services/audio-processor/.venv/bin/pytest services/audio-processor/tests -v
