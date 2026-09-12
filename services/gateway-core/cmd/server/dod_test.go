@@ -4,8 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +21,7 @@ import (
 	pkgJwt "meowshadow/gateway-core/pkg/jwt"
 	"meowshadow/gateway-core/pkg/response"
 )
+
 
 // mockDoDAuthService implements services.AuthService for DoD integration testing.
 type mockDoDAuthService struct {
@@ -276,3 +282,122 @@ func TestSprint7_DefinitionOfDone_IntegrationFlow(t *testing.T) {
 		t.Fatalf("DoD Step 9 Failed: POST /api/v1/auth/guest returned status %d, err: %v", guestResp.StatusCode, err)
 	}
 }
+
+// TestSprint9_DefinitionOfDone_StreamingAndStorage verifies the full DoD criteria for Sprint 9:
+// 1. curl -i -H "Range: bytes=0-1024" returns HTTP/1.1 206 Partial Content and Content-Range: bytes 0-1024/<total>.
+// 2. Audio seeking latency is < 100ms.
+// 3. Static assets (SRT, VTT, Waveform JSON) served properly.
+// 4. Swagger UI accessible at /swagger.
+func TestSprint9_DefinitionOfDone_StreamingAndStorage(t *testing.T) {
+	tempDir := t.TempDir()
+	audioID := uuid.New().String()
+
+	// 1. Create simulated 128KB audio file
+	audioPath := filepath.Join(tempDir, fmt.Sprintf("%s.mp3", audioID))
+	audioData := make([]byte, 131072) // 128 KB
+	for i := range audioData {
+		audioData[i] = byte(i % 256)
+	}
+	if err := os.WriteFile(audioPath, audioData, 0644); err != nil {
+		t.Fatalf("Failed to create test audio file: %v", err)
+	}
+
+	// 2. Create SRT file
+	srtPath := filepath.Join(tempDir, fmt.Sprintf("%s.srt", audioID))
+	srtContent := "1\n00:00:00,500 --> 00:00:03,000\nSprint 9 DoD Audio Streaming Validation\n"
+	if err := os.WriteFile(srtPath, []byte(srtContent), 0644); err != nil {
+		t.Fatalf("Failed to create test srt file: %v", err)
+	}
+
+	// 3. Create Waveform JSON file
+	waveformPath := filepath.Join(tempDir, fmt.Sprintf("%s_waveform.json", audioID))
+	_ = os.WriteFile(waveformPath, []byte(`{"version":2,"sample_rate":44100,"data":[-5,10,-20,30]}`), 0644)
+
+	// 4. Setup mock lesson service
+	lessonSvc := &mockDoDLessonService{
+		lessons: map[string]domain.LessonResponse{
+			audioID: {
+				ID:            audioID,
+				Title:         "Sprint 9 Streaming Lesson",
+				AudioFilePath: audioPath,
+				SrtFilePath:   srtPath,
+				Status:        "COMPLETED",
+			},
+		},
+	}
+
+	cfg := config.LoadConfig()
+	cfg.StorageDir = tempDir
+
+	app := SetupApp(cfg, nil, lessonSvc)
+
+	// Step 1: DoD Range Header curl -i -H "Range: bytes=0-1024"
+	streamReq := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/audio/stream/%s", audioID), nil)
+	streamReq.Header.Set("Range", "bytes=0-1024")
+	streamResp, err := app.Test(streamReq, -1)
+	if err != nil {
+		t.Fatalf("DoD Step 1 Failed: Request error: %v", err)
+	}
+	defer streamResp.Body.Close()
+
+	if streamResp.StatusCode != http.StatusPartialContent {
+		t.Fatalf("DoD Step 1 Failed: Expected HTTP 206 Partial Content, got %d", streamResp.StatusCode)
+	}
+	contentRange := streamResp.Header.Get("Content-Range")
+	expectedContentRange := "bytes 0-1024/131072"
+	if contentRange != expectedContentRange {
+		t.Fatalf("DoD Step 1 Failed: Expected Content-Range '%s', got '%s'", expectedContentRange, contentRange)
+	}
+	if streamResp.Header.Get("Content-Length") != "1025" {
+		t.Fatalf("DoD Step 1 Failed: Expected Content-Length 1025, got '%s'", streamResp.Header.Get("Content-Length"))
+	}
+
+	// Step 2: DoD Seek Latency < 100ms
+	seekReq := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/audio/stream/%s", audioID), nil)
+	seekReq.Header.Set("Range", "bytes=65536-98303")
+	startSeek := time.Now()
+	seekResp, err := app.Test(seekReq, -1)
+	if err != nil {
+		t.Fatalf("DoD Step 2 Failed: Seek request error: %v", err)
+	}
+	defer seekResp.Body.Close()
+	_, _ = io.ReadAll(seekResp.Body)
+	seekLatency := time.Since(startSeek)
+
+	if seekLatency > 100*time.Millisecond {
+		t.Fatalf("DoD Step 2 Failed: Seek latency %v exceeded 100ms threshold", seekLatency)
+	}
+	t.Logf("DoD Step 2 Succeeded: Audio seek latency = %v (< 100ms requirement)", seekLatency)
+
+	// Step 3: Subtitles SRT & WebVTT
+	srtReq := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/lessons/%s/subtitles.srt", audioID), nil)
+	srtResp, err := app.Test(srtReq, -1)
+	if err != nil || srtResp.StatusCode != http.StatusOK {
+		t.Fatalf("DoD Step 3 Failed: GET subtitles.srt returned status %d", srtResp.StatusCode)
+	}
+
+	vttReq := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/lessons/%s/subtitles.vtt", audioID), nil)
+	vttResp, err := app.Test(vttReq, -1)
+	if err != nil || vttResp.StatusCode != http.StatusOK {
+		t.Fatalf("DoD Step 3 Failed: GET subtitles.vtt returned status %d", vttResp.StatusCode)
+	}
+	vttBytes, _ := io.ReadAll(vttResp.Body)
+	if !strings.HasPrefix(string(vttBytes), "WEBVTT") {
+		t.Fatalf("DoD Step 3 Failed: VTT does not begin with WEBVTT")
+	}
+
+	// Step 4: Waveform JSON
+	waveReq := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/lessons/%s/waveform.json", audioID), nil)
+	waveResp, err := app.Test(waveReq, -1)
+	if err != nil || waveResp.StatusCode != http.StatusOK {
+		t.Fatalf("DoD Step 4 Failed: GET waveform.json returned status %d", waveResp.StatusCode)
+	}
+
+	// Step 5: Swagger UI endpoint
+	swagReq := httptest.NewRequest(http.MethodGet, "/swagger", nil)
+	swagResp, err := app.Test(swagReq, -1)
+	if err != nil || swagResp.StatusCode != http.StatusOK {
+		t.Fatalf("DoD Step 5 Failed: GET /swagger returned status %d", swagResp.StatusCode)
+	}
+}
+

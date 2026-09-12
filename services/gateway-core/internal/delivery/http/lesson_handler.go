@@ -92,9 +92,8 @@ func (h *LessonHandler) Delete(c *fiber.Ctx) error {
 
 // RegisterRoutes registers all lesson endpoints onto the router.
 func (h *LessonHandler) RegisterRoutes(router fiber.Router, authMiddleware fiber.Handler) {
-	lessonsGroup := router.Group("/lessons", authMiddleware)
-	lessonsGroup.Post("/", h.Create)
-	lessonsGroup.Get("/", h.List)
-	lessonsGroup.Get("/:id", h.GetByID)
-	lessonsGroup.Delete("/:id", h.Delete)
+	router.Post("/lessons", authMiddleware, h.Create)
+	router.Get("/lessons", authMiddleware, h.List)
+	router.Get("/lessons/:id", authMiddleware, h.GetByID)
+	router.Delete("/lessons/:id", authMiddleware, h.Delete)
 }

@@ -90,7 +90,7 @@ MeowShadow_Lab/
 | **Sprint 2: Script-LLM & TTS Workers** | 🟢 **Hoàn thành** | Worker phân đoạn kịch bản Qwen 3 8B và TTS Engine (Edge-TTS song song). |
 | **Sprint 7: Golang Core Gateway** | 🟢 **Hoàn thành** | Khung Fiber API Gateway, kết nối pgxpool/Postgres, JWT Auth, CRUD bài học. |
 | **Sprint 8: Pipeline Orchestration & WebSocket** | 🟢 **Hoàn thành** | State Machine, Redis Stream/PubSub Producer & Consumer, WebSocket Hub, Push Notification Dispatcher. |
-| **Sprint 9: High-Performance Audio Streaming** | ⚪ Chờ thực hiện | HTTP Range Requests (206 Partial Content), Static Asset Server, Storage Retention. |
+| **Sprint 9: High-Performance Audio Streaming** | 🟢 **Hoàn thành** | HTTP Range Requests (206 Partial Content), Static Asset Server, Storage Retention, OpenAPI 3.0 / Swagger UI. |
 | **Sprint 10: Next.js 15 Web Studio** | ⚪ Chờ thực hiện | Giao diện soạn thảo kịch bản song ngữ, điều khiển Pacing Studio và Karaoke visualizer. |
 | **Sprint 11: React Native Mobile & Release** | ⚪ Chờ thực hiện | Background Audio, Lock-screen Player, Offline Mode và Đóng gói Release 1-Click. |
 
