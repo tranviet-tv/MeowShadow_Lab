@@ -19,3 +19,8 @@ VALUES ($1, $2, $3)
 ON CONFLICT (user_id, push_token) DO UPDATE SET
     device_type = EXCLUDED.device_type,
     updated_at = CURRENT_TIMESTAMP;
+
+-- name: ListDevicesByUserID :many
+SELECT id, user_id, device_type, push_token, updated_at
+FROM user_devices
+WHERE user_id = $1;

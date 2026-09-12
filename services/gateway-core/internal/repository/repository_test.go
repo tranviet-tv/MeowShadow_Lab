@@ -31,6 +31,14 @@ func (m *MockUserRepository) GetUserByID(ctx context.Context, id pgtype.UUID) (*
 	return nil, nil
 }
 
+func (m *MockUserRepository) ListDevicesByUserID(ctx context.Context, userID pgtype.UUID) ([]db.UserDevice, error) {
+	return nil, nil
+}
+
+func (m *MockUserRepository) UpsertUserDevice(ctx context.Context, userID pgtype.UUID, deviceType, pushToken string) error {
+	return nil
+}
+
 // MockLessonRepository verifies interface compliance.
 type MockLessonRepository struct {
 	Lessons []db.ListAllLessonsRow

@@ -60,6 +60,14 @@ func (m *mockUserRepo) GetUserByID(ctx context.Context, id pgtype.UUID) (*db.Use
 	return nil, nil
 }
 
+func (m *mockUserRepo) ListDevicesByUserID(ctx context.Context, userID pgtype.UUID) ([]db.UserDevice, error) {
+	return nil, nil
+}
+
+func (m *mockUserRepo) UpsertUserDevice(ctx context.Context, userID pgtype.UUID, deviceType, pushToken string) error {
+	return nil
+}
+
 func setupTestApp() (*fiber.App, services.AuthService, *config.Config) {
 	cfg := &config.Config{
 		JWTSecret:           "super_secret_for_test_1234567890",

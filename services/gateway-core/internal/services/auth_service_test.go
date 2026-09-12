@@ -66,6 +66,14 @@ func (m *memoryUserRepo) GetUserByID(ctx context.Context, id pgtype.UUID) (*db.U
 	return nil, nil
 }
 
+func (m *memoryUserRepo) ListDevicesByUserID(ctx context.Context, userID pgtype.UUID) ([]db.UserDevice, error) {
+	return nil, nil
+}
+
+func (m *memoryUserRepo) UpsertUserDevice(ctx context.Context, userID pgtype.UUID, deviceType, pushToken string) error {
+	return nil
+}
+
 func TestAuthService_Flow(t *testing.T) {
 	repo := newMemoryUserRepo()
 	cfg := &config.Config{

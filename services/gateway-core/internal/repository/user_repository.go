@@ -13,6 +13,8 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, email, passwordHash, fullName string) (*db.CreateUserRow, error)
 	GetUserByEmail(ctx context.Context, email string) (*db.User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (*db.User, error)
+	ListDevicesByUserID(ctx context.Context, userID pgtype.UUID) ([]db.UserDevice, error)
+	UpsertUserDevice(ctx context.Context, userID pgtype.UUID, deviceType, pushToken string) error
 }
 
 type pgxUserRepository struct {
@@ -53,4 +55,16 @@ func (r *pgxUserRepository) GetUserByID(ctx context.Context, id pgtype.UUID) (*d
 		return nil, err
 	}
 	return &u, nil
+}
+
+func (r *pgxUserRepository) ListDevicesByUserID(ctx context.Context, userID pgtype.UUID) ([]db.UserDevice, error) {
+	return r.queries.ListDevicesByUserID(ctx, userID)
+}
+
+func (r *pgxUserRepository) UpsertUserDevice(ctx context.Context, userID pgtype.UUID, deviceType, pushToken string) error {
+	return r.queries.UpsertUserDevice(ctx, db.UpsertUserDeviceParams{
+		UserID:     userID,
+		DeviceType: deviceType,
+		PushToken:  pushToken,
+	})
 }

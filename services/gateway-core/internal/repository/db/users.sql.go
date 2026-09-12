@@ -82,6 +82,38 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	return i, err
 }
 
+const listDevicesByUserID = `-- name: ListDevicesByUserID :many
+SELECT id, user_id, device_type, push_token, updated_at
+FROM user_devices
+WHERE user_id = $1
+`
+
+func (q *Queries) ListDevicesByUserID(ctx context.Context, userID pgtype.UUID) ([]UserDevice, error) {
+	rows, err := q.db.Query(ctx, listDevicesByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserDevice
+	for rows.Next() {
+		var i UserDevice
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.DeviceType,
+			&i.PushToken,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertUserDevice = `-- name: UpsertUserDevice :exec
 INSERT INTO user_devices (user_id, device_type, push_token)
 VALUES ($1, $2, $3)

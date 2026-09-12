@@ -21,6 +21,7 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	ListAllLessons(ctx context.Context, arg ListAllLessonsParams) ([]ListAllLessonsRow, error)
+	ListDevicesByUserID(ctx context.Context, userID pgtype.UUID) ([]UserDevice, error)
 	ListLessonsByUserID(ctx context.Context, arg ListLessonsByUserIDParams) ([]ListLessonsByUserIDRow, error)
 	UpdateLessonRenderResult(ctx context.Context, arg UpdateLessonRenderResultParams) (UpdateLessonRenderResultRow, error)
 	UpdateLessonStatus(ctx context.Context, arg UpdateLessonStatusParams) error
