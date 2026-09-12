@@ -5,6 +5,9 @@
     "moduleResolution": "NodeNext",
     "rootDir": "./src",
     "outDir": "./dist",
+    "paths": {
+      "@meowshadow/types": ["../shared-types/dist/index.d.ts"]
+    },
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,

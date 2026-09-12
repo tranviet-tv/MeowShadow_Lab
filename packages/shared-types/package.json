@@ -1,6 +1,7 @@
 {
   "name": "@meowshadow/types",
   "version": "1.0.0",
+  "type": "module",
   "description": "Gói định nghĩa TypeScript dùng chung cho Web Studio và Mobile App của MeowShadow Lab",
   "main": "src/index.ts",
   "types": "src/index.ts",

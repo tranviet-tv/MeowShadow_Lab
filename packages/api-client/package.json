@@ -1,0 +1,26 @@
+{
+  "name": "@meowshadow/api-client",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Type-safe API client and WebSocket wrapper for MeowShadow Lab Web & Mobile clients",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "meowshadow",
+    "api-client",
+    "sdk",
+    "typescript"
+  ],
+  "author": "MeowShadow Lab Team",
+  "license": "MIT",
+  "dependencies": {
+    "@meowshadow/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2"
+  }
+}
