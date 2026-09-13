@@ -41,8 +41,8 @@ gantt
     Sprint 9: HTTP 206 Streaming & Storage      :done,    sp9, after sp8, 2d
 
     section Giai đoạn 4: Web Studio
-    Sprint 10: Next.js 15 Web & Script Editor   :active,  sp10, after sp9, 3d
-    Sprint 11: Karaoke Player & Waveform Audio  :         sp11, after sp10, 3d
+    Sprint 10: Next.js 15 Web & Script Editor   :done,    sp10, after sp9, 3d
+    Sprint 11: Karaoke Player & Waveform Audio  :active,  sp11, after sp10, 3d
 
     section Giai đoạn 5: Mobile & Phát Hành
     Sprint 12: React Native Mobile & 1-Click    :         sp12, after sp11, 4d
@@ -263,7 +263,7 @@ gantt
 | **SP10-02** | Trình Soạn Thảo Kịch Bản Song Ngữ | - Xây dựng `ScriptEditor.tsx` hỗ trợ 2 chế độ: Xen kẽ (Interleaved) và Song song (Side-by-side)<br>- Syntax highlighting nổi bật các thẻ `[VI]`, `[EN]`, `[JA]`<br>- Bộ đếm số từ và ước tính thời lượng audio trực tiếp khi gõ phím | `apps/web/src/components/studio/ScriptEditor.tsx`<br>`apps/web/src/components/studio/WordCounter.tsx` | 0.8 ngày | ✅ Hoàn thành |
 | **SP10-03** | Bảng Điều Khiển Pacing & Voice Selector | - Xây dựng `PacingController.tsx`: Thanh trượt chỉnh khoảng lặng VI (1.5s), EN/JA (3.5s)<br>- `VoiceSelector.tsx`: Danh sách chọn giọng Nam/Nữ kèm nút "Nghe thử giọng này" | `apps/web/src/components/studio/PacingController.tsx`<br>`apps/web/src/components/studio/VoiceSelector.tsx` | 0.5 ngày | ✅ Hoàn thành |
 | **SP10-04** | Tích Hợp Nút "AI Auto-Translate & Chunk" | - Nút gọi trực tiếp Script-LLM Worker phân đoạn bài viết tự động trong 1 click | `apps/web/src/components/studio/AIActionBar.tsx` | 0.4 ngày | ✅ Hoàn thành |
-| **SP10-05** | Dockerfile Tối Ưu Hóa Multi-Stage Cho Web | - Viết `apps/web/Dockerfile` xuất bản image standalone production | `apps/web/Dockerfile` | 0.3 ngày | ⚪ Chờ thực hiện |
+| **SP10-05** | Dockerfile Tối Ưu Hóa Multi-Stage Cho Web | - Viết `apps/web/Dockerfile` xuất bản image standalone production | `apps/web/Dockerfile` | 0.3 ngày | ✅ Hoàn thành |
 
 * **Định nghĩa hoàn thành (DoD - Sprint 10):**
   - Web chạy tại `http://localhost:3000`, thiết kế giao diện Dark Mode cao cấp.
