@@ -5,9 +5,13 @@ import { usePlayerStore } from '@/stores/usePlayerStore';
 import { SubtitleLine } from './SubtitleLine';
 import { PlaybackBar } from './PlaybackBar';
 import { WaveformVisualizer } from './WaveformVisualizer';
-import { Headphones, Sparkles, BookOpen } from 'lucide-react';
+import { usePlayerHotkeys, HOTKEYS_LIST } from '@/hooks/usePlayerHotkeys';
+import { Headphones, Sparkles, BookOpen, Keyboard } from 'lucide-react';
 
 export function KaraokePlayer() {
+  // Activate global hotkeys
+  usePlayerHotkeys(true);
+
   const {
     lesson,
     subtitles,
@@ -123,6 +127,31 @@ export function KaraokePlayer() {
 
       {/* Waveform Visualizer */}
       <WaveformVisualizer lessonId={lesson?.id} />
+
+      {/* Keyboard Hotkeys Quick Reference Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-950/60 border border-slate-800/80 text-[11px] text-slate-400">
+        <div className="flex items-center space-x-1.5 font-semibold text-slate-300">
+          <Keyboard className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Phím tắt:</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 font-mono">
+          <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-200">
+            <kbd className="text-indigo-400 font-bold">Space</kbd> Play/Pause
+          </span>
+          <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-200">
+            <kbd className="text-amber-400 font-bold">R</kbd> Nhại lại câu
+          </span>
+          <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-200">
+            <kbd className="text-sky-400 font-bold">J / L</kbd> ±5s
+          </span>
+          <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-200">
+            <kbd className="text-purple-400 font-bold">M</kbd> Mute
+          </span>
+          <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-200">
+            <kbd className="text-emerald-400 font-bold">↑ / ↓</kbd> Âm lượng
+          </span>
+        </div>
+      </div>
 
       {/* Subtitles Stream Container (Auto-scroll target) */}
       <div className="space-y-3 min-h-[350px] max-h-[550px] overflow-y-auto pr-2 rounded-2xl p-2 bg-slate-950/40 border border-slate-800/50">
