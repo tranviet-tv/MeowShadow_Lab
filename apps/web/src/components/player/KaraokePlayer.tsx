@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { SubtitleLine } from './SubtitleLine';
 import { PlaybackBar } from './PlaybackBar';
+import { WaveformVisualizer } from './WaveformVisualizer';
 import { Headphones, Sparkles, BookOpen } from 'lucide-react';
 
 export function KaraokePlayer() {
@@ -119,6 +120,9 @@ export function KaraokePlayer() {
           </span>
         </div>
       </div>
+
+      {/* Waveform Visualizer */}
+      <WaveformVisualizer lessonId={lesson?.id} />
 
       {/* Subtitles Stream Container (Auto-scroll target) */}
       <div className="space-y-3 min-h-[350px] max-h-[550px] overflow-y-auto pr-2 rounded-2xl p-2 bg-slate-950/40 border border-slate-800/50">
