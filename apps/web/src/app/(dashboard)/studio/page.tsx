@@ -7,6 +7,8 @@ import { SUPPORTED_LANGUAGES } from '@/lib/constants';
 
 import { ScriptEditor } from '@/components/studio/ScriptEditor';
 import { WordCounter } from '@/components/studio/WordCounter';
+import { PacingController } from '@/components/studio/PacingController';
+import { VoiceSelector } from '@/components/studio/VoiceSelector';
 
 export default function StudioPage() {
   const {
@@ -72,14 +74,22 @@ export default function StudioPage() {
 
         {/* Right Column: Pacing Controller & Voice Selection (5 cols on lg) */}
         <div className="lg:col-span-5 space-y-6" id="studio-controls-container">
-          <div className="p-5 rounded-2xl glass-panel border border-slate-800/80">
-            <h2 className="text-base font-semibold text-slate-200 flex items-center space-x-2 mb-4">
-              <Sliders className="w-4 h-4 text-indigo-400" />
-              <span>Bảng Điều Khiển Pacing & Giọng Đọc</span>
+          {/* Voice Selection */}
+          <div className="p-5 rounded-2xl glass-panel border border-slate-800/80 space-y-4">
+            <h2 className="text-base font-semibold text-slate-200 flex items-center space-x-2">
+              <Volume2 className="w-4 h-4 text-indigo-400" />
+              <span>Lựa Chọn Giọng Đọc (Voice Selector)</span>
             </h2>
-            <div id="pacing-mount" className="min-h-[300px] flex items-center justify-center text-slate-500 text-sm">
-              Pacing Controller & Voice Selector mounting area (SP10-03)
-            </div>
+            <VoiceSelector />
+          </div>
+
+          {/* Pacing Controller */}
+          <div className="p-5 rounded-2xl glass-panel border border-slate-800/80 space-y-4">
+            <h2 className="text-base font-semibold text-slate-200 flex items-center space-x-2">
+              <Sliders className="w-4 h-4 text-emerald-400" />
+              <span>Bảng Điều Khiển Pacing & Nhịp Điệu</span>
+            </h2>
+            <PacingController />
           </div>
         </div>
       </div>
