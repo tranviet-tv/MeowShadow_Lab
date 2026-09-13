@@ -101,47 +101,67 @@ MeowShadow_Lab/
 | **Sprint 8** | Pipeline Orchestration & WebSockets | State Machine, Redis Stream & PubSub, WebSocket Hub Realtime, Push Dispatcher. | 🟢 **Hoàn thành** |
 | **Sprint 9** | High-Performance Audio Streaming | HTTP 206 Range Streaming (seek < 100ms), Static Asset Server, Storage Retention, Swagger UI. | 🟢 **Hoàn thành** |
 | **Giai đoạn 4: Web Studio Trực Quan** | | | |
-| **Sprint 10** | Next.js 15 Web & Script Editor | Next.js 15 App Router, Bilingual Script Editor, Pacing Studio, Dark/Light Mode. | 🟡 **Đang kích hoạt** |
-| **Sprint 11** | Interactive Karaoke & Waveform | Karaoke Player sync phụ đề, Waveform visualizer, Hotkeys `Space`/`J`/`L`/`R`, Export hub. | ⚪ Chờ thực hiện |
+| **Sprint 10** | Next.js 15 Web & Script Editor | Next.js 15 App Router, Bilingual Script Editor, Pacing Studio, Dark/Light Mode. | 🟢 **Hoàn thành** |
+| **Sprint 11** | Interactive Karaoke & Waveform | Karaoke Player sync phụ đề, Waveform visualizer, Hotkeys `Space`/`J`/`L`/`R`, Export hub. | 🟢 **Hoàn thành** |
 | **Giai đoạn 5: Mobile & Phát Hành 1-Click** | | | |
-| **Sprint 12** | React Native Mobile App & Launch | Background Audio, Lockscreen controls, SQLite Offline Sync, 1-Click script `run.sh`. | ⚪ Chờ thực hiện |
-| **TỔNG KẾT** | **Tiến độ toàn bộ dự án** | **Hoàn tất 9/12 Sprints (75.0%)** | 🟢 **On Track** |
+| **Sprint 12** | React Native Mobile App & Launch | Background Audio, Lockscreen controls, SQLite Offline Sync, Kokoro AI, 1-Click script `run.sh`. | 🟢 **Hoàn thành** |
+| **TỔNG KẾT** | **Tiến độ toàn bộ dự án** | **Hoàn tất 12/12 Sprints (100.0%)** | 🟢 **Sẵn Sàng Bàn Giao (v3.2.0)** |
+
+---
+
+## 🚀 KHỞI CHẠY HỆ THỐNG TRONG 1 CÚ NHẤP CHUỘT (1-CLICK LAUNCH)
+
+Chỉ cần đúng **1 câu lệnh duy nhất** để tự động kiểm tra Docker, chạy migrations, seed dữ liệu mẫu 1.500 từ, kích hoạt toàn bộ microservices và mở trình duyệt:
+
+```bash
+# Khởi chạy 1-Click toàn bộ hệ sinh thái:
+./scripts/run.sh
+
+# Hoặc dùng lệnh Makefile tương đương:
+make run
+```
+
+### Các tùy chọn nâng cao với `run.sh`:
+```bash
+# Khởi chạy hệ thống và bật luôn Expo Mobile App Dev Server (iOS / Android):
+./scripts/run.sh --mobile
+
+# Kiểm tra sức khỏe real-time của tất cả container & endpoints:
+./scripts/run.sh --status
+
+# Kiểm tra tương thích phần cứng và công cụ (Dry-run):
+./scripts/run.sh --dry-run
+
+# Tắt sạch toàn bộ các container:
+./scripts/run.sh --down
+```
 
 ---
 
 ## 🛠️ HƯỚNG DẪN BẮT ĐẦU CHO DEVELOPER
 
 ### 1. Yêu Cầu Môi Trường
-* **Docker Desktop** (hoặc Docker Engine v24+) có hỗ trợ Docker Compose v2.
-* **Node.js** v20+ & **pnpm** v9+ (cho Web và Shared Packages).
+* **Docker Desktop** (hoặc OrbStack / Docker Engine v24+) có hỗ trợ Docker Compose v2.
+* **Node.js** v20+ & **pnpm** v9+ (cho Web Studio và Mobile App).
 * **Go** v1.23+ (nếu muốn debug độc lập Gateway ngoài Docker).
 * **Python** v3.11+ & **FFmpeg** (nếu muốn debug độc lập Audio Services ngoài Docker).
-* **Ollama** (tùy chọn, để chạy Local LLM Qwen 3 8B).
+* **Expo Go** trên iOS/Android (để test ứng dụng di động trên điện thoại thật).
 
 ### 2. Thiết Lập Cấu Hình Môi Trường
 ```bash
-# Create .env file from template
+# Tạo file cấu hình từ template mẫu
 cp .env.example .env
-
-# Edit parameters if needed (see details in docs/6_DEVELOPMENT_GUIDE_AND_ENV.md)
 ```
 
-### 3. Khởi Động Toàn Bộ Hệ Thống Backend & Microservices
-Khởi chạy toàn bộ cơ sở dữ liệu PostgreSQL, Redis Broker, Shared Storage, Gateway Core và các Python AI Workers:
-```bash
-# Start all backend services with Docker
-docker compose up --build -d
-
-# Follow system logs
-docker compose logs -f
-```
-
-### 4. Cổng Truy Cập Dịch Vụ
-* 🚀 **Swagger UI & OpenAPI Docs (Sprint 9):** `http://localhost:8000/swagger`
-* 🩺 **Gateway Core Health Check:** `http://localhost:8000/health` hoặc `http://localhost:8000/api/v1/health`
-* 🌐 **Next.js Web Studio UI (Sprint 10):** `http://localhost:3000`
-* 🗄️ **PostgreSQL Server:** `localhost:5432` (DB: `meowshadow_db`)
+### 3. Cổng Truy Cập Dịch Vụ
+* 🌐 **Next.js Web Studio UI:** `http://localhost:3000`
+* 📱 **Mobile App (Expo):** `pnpm --filter @meowshadow/mobile start`
+* 🚀 **Swagger UI & OpenAPI Docs:** `http://localhost:8000/swagger`
+* 🩺 **Gateway Core Health Check:** `http://localhost:8000/health`
+* 🗄️ **Adminer Database Studio:** `http://localhost:8080` (DB: `meowshadow_db`)
 * ⚡ **Redis Broker:** `localhost:6379`
+* 🎙️ **TTS Engine (Edge + Kokoro):** `http://localhost:8002/health`
+* 🎚️ **Audio Processor & Pacing:** `http://localhost:8003/api/v1/health`
 
 
 ---

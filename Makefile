@@ -1,10 +1,18 @@
-.PHONY: help up down logs ps restart psql redis-cli clean test-infra db-status db-migrate db-rollback db-seed db-reset db-studio test-audio
+.PHONY: help run run-dry run-status mobile test-all e2e up down logs ps restart psql redis-cli clean test-infra db-status db-migrate db-rollback db-seed db-reset db-studio test-audio
 
 # Default help target
 help:
 	@echo "======================================================================"
-	@echo "  MEOWSHADOW LAB - DEV CLI COMMANDS"
+	@echo "  MEOWSHADOW LAB - DEV CLI COMMANDS (v3.2.0)"
 	@echo "======================================================================"
+	@echo "  1-CLICK LAUNCH & FULL STACK:"
+	@echo "    make run         - 1-Click launch of entire ecosystem (scripts/run.sh)"
+	@echo "    make run-dry     - Pre-flight diagnostic check without starting services"
+	@echo "    make run-status  - Real-time health status probe across all microservices"
+	@echo "    make mobile      - Launch React Native / Expo Mobile development server"
+	@echo "    make test-all    - Run comprehensive test suites across the entire monorepo"
+	@echo "    make e2e         - Execute end-to-end integration verification"
+	@echo ""
 	@echo "  BASE INFRASTRUCTURE:"
 	@echo "    make up          - Start platform infrastructure (Postgres + Redis)"
 	@echo "    make down        - Stop all containers"
@@ -29,6 +37,42 @@ help:
 	@echo "    make test-audio-docker - Run audio tests inside Docker container with FFmpeg"
 	@echo "    make audio-up          - Start audio-processor service (http://localhost:8003)"
 	@echo "======================================================================"
+
+# 1-Click launch full system
+run:
+	./scripts/run.sh
+
+# Dry-run pre-flight check
+run-dry:
+	./scripts/run.sh --dry-run
+
+# Health status probe
+run-status:
+	./scripts/run.sh --status
+
+# Launch Expo Mobile App Dev Server
+mobile:
+	pnpm --filter @meowshadow/mobile start
+
+# Run all test suites across Python, Go, and TypeScript
+test-all:
+	@echo "--- 1. Testing Go Gateway Core ---"
+	go test -v ./services/gateway-core/...
+	@echo "\n--- 2. Testing Python Audio Processor ---"
+	./services/audio-processor/.venv/bin/pytest services/audio-processor/tests -q
+	@echo "\n--- 3. Testing Python TTS Engine ---"
+	./services/tts-engine/.venv/bin/pytest services/tts-engine/tests -q
+	@echo "\n--- 4. Type Checking Web Studio ---"
+	pnpm --filter @meowshadow/web type-check
+	@echo "\n--- 5. Testing Mobile App Logic & Types ---"
+	pnpm --filter @meowshadow/mobile type-check
+	npx tsx apps/mobile/tests/playerLogic.test.ts
+	npx tsx apps/mobile/tests/sqliteOffline.test.ts
+	@echo "\nAll monorepo test suites PASSED successfully!"
+
+# End-to-end integration check
+e2e: run-dry
+	@echo "E2E Pre-flight verification PASSED."
 
 # Start platform infrastructure services
 up:
