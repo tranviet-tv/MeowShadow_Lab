@@ -42,10 +42,10 @@ gantt
 
     section Giai đoạn 4: Web Studio
     Sprint 10: Next.js 15 Web & Script Editor   :done,    sp10, after sp9, 3d
-    Sprint 11: Karaoke Player & Waveform Audio  :active,  sp11, after sp10, 3d
+    Sprint 11: Karaoke Player & Waveform Audio  :done,    sp11, after sp10, 3d
 
     section Giai đoạn 5: Mobile & Phát Hành
-    Sprint 12: React Native Mobile & 1-Click    :         sp12, after sp11, 4d
+    Sprint 12: React Native Mobile & 1-Click    :active,  sp12, after sp11, 4d
 
 ```
 
@@ -282,7 +282,7 @@ gantt
 | **SP11-02** | Trực Quan Hóa Sóng Âm (Waveform Visualizer) | - Tích hợp Wavesurfer hoặc Canvas Visualizer dựa trên dữ liệu JSON peaks<br>- Hiển thị tiến trình phát trực quan, hỗ trợ kéo thả tua sóng âm | `apps/web/src/components/player/WaveformVisualizer.tsx` | 0.5 ngày | ✅ Hoàn thành |
 | **SP11-03** | Hệ Thống Phím Tắt Điều Khiển (Hotkeys) | - `Space`: Tạm dừng / Tiếp tục phát<br>- `J` / `L`: Tua lùi / Tua tới 5 giây<br>- `R`: **Lặp lại câu hiện tại (Repeat Chunk)** phục vụ nhại giọng Shadowing | `apps/web/src/hooks/usePlayerHotkeys.ts` | 0.4 ngày | ✅ Hoàn thành |
 | **SP11-04** | Modal Tiến Trình Render WebSocket | - Hiển thị Modal với các hiệu ứng động thể hiện từng bước render sống động<br>- Tự động đóng modal và nạp bài học vào Player khi nhận tín hiệu hoàn tất | `apps/web/src/components/studio/RenderProgressModal.tsx` | 0.5 ngày | ✅ Hoàn thành |
-| **SP11-05** | Modal Xuất Trọn Gói Tài Liệu (Export Hub) | - Cho phép người dùng tải nhanh: File `.mp3`, File `.srt`, File `.vtt` hoặc tải trọn gói `.zip` | `apps/web/src/components/player/ExportModal.tsx` | 0.4 ngày | ⚪ Chờ thực hiện |
+| **SP11-05** | Modal Xuất Trọn Gói Tài Liệu (Export Hub) | - Cho phép người dùng tải nhanh: File `.mp3`, File `.srt`, File `.vtt` hoặc tải trọn gói `.zip` | `apps/web/src/components/player/ExportModal.tsx` | 0.4 ngày | ✅ Hoàn thành |
 
 * **Định nghĩa hoàn thành (DoD - Sprint 11):**
   - Trình phát Karaoke chạy mượt mà, câu đọc tới đâu chữ sáng tới đó, không lệch phụ đề.

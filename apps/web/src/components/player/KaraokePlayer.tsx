@@ -2,15 +2,19 @@
 
 import React, { useEffect, useRef } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useState } from 'react';
 import { SubtitleLine } from './SubtitleLine';
 import { PlaybackBar } from './PlaybackBar';
 import { WaveformVisualizer } from './WaveformVisualizer';
+import { ExportModal } from './ExportModal';
 import { usePlayerHotkeys, HOTKEYS_LIST } from '@/hooks/usePlayerHotkeys';
-import { Headphones, Sparkles, BookOpen, Keyboard } from 'lucide-react';
+import { Headphones, Sparkles, BookOpen, Keyboard, Download } from 'lucide-react';
 
 export function KaraokePlayer() {
   // Activate global hotkeys
   usePlayerHotkeys(true);
+
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const {
     lesson,
@@ -117,11 +121,20 @@ export function KaraokePlayer() {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2.5">
           <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-emerald-400 flex items-center space-x-1.5">
             <Headphones className="w-3.5 h-3.5" />
             <span>Auto-Sync Active</span>
           </span>
+
+          <button
+            type="button"
+            onClick={() => setIsExportModalOpen(true)}
+            className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-semibold flex items-center space-x-1.5 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Xuất Tài Liệu</span>
+          </button>
         </div>
       </div>
 
@@ -174,6 +187,14 @@ export function KaraokePlayer() {
 
       {/* Sticky Bottom Playback Controller */}
       <PlaybackBar />
+
+      {/* Multi-format Export Hub Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        lessonId={lesson?.id || 'sample-1'}
+        lessonTitle={lesson?.title || 'Bai_hoc_shadowing'}
+        onClose={() => setIsExportModalOpen(false)}
+      />
     </div>
   );
 }
