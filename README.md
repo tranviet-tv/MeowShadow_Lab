@@ -109,59 +109,114 @@ MeowShadow_Lab/
 
 ---
 
-## 🚀 KHỞI CHẠY HỆ THỐNG TRONG 1 CÚ NHẤP CHUỘT (1-CLICK LAUNCH)
+## 🚀 HƯỚNG DẪN KHỞI CHẠY HỆ THỐNG (QUICK START & RUN GUIDE)
 
-Chỉ cần đúng **1 câu lệnh duy nhất** để tự động kiểm tra Docker, chạy migrations, seed dữ liệu mẫu 1.500 từ, kích hoạt toàn bộ microservices và mở trình duyệt:
+### 1. Yêu Cầu Môi Trường & Chuẩn Bị (Prerequisites)
+* **Docker Desktop** (hoặc OrbStack / Docker Engine v24+) hỗ trợ Docker Compose v2.
+* **Node.js** v20+ & **pnpm** v9+ (cho Web Studio và Mobile App).
+* **Go** v1.23+ (nếu debug Gateway Core ngoài Docker).
+* **Python** v3.11+ & **FFmpeg** (nếu debug Audio Services ngoài Docker).
+* **Expo Go** trên thiết bị iOS/Android (nếu chạy kiểm thử ứng dụng di động).
 
+**Bước chuẩn bị:** Tạo file cấu hình môi trường từ mẫu cấu hình:
 ```bash
-# Khởi chạy 1-Click toàn bộ hệ sinh thái:
-./scripts/run.sh
-
-# Hoặc dùng lệnh Makefile tương đương:
-make run
-```
-
-### Các tùy chọn nâng cao với `run.sh`:
-```bash
-# Khởi chạy hệ thống và bật luôn Expo Mobile App Dev Server (iOS / Android):
-./scripts/run.sh --mobile
-
-# Kiểm tra sức khỏe real-time của tất cả container & endpoints:
-./scripts/run.sh --status
-
-# Kiểm tra tương thích phần cứng và công cụ (Dry-run):
-./scripts/run.sh --dry-run
-
-# Tắt sạch toàn bộ các container:
-./scripts/run.sh --down
+cp .env.example .env
 ```
 
 ---
 
-## 🛠️ HƯỚNG DẪN BẮT ĐẦU CHO DEVELOPER
+### 2. Cách 1: Khởi Chạy 1-Click Tự Động (100% Docker-First - Khuyên Dùng)
 
-### 1. Yêu Cầu Môi Trường
-* **Docker Desktop** (hoặc OrbStack / Docker Engine v24+) có hỗ trợ Docker Compose v2.
-* **Node.js** v20+ & **pnpm** v9+ (cho Web Studio và Mobile App).
-* **Go** v1.23+ (nếu muốn debug độc lập Gateway ngoài Docker).
-* **Python** v3.11+ & **FFmpeg** (nếu muốn debug độc lập Audio Services ngoài Docker).
-* **Expo Go** trên iOS/Android (để test ứng dụng di động trên điện thoại thật).
+Chỉ cần đúng **1 câu lệnh duy nhất** để tự động kiểm tra môi trường/công cụ, chạy migrations, seed dữ liệu mẫu 1.500 từ, kích hoạt toàn bộ microservices (Go Gateway, TTS Engine, Audio Processor, Script-LLM) và khởi chạy Web Studio:
 
-### 2. Thiết Lập Cấu Hình Môi Trường
 ```bash
-# Tạo file cấu hình từ template mẫu
-cp .env.example .env
+# Sử dụng Makefile:
+make run
+
+# Hoặc thực thi trực tiếp script:
+./scripts/run.sh
 ```
 
-### 3. Cổng Truy Cập Dịch Vụ
-* 🌐 **Next.js Web Studio UI:** `http://localhost:3000`
-* 📱 **Mobile App (Expo):** `pnpm --filter @meowshadow/mobile start`
-* 🚀 **Swagger UI & OpenAPI Docs:** `http://localhost:8000/swagger`
-* 🩺 **Gateway Core Health Check:** `http://localhost:8000/health`
-* 🗄️ **Adminer Database Studio:** `http://localhost:8080` (DB: `meowshadow_db`)
-* ⚡ **Redis Broker:** `localhost:6379`
-* 🎙️ **TTS Engine (Edge + Kokoro):** `http://localhost:8002/health`
-* 🎚️ **Audio Processor & Pacing:** `http://localhost:8003/api/v1/health`
+> **Tự động mở trình duyệt**: Sau khi các service khởi động và kiểm tra sức khỏe thành công, hệ thống sẽ tự động mở Web Studio tại [http://localhost:3000](http://localhost:3000).
+
+#### Các tùy chọn khởi chạy mở rộng:
+```bash
+# Khởi chạy hệ thống và bật luôn Expo Mobile App Dev Server:
+./scripts/run.sh --mobile
+# hoặc: make mobile
+
+# Kiểm tra sức khỏe real-time toàn bộ container & endpoints:
+./scripts/run.sh --status
+# hoặc: make run-status
+
+# Kiểm tra tương thích môi trường và công cụ (Dry-run không khởi động service):
+./scripts/run.sh --dry-run
+# hoặc: make run-dry
+
+# Dừng và tắt sạch toàn bộ các container:
+./scripts/run.sh --down
+# hoặc: make down
+```
+
+---
+
+### 3. Cách 2: Khởi Chạy Từng Phân Hệ Thủ Công (Dành Cho Developer & Debug)
+
+Dành cho nhà phát triển muốn chạy hạ tầng DB/Redis trên Docker nhưng debug từng service hoặc UI trực tiếp trên máy host:
+
+```bash
+# Bước 1: Khởi chạy hạ tầng cơ sở (PostgreSQL 16 + Redis 7)
+make up
+
+# Bước 2: Chạy migrations lược đồ cơ sở dữ liệu và nạp dữ liệu mẫu
+make db-migrate
+make db-seed
+
+# Bước 3: Khởi chạy cụm Microservices backend (Gateway, Audio, TTS, LLM)
+docker compose --profile services up -d
+
+# Bước 4: Khởi chạy Web Studio giao diện lập trình viên (Next.js 15)
+pnpm --filter @meowshadow/web dev
+
+# Bước 5 (Tùy chọn): Khởi chạy ứng dụng di động (Expo Mobile App)
+pnpm --filter @meowshadow/mobile start
+```
+
+---
+
+### 4. Danh Mục Cổng Dịch Vụ & Endpoints
+
+| Dịch vụ / Phân hệ | Cổng & Đường dẫn truy cập | Tài khoản / Ghi chú |
+| :--- | :--- | :--- |
+| 🌐 **Next.js 15 Web Studio** | [http://localhost:3000](http://localhost:3000) | Giao diện Bilingual Script Editor & Karaoke Player |
+| 🚀 **Swagger UI & OpenAPI Docs** | [http://localhost:8000/swagger](http://localhost:8000/swagger) | Tài liệu API tương tác Golang Gateway Core |
+| 🩺 **Gateway Core API & Health** | [http://localhost:8000/health](http://localhost:8000/health) | RESTful API & WebSocket Realtime Hub |
+| 🗄️ **Adminer Database Studio** | [http://localhost:8080](http://localhost:8080) | DB: `meowshadow_db` / User: `meowuser` / Pass: `meowpassword` |
+| ⚡ **Redis Cache & Broker** | `localhost:6379` | Quản lý Pub/Sub và Task Queue |
+| 🎙️ **TTS Engine (Edge + Kokoro)** | [http://localhost:8002/health](http://localhost:8002/health) | Tổng hợp giọng đọc đa ngữ song song |
+| 🎚️ **Audio Processor Service** | [http://localhost:8003/api/v1/health](http://localhost:8003/api/v1/health) | Nhịp dừng Pacing (0.5s - 1.5s - 3.5s) & EBU R128 (-16 LUFS) |
+| 🧠 **Script-LLM Worker** | [http://localhost:8001/health](http://localhost:8001/health) | Tự động phân đoạn và dịch thuật (Ollama Qwen 3 8B) |
+
+---
+
+### 5. Quản Trị Cơ Sở Dữ Liệu & Kiểm Thử
+
+```bash
+# Xem nhật ký logs theo thời gian thực:
+make logs
+
+# Truy cập PostgreSQL CLI trực tiếp:
+make psql
+
+# Truy cập Redis CLI:
+make redis-cli
+
+# Mở Web Database Studio (Adminer):
+make db-studio
+
+# Chạy toàn bộ test suites monorepo (Go, Python Pytest, TypeScript):
+make test-all
+```
 
 
 ---
