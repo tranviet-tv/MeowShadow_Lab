@@ -5,6 +5,9 @@ import { useStudioStore } from '@/stores/useStudioStore';
 import { Sparkles, Sliders, Volume2, Wand2, FileCode, Play, Layers } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '@/lib/constants';
 
+import { ScriptEditor } from '@/components/studio/ScriptEditor';
+import { WordCounter } from '@/components/studio/WordCounter';
+
 export default function StudioPage() {
   const {
     title,
@@ -55,15 +58,16 @@ export default function StudioPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Script Editor & AI Action (7 cols on lg) */}
         <div className="lg:col-span-7 space-y-6" id="studio-editor-container">
-          <div className="p-5 rounded-2xl glass-panel border border-slate-800/80">
-            <h2 className="text-base font-semibold text-slate-200 flex items-center space-x-2 mb-4">
+          <div className="p-5 rounded-2xl glass-panel border border-slate-800/80 space-y-4">
+            <h2 className="text-base font-semibold text-slate-200 flex items-center space-x-2">
               <FileCode className="w-4 h-4 text-indigo-400" />
               <span>Trình Soạn Thảo Kịch Bản Song Ngữ</span>
             </h2>
-            <div id="script-editor-mount" className="min-h-[300px] flex items-center justify-center text-slate-500 text-sm">
-              Script Editor component mounting area (SP10-02)
-            </div>
+            <ScriptEditor />
           </div>
+
+          {/* Word Counter & Duration Estimation */}
+          <WordCounter />
         </div>
 
         {/* Right Column: Pacing Controller & Voice Selection (5 cols on lg) */}
