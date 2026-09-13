@@ -1,4 +1,4 @@
-// Player Screen - Full interactive audio player and karaoke subtitle viewer
+// Player Screen - Interactive Karaoke Player, Subtitle Stream & Lock-screen Player Preview
 // English comments only per project rules
 
 import React, { useState } from "react";
@@ -8,66 +8,32 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  ScrollView,
+  DimensionValue,
 } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { RootTabParamList } from "../types/navigation";
+import { usePlayerStore } from "../stores/playerStore";
+import { LockScreenPlayer } from "../components/LockScreenPlayer";
+import { KaraokeSubtitleStream } from "../components/KaraokeSubtitleStream";
 import { Colors, Shadows } from "../theme/colors";
 
 type PlayerScreenRouteProp = RouteProp<RootTabParamList, "Player">;
 
-interface SubtitleLineItem {
-  id: string;
-  startTimeSec: number;
-  endTimeSec: number;
-  lang: string;
-  textVi: string;
-  textTarget: string;
-}
-
-const SAMPLE_SUBTITLES: SubtitleLineItem[] = [
-  {
-    id: "sub-1",
-    startTimeSec: 0.0,
-    endTimeSec: 4.2,
-    lang: "en",
-    textVi: "Chào buổi sáng mọi người, cảm ơn vì đã tham gia buổi họp đúng giờ.",
-    textTarget: "Good morning everyone, thank you for joining the standup on time.",
-  },
-  {
-    id: "sub-2",
-    startTimeSec: 4.5,
-    endTimeSec: 9.8,
-    lang: "en",
-    textVi: "Hôm nay chúng ta sẽ xem xét tiến độ của sprint và các vấn đề cần giải quyết.",
-    textTarget: "Today we will review our sprint progress and discuss any blockers.",
-  },
-  {
-    id: "sub-3",
-    startTimeSec: 10.2,
-    endTimeSec: 15.6,
-    lang: "en",
-    textVi: "Tính năng phát audio chạy nền trên điện thoại đã được kết nối xong.",
-    textTarget: "The background audio playback service on mobile is fully wired up.",
-  },
-  {
-    id: "sub-4",
-    startTimeSec: 16.0,
-    endTimeSec: 21.4,
-    lang: "en",
-    textVi: "Bạn có thể bấm nút Repeat để nhại lại câu thoại vừa nghe ngay lập tức.",
-    textTarget: "You can hit the Repeat button to immediately shadow the current chunk.",
-  },
-];
-
 export const PlayerScreen: React.FC<{ route?: PlayerScreenRouteProp }> = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTimeSec, setCurrentTimeSec] = useState(6.2);
-  const [activeSubIndex, setActiveSubIndex] = useState(1);
-  const [repeatCount, setRepeatCount] = useState(2);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const [activeTab, setActiveTab] = useState<"karaoke" | "lockscreen">("karaoke");
 
-  const durationSec = 21.4;
+  const {
+    currentLesson,
+    currentTimeSec,
+    durationSec,
+    isPlaying,
+    repeatCount,
+    playbackRate,
+    togglePlay,
+    seek,
+    repeatCurrentChunk,
+    setPlaybackRate,
+  } = usePlayerStore();
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -75,79 +41,75 @@ export const PlayerScreen: React.FC<{ route?: PlayerScreenRouteProp }> = () => {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const handleTogglePlay = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleSeek = (offsetSec: number) => {
-    const nextTime = Math.max(0, Math.min(durationSec, currentTimeSec + offsetSec));
-    setCurrentTimeSec(nextTime);
-  };
-
-  const handleRepeatChunk = () => {
-    const currentSub = SAMPLE_SUBTITLES[activeSubIndex];
-    if (currentSub) {
-      setCurrentTimeSec(currentSub.startTimeSec);
-      setRepeatCount((prev) => prev + 1);
-    }
-  };
-
-  const handleSelectSubtitle = (index: number) => {
-    setActiveSubIndex(index);
-    setCurrentTimeSec(SAMPLE_SUBTITLES[index].startTimeSec);
-  };
+  const progressPercent: DimensionValue = `${Math.min(
+    100,
+    Math.round((currentTimeSec / (durationSec || 1)) * 100)
+  )}%`;
 
   const cycleSpeed = () => {
     const speeds = [0.8, 1.0, 1.2, 1.5];
-    const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
-    setPlaybackSpeed(speeds[nextIdx]);
+    const nextIdx = (speeds.indexOf(playbackRate) + 1) % speeds.length;
+    setPlaybackRate(speeds[nextIdx]);
   };
-
-  const progressPercent: `${number}%` = `${Math.min(100, Math.round((currentTimeSec / durationSec) * 100))}%`;
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header with mode switcher */}
       <View style={styles.header}>
-        <Text style={styles.headerLabel}>Đang Luyện Nghe</Text>
-        <Text style={styles.lessonTitle}>Morning Standup & Sprint Planning</Text>
-      </View>
+        <View style={styles.titleInfo}>
+          <Text style={styles.headerLabel}>Trình Phát Di Động</Text>
+          <Text style={styles.lessonTitle} numberOfLines={1}>
+            {currentLesson?.title || "Morning Standup & Sprint Planning"}
+          </Text>
+        </View>
 
-      {/* Synchronized Subtitles Stream */}
-      <ScrollView style={styles.subtitlesContainer} contentContainerStyle={styles.subtitlesContent}>
-        {SAMPLE_SUBTITLES.map((sub, idx) => {
-          const isActive = idx === activeSubIndex;
-          return (
-            <TouchableOpacity
-              key={sub.id}
-              activeOpacity={0.7}
-              onPress={() => handleSelectSubtitle(idx)}
+        {/* View Mode Toggle: Karaoke View vs Lockscreen Widget */}
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity
+            style={[styles.toggleBtn, activeTab === "karaoke" && styles.toggleBtnActive]}
+            onPress={() => setActiveTab("karaoke")}
+          >
+            <Text
               style={[
-                styles.subtitleCard,
-                isActive && styles.activeSubtitleCard,
+                styles.toggleBtnText,
+                activeTab === "karaoke" && styles.toggleBtnTextActive,
               ]}
             >
-              <View style={styles.subtitleHeader}>
-                <Text style={[styles.timeTag, isActive && styles.activeTimeTag]}>
-                  {formatTime(sub.startTimeSec)} - {formatTime(sub.endTimeSec)}
-                </Text>
-                {isActive && (
-                  <View style={styles.speakingBadge}>
-                    <Text style={styles.speakingBadgeText}>Đang đọc</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.targetText, isActive && styles.activeTargetText]}>
-                {sub.textTarget}
-              </Text>
-              <Text style={[styles.viText, isActive && styles.activeViText]}>
-                {sub.textVi}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+              Karaoke
+            </Text>
+          </TouchableOpacity>
 
-      {/* Audio Playback Controls Bar */}
+          <TouchableOpacity
+            style={[styles.toggleBtn, activeTab === "lockscreen" && styles.toggleBtnActive]}
+            onPress={() => setActiveTab("lockscreen")}
+          >
+            <Text
+              style={[
+                styles.toggleBtnText,
+                activeTab === "lockscreen" && styles.toggleBtnTextActive,
+              ]}
+            >
+              Lock-Screen
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Main Content Area */}
+      <View style={styles.body}>
+        {activeTab === "karaoke" ? (
+          <KaraokeSubtitleStream />
+        ) : (
+          <View style={styles.lockscreenPreviewContainer}>
+            <Text style={styles.lockscreenHelperText}>
+              Giao diện widget điều khiển tự động kích hoạt ngoài màn hình khóa iOS / Android khi khóa máy:
+            </Text>
+            <LockScreenPlayer />
+          </View>
+        )}
+      </View>
+
+      {/* Persistent Bottom Controls Bar */}
       <View style={[styles.controlsContainer, Shadows.card]}>
         {/* Progress Timeline */}
         <View style={styles.progressRow}>
@@ -160,31 +122,31 @@ export const PlayerScreen: React.FC<{ route?: PlayerScreenRouteProp }> = () => {
 
         {/* Buttons Row */}
         <View style={styles.buttonsRow}>
-          <TouchableOpacity style={styles.secondaryButton} onPress={cycleSpeed}>
-            <Text style={styles.speedButtonText}>{playbackSpeed}x</Text>
+          <TouchableOpacity style={styles.speedButton} onPress={cycleSpeed}>
+            <Text style={styles.speedButtonText}>{playbackRate}x</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.seekButton} onPress={() => handleSeek(-5)}>
+          <TouchableOpacity style={styles.seekButton} onPress={() => seek(-5)}>
             <Text style={styles.seekButtonText}>-5s</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.playButton, Shadows.glow]}
             activeOpacity={0.8}
-            onPress={handleTogglePlay}
+            onPress={togglePlay}
           >
             <Text style={styles.playIcon}>{isPlaying ? "❚❚" : "▶"}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.seekButton} onPress={() => handleSeek(5)}>
+          <TouchableOpacity style={styles.seekButton} onPress={() => seek(5)}>
             <Text style={styles.seekButtonText}>+5s</Text>
           </TouchableOpacity>
 
-          {/* Repeat Chunk Button (Key Shadowing Feature) */}
+          {/* Repeat Chunk Button (P0 Shadowing Feature) */}
           <TouchableOpacity
             style={[styles.repeatButton, Shadows.glow]}
             activeOpacity={0.8}
-            onPress={handleRepeatChunk}
+            onPress={repeatCurrentChunk}
           >
             <Text style={styles.repeatButtonIcon}>↺</Text>
             <Text style={styles.repeatButtonText}>Lặp lại ({repeatCount})</Text>
@@ -201,92 +163,75 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  titleInfo: {
+    flex: 1,
+    marginRight: 10,
   },
   headerLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.primary,
-    fontWeight: "600",
+    fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   lessonTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
     color: Colors.textPrimary,
     marginTop: 2,
   },
-  subtitlesContainer: {
-    flex: 1,
-  },
-  subtitlesContent: {
-    padding: 16,
-    gap: 12,
-  },
-  subtitleCard: {
+  toggleContainer: {
+    flexDirection: "row",
     backgroundColor: Colors.surface,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 8,
+    padding: 3,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  activeSubtitleCard: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.surfaceLight,
-  },
-  subtitleHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  timeTag: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    fontVariant: ["tabular-nums"],
-  },
-  activeTimeTag: {
-    color: Colors.primary,
-    fontWeight: "600",
-  },
-  speakingBadge: {
-    backgroundColor: Colors.primaryGlow,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+  toggleBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 6,
   },
-  speakingBadgeText: {
+  toggleBtnActive: {
+    backgroundColor: Colors.primary,
+  },
+  toggleBtnText: {
     fontSize: 11,
-    color: Colors.primary,
     fontWeight: "600",
-  },
-  targetText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.textSecondary,
-    lineHeight: 22,
-    marginBottom: 4,
-  },
-  activeTargetText: {
-    color: Colors.textPrimary,
-  },
-  viText: {
-    fontSize: 14,
     color: Colors.textMuted,
-    lineHeight: 20,
   },
-  activeViText: {
-    color: Colors.textSecondary,
+  toggleBtnTextActive: {
+    color: "#FFF",
+  },
+  body: {
+    flex: 1,
+  },
+  lockscreenPreviewContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  lockscreenHelperText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    textAlign: "center",
+    paddingHorizontal: 24,
+    marginBottom: 10,
   },
   controlsContainer: {
     backgroundColor: Colors.surface,
     paddingHorizontal: 20,
     paddingTop: 14,
-    paddingBottom: 24,
+    paddingBottom: 16,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
@@ -294,7 +239,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   timeLabel: {
     fontSize: 12,
@@ -319,7 +264,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  secondaryButton: {
+  speedButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -346,9 +291,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   playButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -363,7 +308,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: Colors.accentGlow,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.accent,
     flexDirection: "row",
     alignItems: "center",
