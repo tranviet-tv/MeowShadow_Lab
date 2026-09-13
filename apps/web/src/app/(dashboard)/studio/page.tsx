@@ -5,6 +5,7 @@ import { useStudioStore } from '@/stores/useStudioStore';
 import { Sparkles, Sliders, Volume2, Wand2, FileCode, Play, Layers } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '@/lib/constants';
 
+import { AIActionBar } from '@/components/studio/AIActionBar';
 import { ScriptEditor } from '@/components/studio/ScriptEditor';
 import { WordCounter } from '@/components/studio/WordCounter';
 import { PacingController } from '@/components/studio/PacingController';
@@ -60,6 +61,9 @@ export default function StudioPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Script Editor & AI Action (7 cols on lg) */}
         <div className="lg:col-span-7 space-y-6" id="studio-editor-container">
+          {/* AI Auto-Translate & Chunk Bar */}
+          <AIActionBar />
+
           <div className="p-5 rounded-2xl glass-panel border border-slate-800/80 space-y-4">
             <h2 className="text-base font-semibold text-slate-200 flex items-center space-x-2">
               <FileCode className="w-4 h-4 text-indigo-400" />
