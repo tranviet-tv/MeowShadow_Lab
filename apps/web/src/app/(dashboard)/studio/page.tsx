@@ -5,11 +5,13 @@ import { useStudioStore } from '@/stores/useStudioStore';
 import { Sparkles, Sliders, Volume2, Wand2, FileCode, Play, Layers } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '@/lib/constants';
 
+import { useState } from 'react';
 import { AIActionBar } from '@/components/studio/AIActionBar';
 import { ScriptEditor } from '@/components/studio/ScriptEditor';
 import { WordCounter } from '@/components/studio/WordCounter';
 import { PacingController } from '@/components/studio/PacingController';
 import { VoiceSelector } from '@/components/studio/VoiceSelector';
+import { RenderProgressModal } from '@/components/studio/RenderProgressModal';
 
 export default function StudioPage() {
   const {
@@ -18,6 +20,15 @@ export default function StudioPage() {
     targetLanguage,
     setTargetLanguage,
   } = useStudioStore();
+
+  const [isRenderModalOpen, setIsRenderModalOpen] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+
+  const handleStartRender = () => {
+    const taskId = `task-${Date.now()}`;
+    setCurrentTaskId(taskId);
+    setIsRenderModalOpen(true);
+  };
 
   return (
     <div className="space-y-6 pb-12">
@@ -37,23 +48,36 @@ export default function StudioPage() {
           />
         </div>
 
-        {/* Target Language Toggle */}
-        <div className="flex items-center space-x-2 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800">
-          <span className="text-xs text-slate-400 px-2 font-medium">Ngoại ngữ:</span>
-          {SUPPORTED_LANGUAGES.filter((l) => l.id !== 'vi').map((lang) => (
-            <button
-              key={lang.id}
-              onClick={() => setTargetLanguage(lang.id)}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                targetLanguage === lang.id
-                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <span>{lang.flag}</span>
-              <span>{lang.label.split(' ')[0]}</span>
-            </button>
-          ))}
+        {/* Action Controls: Language Toggle & Generate Audio Button */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Target Language Toggle */}
+          <div className="flex items-center space-x-1.5 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800">
+            <span className="text-xs text-slate-400 px-2 font-medium">Ngoại ngữ:</span>
+            {SUPPORTED_LANGUAGES.filter((l) => l.id !== 'vi').map((lang) => (
+              <button
+                key={lang.id}
+                onClick={() => setTargetLanguage(lang.id)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  targetLanguage === lang.id
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <span>{lang.flag}</span>
+                <span>{lang.label.split(' ')[0]}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Primary Action: Synthesize Lesson Audio */}
+          <button
+            type="button"
+            onClick={handleStartRender}
+            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/25 transition-all flex items-center space-x-2 hover:scale-105"
+          >
+            <Play className="w-4 h-4 fill-current" />
+            <span>Tạo Audio Bài Học</span>
+          </button>
         </div>
       </div>
 
@@ -97,6 +121,13 @@ export default function StudioPage() {
           </div>
         </div>
       </div>
+
+      {/* Render Progress WebSocket Modal */}
+      <RenderProgressModal
+        isOpen={isRenderModalOpen}
+        taskId={currentTaskId}
+        onClose={() => setIsRenderModalOpen(false)}
+      />
     </div>
   );
 }
