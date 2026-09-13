@@ -12,25 +12,30 @@ from src.schemas.tts import (
     BatchTTSResponse,
 )
 from src.services.edge_engine import edge_engine
+from src.services.kokoro_engine import export_kokoro_engine as kokoro_engine
 
 router = APIRouter(tags=["Synthesis"])
 
 
-@router.post("/synthesize", summary="Synthesize single text to MP3 audio stream")
+@router.post("/synthesize", summary="Synthesize single text to audio stream")
 async def synthesize_preview(payload: SynthesizePreviewRequest):
     """
-    Synthesize a single text sentence and stream MP3 bytes directly back.
-    Useful for testing voices and frontend audio previewing.
+    Synthesize a single text sentence and stream audio bytes directly back.
+    Supports both Edge-TTS (MP3) and Kokoro-82M Local AI (WAV/MP3).
     """
     try:
-        audio_bytes = await edge_engine.synthesize_to_bytes(
+        is_kokoro = payload.engine == "kokoro" or payload.voice_id.startswith("kokoro-")
+        engine = kokoro_engine if is_kokoro else edge_engine
+        media_type = "audio/wav" if is_kokoro else "audio/mpeg"
+
+        audio_bytes = await engine.synthesize_to_bytes(
             text=payload.text,
             voice_id=payload.voice_id,
             rate=payload.rate,
             pitch=payload.pitch,
             volume=payload.volume,
         )
-        return Response(content=audio_bytes, media_type="audio/mpeg")
+        return Response(content=audio_bytes, media_type=media_type)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"TTS synthesis failed: {str(exc)}")
 
@@ -39,7 +44,7 @@ async def synthesize_preview(payload: SynthesizePreviewRequest):
 async def synthesize_batch_endpoint(payload: BatchTTSRequest):
     """
     Synthesize an array of sentence chunks in parallel for a given lesson.
-    Outputs individual MP3 clip files in storage.
+    Outputs individual audio clip files in storage.
     """
     output_dir = settings.get_audio_dir() / payload.lesson_id
     concurrency = payload.concurrency or settings.concurrency_limit
@@ -54,6 +59,15 @@ async def synthesize_batch_endpoint(payload: BatchTTSRequest):
             elif c.lang in ("en", "ja") and payload.default_voice_target:
                 c.voice_id = payload.default_voice_target
         processed_chunks.append(c)
+
+    # Route to engine based on payload request
+    is_kokoro = payload.engine == "kokoro" or any(c.voice_id and c.voice_id.startswith("kokoro-") for c in processed_chunks)
+    if is_kokoro:
+        return await kokoro_engine.synthesize_batch(
+            chunks=processed_chunks,
+            output_dir=output_dir,
+            concurrency=concurrency,
+        )
 
     results = await edge_engine.synthesize_batch(
         chunks=processed_chunks,
