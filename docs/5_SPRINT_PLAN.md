@@ -301,7 +301,7 @@ gantt
 | :--- | :--- | :--- | :--- | :---: | :---: |
 | **SP12-01** | Khởi tạo Khung Expo Mobile App | - Khởi tạo Expo App trong `apps/mobile/`, tích hợp `@meowshadow/types`<br>- Thiết lập Bottom Tab Navigation: Thư viện bài học, Trình phát, Cài đặt | `apps/mobile/src/App.tsx`<br>`apps/mobile/src/navigation/`<br>`apps/mobile/package.json` | 0.6 ngày | ✅ Hoàn thành |
 | **SP12-02** | Dịch Vụ Background Audio & Lock-Screen | - Tích hợp Audio Player Native (`react-native-track-player` / `expo-av`)<br>- Tiếp tục phát âm thanh liên tục khi khóa màn hình điện thoại<br>- Hiển thị thanh Player trên màn hình khóa điện thoại kèm nút "Repeat Chunk" | `apps/mobile/src/services/audioService.ts`<br>`apps/mobile/src/components/LockScreenPlayer.tsx` | 1.0 ngày | ✅ Hoàn thành |
-| **SP12-03** | Tải Bài Học Về Máy (Offline Sync SQLite) | - Tải file `.mp3` và `.srt` vào bộ nhớ cục bộ của điện thoại<br>- Lưu cấu trúc bài học vào Expo SQLite / OP-SQLite<br>- Tự động đồng bộ lịch sử luyện nghe lên máy chủ PostgreSQL khi có mạng | `apps/mobile/src/services/offlineManager.ts`<br>`apps/mobile/src/db/sqlite.ts` | 0.8 ngày | ⚪ Chờ thực hiện |
+| **SP12-03** | Tải Bài Học Về Máy (Offline Sync SQLite) | - Tải file `.mp3` và `.srt` vào bộ nhớ cục bộ của điện thoại<br>- Lưu cấu trúc bài học vào Expo SQLite / OP-SQLite<br>- Tự động đồng bộ lịch sử luyện nghe lên máy chủ PostgreSQL khi có mạng | `apps/mobile/src/services/offlineManager.ts`<br>`apps/mobile/src/db/sqlite.ts` | 0.8 ngày | ✅ Hoàn thành |
 | **SP12-04** | Hỗ Trợ Local AI TTS (Kokoro / Fish-Speech) | - Cấu hình tùy chọn chuyển sang engine AI TTS chạy Offline trên máy cục bộ | `services/tts-engine/src/services/kokoro_engine.py` | 0.5 ngày | ⚪ Chờ thực hiện |
 | **SP12-05** | Kịch Bản 1-Click Launch & Kiểm Thử E2E | - Hoàn thiện script `scripts/run.sh` và `Makefile`<br>- Chỉ cần 1 lệnh: tự động kiểm tra Docker, chạy migrations, seed dữ liệu và mở trình duyệt<br>- Kiểm thử toàn diện trên Web Chrome, iPhone (iOS Simulator) và Android Emulator | `scripts/run.sh`<br>`Makefile`<br>`README.md` | 0.8 ngày | ⚪ Chờ thực hiện |
 
@@ -329,7 +329,7 @@ Bảng tổng hợp giúp người phát triển và AI theo dõi trạng thái 
 | **SP 09** | High-Performance Audio Streaming (HTTP 206) | 5 | 2.0 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 12/09/2026 |
 | **SP 10** | Next.js 15 Web Studio & Script Editor | 5 | 2.5 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 13/09/2026 |
 | **SP 11** | Interactive Karaoke Player & Waveform Audio | 5 | 2.6 ngày | 🟢 **ĐÃ HOÀN THÀNH** | 13/09/2026 |
-| **SP 12** | React Native Mobile App & 1-Click Launch | 5 | 3.7 ngày | 🟡 **ĐANG KÍCH HOẠT (2/5)** | -- |
+| **SP 12** | React Native Mobile App & 1-Click Launch | 5 | 3.7 ngày | 🟡 **ĐANG KÍCH HOẠT (3/5)** | -- |
 | **TỔNG** | **Toàn bộ 12 Sprints Dự Án** | **59 Tasks** | **~30.1 ngày** | **11/12 Hoàn thành (91.7%)** | -- |
 
 ---

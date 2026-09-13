@@ -1,7 +1,7 @@
-// Downloads Screen - Offline lessons storage and synchronization hub
+// Downloads Screen - Connected to SQLite Local Storage and Cloud Sync
 // English comments only per project rules
 
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -10,86 +10,65 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
+import { useOfflineStore } from "../stores/offlineStore";
+import { LocalLessonRecord } from "../db/sqlite";
 import { Colors, Shadows } from "../theme/colors";
 
-interface OfflineLesson {
-  id: string;
-  title: string;
-  fileSizeMb: number;
-  durationSec: number;
-  downloadedAt: string;
-  repeatCount: number;
-  synced: boolean;
-}
-
-const INITIAL_OFFLINE_LESSONS: OfflineLesson[] = [
-  {
-    id: "lesson-en-001",
-    title: "Morning Standup & Sprint Planning",
-    fileSizeMb: 14.2,
-    durationSec: 580,
-    downloadedAt: "13/09/2026",
-    repeatCount: 12,
-    synced: true,
-  },
-  {
-    id: "lesson-ja-002",
-    title: "Tokyo Business Etiquette & Keigo",
-    fileSizeMb: 15.8,
-    durationSec: 615,
-    downloadedAt: "13/09/2026",
-    repeatCount: 5,
-    synced: false,
-  },
-];
-
 export const DownloadsScreen: React.FC = () => {
-  const [lessons, setLessons] = useState<OfflineLesson[]>(INITIAL_OFFLINE_LESSONS);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const {
+    lessons,
+    isSyncing,
+    totalStorageMb,
+    fetchOfflineLessons,
+    deleteOfflineLesson,
+    syncProgress,
+  } = useOfflineStore();
 
-  const totalStorageMb = lessons.reduce((acc, curr) => acc + curr.fileSizeMb, 0).toFixed(1);
+  useEffect(() => {
+    fetchOfflineLessons();
+  }, [fetchOfflineLessons]);
 
-  const handleSyncProgress = () => {
-    setIsSyncing(true);
-    setTimeout(() => {
-      setLessons((prev) =>
-        prev.map((item) => ({ ...item, synced: true }))
-      );
-      setIsSyncing(false);
-      alert("Đồng bộ thành công! Tiến trình luyện nghe đã được ghi nhận lên Gateway PostgreSQL.");
-    }, 1500);
+  const handleSync = async () => {
+    const count = await syncProgress();
+    alert(`Đồng bộ thành công! ${count} phiên luyện nghe đã được ghi nhận lên Gateway PostgreSQL.`);
   };
 
-  const handleDeleteLesson = (id: string) => {
-    setLessons((prev) => prev.filter((item) => item.id !== id));
-  };
+  const renderItem = ({ item }: { item: LocalLessonRecord }) => {
+    const estimatedMb = ((item.duration_sec / 60) * 1.4).toFixed(1);
+    const dateFormatted = new Date(item.downloaded_at).toLocaleDateString("vi-VN");
 
-  const renderItem = ({ item }: { item: OfflineLesson }) => (
-    <View style={[styles.lessonCard, Shadows.card]}>
-      <View style={styles.cardMain}>
-        <Text style={styles.lessonTitle}>{item.title}</Text>
-        <View style={styles.metaRow}>
-          <Text style={styles.metaText}>💾 {item.fileSizeMb} MB</Text>
-          <Text style={styles.metaText}>🔄 {item.repeatCount} lần lặp</Text>
-          <Text style={styles.metaText}>📅 {item.downloadedAt}</Text>
-        </View>
-        <View style={styles.statusRow}>
-          <View style={[styles.syncBadge, item.synced ? styles.syncedBadge : styles.unsyncedBadge]}>
-            <Text style={[styles.syncBadgeText, item.synced ? styles.syncedText : styles.unsyncedText]}>
-              {item.synced ? "✓ Đã đồng bộ Cloud" : "● Chưa đồng bộ"}
-            </Text>
+    return (
+      <View style={[styles.lessonCard, Shadows.card]}>
+        <View style={styles.cardMain}>
+          <View style={styles.titleRow}>
+            <Text style={styles.lessonTitle}>{item.title}</Text>
+            <View style={styles.langPill}>
+              <Text style={styles.langPillText}>{item.target_language.toUpperCase()}</Text>
+            </View>
+          </View>
+
+          <View style={styles.metaRow}>
+            <Text style={styles.metaText}>💾 {estimatedMb} MB</Text>
+            <Text style={styles.metaText}>⏱ {Math.round(item.duration_sec)}s</Text>
+            <Text style={styles.metaText}>📅 {dateFormatted}</Text>
+          </View>
+
+          <View style={styles.statusRow}>
+            <View style={styles.sqliteBadge}>
+              <Text style={styles.sqliteBadgeText}>✓ Lưu trong SQLite Cục Bộ</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => handleDeleteLesson(item.id)}
-      >
-        <Text style={styles.deleteButtonText}>✕</Text>
-      </TouchableOpacity>
-    </View>
-  );
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => deleteOfflineLesson(item.id)}
+        >
+          <Text style={styles.deleteButtonText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -101,14 +80,14 @@ export const DownloadsScreen: React.FC = () => {
       {/* Storage & Sync Overview Card */}
       <View style={[styles.overviewCard, Shadows.card]}>
         <View style={styles.storageInfo}>
-          <Text style={styles.storageLabel}>Dung lượng đã dùng:</Text>
+          <Text style={styles.storageLabel}>Dung lượng SQLite đã dùng:</Text>
           <Text style={styles.storageValue}>{totalStorageMb} MB / 500 MB</Text>
         </View>
 
         <TouchableOpacity
           style={[styles.syncButton, isSyncing && styles.syncingButton]}
           activeOpacity={0.8}
-          onPress={handleSyncProgress}
+          onPress={handleSync}
           disabled={isSyncing}
         >
           <Text style={styles.syncButtonText}>
@@ -126,7 +105,7 @@ export const DownloadsScreen: React.FC = () => {
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Chưa có bài học tải về</Text>
             <Text style={styles.emptySubtitle}>
-              Hãy vào Thư viện và bấm "Tải Về" để nghe khi không có Internet.
+              Hãy vào Thư viện và bấm "Tải Về" để lưu file .mp3 và .srt vào bộ nhớ điện thoại.
             </Text>
           </View>
         }
@@ -213,10 +192,29 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 6,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: 10,
+  },
   lessonTitle: {
     fontSize: 15,
     fontWeight: "600",
     color: Colors.textPrimary,
+    flex: 1,
+  },
+  langPill: {
+    backgroundColor: Colors.primaryGlow,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  langPillText: {
+    color: Colors.primary,
+    fontSize: 10,
+    fontWeight: "700",
   },
   metaRow: {
     flexDirection: "row",
@@ -229,27 +227,17 @@ const styles = StyleSheet.create({
   statusRow: {
     marginTop: 2,
   },
-  syncBadge: {
+  sqliteBadge: {
     alignSelf: "flex-start",
+    backgroundColor: Colors.accentGreen + "20",
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
-  syncedBadge: {
-    backgroundColor: Colors.accentGreen + "20",
-  },
-  unsyncedBadge: {
-    backgroundColor: Colors.accentYellow + "20",
-  },
-  syncBadgeText: {
+  sqliteBadgeText: {
     fontSize: 11,
     fontWeight: "600",
-  },
-  syncedText: {
     color: Colors.accentGreen,
-  },
-  unsyncedText: {
-    color: Colors.accentYellow,
   },
   deleteButton: {
     width: 32,
