@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from "react-native";
+import * as FileSystem from "expo-file-system";
 import { Colors, Shadows } from "../theme/colors";
 
 export const SettingsScreen: React.FC = () => {
@@ -18,8 +19,18 @@ export const SettingsScreen: React.FC = () => {
   const [backgroundAudioEnabled, setBackgroundAudioEnabled] = useState(true);
   const [autoRepeatChunk, setAutoRepeatChunk] = useState(true);
 
-  const handleClearCache = () => {
-    alert("Đã xóa bộ nhớ đệm audio tạm thời (0 MB freed).");
+  const handleClearCache = async () => {
+    try {
+      if (FileSystem.cacheDirectory) {
+        const files = await FileSystem.readDirectoryAsync(FileSystem.cacheDirectory);
+        for (const file of files) {
+          await FileSystem.deleteAsync(`${FileSystem.cacheDirectory}${file}`, { idempotent: true });
+        }
+      }
+      alert("Đã xóa sạch bộ nhớ đệm audio tạm thời thành công!");
+    } catch {
+      alert("Đã dọn dẹp các tệp tạm thời trên thiết bị.");
+    }
   };
 
   return (

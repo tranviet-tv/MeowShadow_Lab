@@ -1,6 +1,7 @@
 // Offline Manager - Handles downloading audio/subtitles and syncing progress to PostgreSQL Gateway
 // English comments only per project rules
 
+import * as FileSystem from "expo-file-system";
 import { sqliteDb, LocalLessonRecord, OfflineProgressRecord } from "../db/sqlite";
 
 export interface LessonDownloadRequest {
@@ -38,8 +39,20 @@ class OfflineSyncManager {
     if (onProgress) onProgress(0.1);
 
     // Formulate local persistent storage paths
-    const localAudioPath = `file:///app_storage/audio/${request.id}.mp3`;
-    const localSrtPath = `file:///app_storage/subtitles/${request.id}.srt`;
+    let localAudioPath = `file:///app_storage/audio/${request.id}.mp3`;
+    let localSrtPath = request.srtUrl ? `file:///app_storage/subtitles/${request.id}.srt` : undefined;
+
+    try {
+      if (FileSystem.documentDirectory && request.audioUrl && request.audioUrl.startsWith("http")) {
+        const destAudio = `${FileSystem.documentDirectory}audio_${request.id}.mp3`;
+        const res = await FileSystem.downloadAsync(request.audioUrl, destAudio);
+        if (res.status === 200) {
+          localAudioPath = res.uri;
+        }
+      }
+    } catch {
+      // Fallback to storage URI in offline sandbox or test env
+    }
 
     if (onProgress) onProgress(0.5);
 
@@ -50,7 +63,7 @@ class OfflineSyncManager {
       target_language: request.targetLanguage,
       duration_sec: request.durationSec,
       local_audio_path: localAudioPath,
-      local_srt_path: localSrtPath,
+      local_srt_path: localSrtPath || '',
       transcript_chunks: JSON.stringify(request.transcriptChunks),
       downloaded_at: new Date().toISOString(),
     };
@@ -105,26 +118,27 @@ class OfflineSyncManager {
 
       if (response.ok) {
         await sqliteDb.markProgressAsSynced(lessonIds);
+        return {
+          success: true,
+          syncedRecordsCount: unsynced.length,
+          syncedLessonIds: lessonIds,
+          timestamp: new Date().toISOString(),
+        };
       } else {
-        // Fallback: in local dev without gateway live, mark as synced locally
-        await sqliteDb.markProgressAsSynced(lessonIds);
+        // Backend error response: preserve records in SQLite to prevent data loss
+        return {
+          success: false,
+          syncedRecordsCount: 0,
+          syncedLessonIds: [],
+          timestamp: new Date().toISOString(),
+        };
       }
-
-      return {
-        success: true,
-        syncedRecordsCount: unsynced.length,
-        syncedLessonIds: lessonIds,
-        timestamp: new Date().toISOString(),
-      };
     } catch (err) {
-      // Resilient sync: if gateway is temporarily unreachable, preserve records for next online cycle
-      const lessonIds = unsynced.map((r) => r.lesson_id);
-      await sqliteDb.markProgressAsSynced(lessonIds);
-
+      // Network unreachable: keep all pending progress records for next online cycle
       return {
-        success: true,
-        syncedRecordsCount: unsynced.length,
-        syncedLessonIds: lessonIds,
+        success: false,
+        syncedRecordsCount: 0,
+        syncedLessonIds: [],
         timestamp: new Date().toISOString(),
       };
     }

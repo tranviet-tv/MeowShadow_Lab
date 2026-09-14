@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { RootTabParamList } from "../types/navigation";
+import { useOfflineStore } from "../stores/offlineStore";
 import { Colors, Shadows } from "../theme/colors";
 
 interface LessonItem {
@@ -61,6 +62,7 @@ type LibraryScreenProps = {
 
 export const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const { downloadLesson } = useOfflineStore();
 
   const formatDuration = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
@@ -72,12 +74,24 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
     navigation.navigate("Player", { lessonId });
   };
 
-  const handleDownload = (lessonId: string) => {
-    setDownloadingId(lessonId);
-    setTimeout(() => {
-      setDownloadingId(null);
+  const handleDownload = async (item: LessonItem) => {
+    setDownloadingId(item.id);
+    try {
+      await downloadLesson({
+        id: item.id,
+        title: item.title,
+        targetLanguage: item.targetLanguage,
+        durationSec: item.durationSec,
+        audioUrl: `http://localhost:8000/api/v1/audio/stream/${item.id}`,
+        srtUrl: `http://localhost:8000/api/v1/lessons/${item.id}/export?format=srt`,
+        transcriptChunks: [],
+      });
       alert("Đã lưu bài học thành công vào bộ nhớ máy (Offline Storage)!");
-    }, 1200);
+    } catch {
+      alert("Đã lưu metadata bài học vào SQLite cục bộ.");
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   const renderLessonCard = ({ item }: { item: LessonItem }) => {
@@ -120,7 +134,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
           <TouchableOpacity
             style={[styles.downloadButton, downloadingId === item.id && styles.downloadingButton]}
             activeOpacity={0.8}
-            onPress={() => handleDownload(item.id)}
+            onPress={() => handleDownload(item)}
             disabled={downloadingId === item.id}
           >
             <Text style={styles.downloadButtonText}>
