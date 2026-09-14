@@ -2,6 +2,7 @@
 
 import logging
 from fastapi import APIRouter, HTTPException, status
+from starlette.concurrency import run_in_threadpool
 
 from src.schemas.mastering_result import MasteringResult
 from src.schemas.process_request import ProcessRequest
@@ -20,9 +21,9 @@ router = APIRouter()
     description="Assemble clips with pacing silences, apply EBU R128 mastering, generate SRT/VTT subtitles and waveform peaks.",
 )
 async def process_audio(request: ProcessRequest) -> MasteringResult:
-    """Handle synchronous audio mastering request."""
+    """Handle synchronous audio mastering request offloaded to worker thread."""
     try:
-        result = pipeline_service.process_lesson(request)
+        result = await run_in_threadpool(pipeline_service.process_lesson, request)
         return result
     except ValueError as e:
         logger.warning("Validation error during audio processing: %s", str(e))

@@ -53,8 +53,8 @@ class LLMPipeline:
             )
             return translated.strip()
         except Exception as err:
-            logger.warning("Ollama unavailable for translation (%s). Using fallback placeholder.", str(err))
-            return f"[Translated ({target_lang})]: {cleaned}"
+            logger.warning("Ollama unavailable for translation (%s).", str(err))
+            return ""
 
     async def auto_chunk_and_translate(
         self,
@@ -63,7 +63,7 @@ class LLMPipeline:
         sentences_per_chunk: int = 3,
         model: Optional[str] = None,
     ) -> AutoChunkTranslateResponse:
-        """Segment raw text into 3-4 sentence units and synthesize bilingual shadowing script."""
+        """Segment raw text into units and synthesize bilingual shadowing script."""
         cleaned = normalize_whitespace(raw_text)
         if not cleaned:
             return AutoChunkTranslateResponse(
@@ -75,40 +75,65 @@ class LLMPipeline:
                 estimated_duration_sec=0.0,
             )
 
-        lang_names = {
-            "vi": "Vietnamese",
-            "en": "English",
-            "ja": "Japanese",
-        }
-        sys_prompt = SYSTEM_CHUNKING_PROMPT.format(
-            target_lang_full=lang_names.get(target_lang, "English"),
-            target_lang=target_lang,
-        )
-        user_prompt = build_chunking_prompt(cleaned, target_lang=target_lang, sentences_per_chunk=sentences_per_chunk)
+        # Split sentences using rule-based tokenizer
+        sentences = split_sentences(cleaned, lang="vi")
+        group_size = max(1, sentences_per_chunk)
+        word_count_est = len(cleaned.split())
 
+        # For short text (<= 3 sentences and <= 80 words), attempt single-pass JSON generation
         chunks_data: List[dict] = []
-        try:
-            raw_response = await self.client.generate(
-                prompt=user_prompt,
-                system_prompt=sys_prompt,
-                model=model,
-                format_json=True,
+        use_single_pass = len(sentences) <= 3 and word_count_est <= 80
+
+        if use_single_pass:
+            lang_names = {
+                "vi": "Vietnamese",
+                "en": "English",
+                "ja": "Japanese",
+            }
+            sys_prompt = SYSTEM_CHUNKING_PROMPT.format(
+                target_lang_full=lang_names.get(target_lang, "English"),
+                target_lang=target_lang,
             )
-            parsed_json = self.client.extract_json(raw_response)
-            chunks_data = parsed_json.get("chunks", [])
-        except Exception as exc:
-            logger.warning("Ollama generation/parsing failed (%s). Executing heuristic fallback.", str(exc))
-            # Heuristic fallback: segment text into 3-sentence blocks
-            sentences = split_sentences(cleaned, lang="vi")
-            group_size = max(1, sentences_per_chunk)
-            for idx, i in enumerate(range(0, len(sentences), group_size)):
-                block_vi = " ".join(sentences[i : i + group_size])
-                # Generate translation via translate helper or placeholder
-                block_target = await self.translate(block_vi, source_lang="vi", target_lang=target_lang, model=model)
+            user_prompt = build_chunking_prompt(cleaned, target_lang=target_lang, sentences_per_chunk=sentences_per_chunk)
+
+            try:
+                raw_response = await self.client.generate(
+                    prompt=user_prompt,
+                    system_prompt=sys_prompt,
+                    model=model,
+                    format_json=True,
+                )
+                parsed_json = self.client.extract_json(raw_response)
+                chunks_data = parsed_json.get("chunks", [])
+            except Exception as exc:
+                logger.warning("Single-pass Ollama generation failed (%s). Using block translation fallback.", str(exc))
+                chunks_data = []
+
+        # If single-pass was skipped or returned empty, use deterministic sentence chunking and block translation
+        if not chunks_data:
+            blocks_vi: List[str] = []
+            for i in range(0, len(sentences), group_size):
+                block = " ".join(sentences[i : i + group_size]).strip()
+                if block:
+                    blocks_vi.append(block)
+
+            for idx, block_vi in enumerate(blocks_vi):
+                try:
+                    translated = await self.translate(
+                        text=block_vi,
+                        source_lang="vi",
+                        target_lang=target_lang,
+                        model=model,
+                    )
+                    target_text = translated.strip()
+                except Exception as err:
+                    logger.warning("Failed to translate block %d: %s", idx, str(err))
+                    target_text = ""
+
                 chunks_data.append({
                     "order": idx,
                     "vi": block_vi,
-                    "target": block_target,
+                    "target": target_text,
                 })
 
         # Assemble ScriptChunk and ChunkPair objects
@@ -124,7 +149,7 @@ class LLMPipeline:
             vi_text = item.get("vi", "").strip()
             target_text = item.get("target", "").strip()
 
-            if not vi_text or not target_text:
+            if not vi_text:
                 continue
 
             vi_chunk = ScriptChunk(
@@ -159,7 +184,7 @@ class LLMPipeline:
             formatted_script_lines.append(f"[{target_tag}]\n{target_text}\n")
 
             # Word count estimation
-            total_word_count += len(vi_text.split()) + len(target_text.split())
+            total_word_count += len(vi_text.split()) + (len(target_text.split()) if target_text else 0)
 
         # Estimated duration in seconds (words / (140 WPM / 60) + pauses)
         # Average reading speed ~ 2.3 words/sec plus 5s pause per pair

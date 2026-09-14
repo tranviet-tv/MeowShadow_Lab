@@ -15,6 +15,10 @@ logging.basicConfig(
 logger = logging.getLogger(settings.app_name)
 
 
+import threading
+from src.workers.tts_worker import tts_worker
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager handling startup and shutdown procedures."""
@@ -22,8 +26,16 @@ async def lifespan(app: FastAPI):
     settings.get_storage_path()
     settings.get_cache_dir()
     settings.get_audio_dir()
+
+    # Start background Redis TTS synthesis worker daemon
+    worker_thread = threading.Thread(target=tts_worker.run, daemon=True, name="TTSWorkerThread")
+    worker_thread.start()
+    logger.info("TTSWorker thread started successfully in background.")
+
     yield
+
     logger.info("Shutting down %s...", settings.app_name)
+    tts_worker.stop()
 
 
 app = FastAPI(

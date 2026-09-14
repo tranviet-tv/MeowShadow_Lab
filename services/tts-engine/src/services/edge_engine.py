@@ -59,9 +59,19 @@ class EdgeEngine(BaseTTSEngine):
         """
         if voice_id:
             found = find_voice_by_id(voice_id)
-            if found:
+            if found and found.engine == "edge-tts":
                 return found.voice_id
-            return voice_id
+            if "neural" in voice_id.lower():
+                return voice_id
+
+            # Fallback based on language or voice name hints
+            hint = f"{voice_id} {lang or ''}".lower()
+            if "vi" in hint:
+                return settings.default_voice_vi
+            elif "ja" in hint or "jp" in hint:
+                return settings.default_voice_ja
+            elif "en" in hint:
+                return settings.default_voice_en
 
         if lang:
             clean_lang = lang.lower().strip()

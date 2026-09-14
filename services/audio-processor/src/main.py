@@ -15,13 +15,26 @@ logging.basicConfig(
 logger = logging.getLogger(settings.app_name)
 
 
+import threading
+from src.workers.consumer import AudioMasteringConsumer
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle manager for startup and shutdown routines."""
     logger.info("Starting up %s (version %s)...", settings.app_name, settings.app_version)
     settings.get_storage_path()
+
+    # Start background Redis audio mastering worker daemon
+    consumer = AudioMasteringConsumer()
+    worker_thread = threading.Thread(target=consumer.run_worker, daemon=True, name="AudioMasteringWorkerThread")
+    worker_thread.start()
+    logger.info("AudioMasteringConsumer thread started successfully in background.")
+
     yield
+
     logger.info("Shutting down %s...", settings.app_name)
+    consumer.stop()
 
 
 # Initialize FastAPI instance

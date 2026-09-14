@@ -342,9 +342,22 @@ class PacingBuilder:
             return path
         if path.exists():
             return path
-        storage_candidate = Path(settings.storage_dir) / raw_path
+
+        # Strip container prefix /app/storage/ if running outside Docker
+        clean_rel = raw_path
+        for prefix in ("/app/storage/", "app/storage/", "/storage/"):
+            if clean_rel.startswith(prefix):
+                clean_rel = clean_rel[len(prefix):]
+                break
+
+        storage_candidate = Path(settings.storage_dir) / clean_rel
         if storage_candidate.exists():
             return storage_candidate
+
+        cwd_candidate = Path(clean_rel)
+        if cwd_candidate.exists():
+            return cwd_candidate
+
         return path
 
     def _standardize_segment(self, segment: AudioSegment) -> AudioSegment:

@@ -128,3 +128,34 @@ def test_api_auto_chunk_endpoint():
     assert len(data["pairs"]) >= 1
     assert data["word_count"] > 0
     assert data["estimated_duration_sec"] > 0
+
+
+@pytest.mark.asyncio
+async def test_llm_pipeline_long_text_smart_chunking():
+    """Verify long text (> 80 words) uses deterministic block segmentation with translation."""
+    mock_client = AsyncMock(spec=OllamaClient)
+    # Return mock translation when called
+    mock_client.generate.return_value = "This is a translated English sentence."
+
+    pipeline = LLMPipeline(client=mock_client)
+    long_text = (
+        "Khoảng 13,5 tỷ năm trước, vật chất và năng lượng ra đời sau vụ nổ Big Bang. "
+        "Tuy nhiên con người mới lần đầu tiên xuất hiện ở Đông Phi cách đây 2,5 triệu năm. "
+        "Tổ tiên của chúng ta chỉ là những sinh vật yếu ớt kiếm thức ăn thừa từ thú săn mồi lớn. "
+        "Khi ấy con người không có gì nổi bật hơn loài khỉ đột hay sứa biển. "
+        "Gia đình Homo đa dạng từng có nhiều loài người khác nhau cùng chung sống trên Trái Đất. "
+        "Họ tiến hóa để thích nghi với các môi trường sống khác nhau trên khắp hành tinh."
+    )
+    res = await pipeline.auto_chunk_and_translate(
+        raw_text=long_text,
+        target_lang="en",
+        sentences_per_chunk=2,
+    )
+
+    assert res.success is True
+    assert len(res.pairs) == 3
+    assert len(res.chunks) == 6
+    assert res.chunks[0].lang == "vi"
+    assert res.chunks[1].lang == "en"
+    assert res.chunks[1].text == "This is a translated English sentence."
+

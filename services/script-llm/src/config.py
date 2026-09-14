@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     ollama_host: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     llm_model: str = os.getenv("LLM_MODEL", "qwen3:8b")
     llm_temperature: float = 0.3
-    llm_timeout_seconds: float = 60.0
+    llm_timeout_seconds: float = float(os.getenv("LLM_TIMEOUT_SECONDS", "120.0"))
 
     # Redis broker settings
     redis_addr: str = os.getenv("REDIS_ADDR", "localhost:6379")
