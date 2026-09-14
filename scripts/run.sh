@@ -54,6 +54,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${ROOT_DIR}"
 
+# Default to auto-rebuilding with Docker layer cache so code updates are always active
+BUILD_FLAG="${BUILD_FLAG:---build}"
+
 # ------------------------------------------------------------------------------
 # 1. PRE-FLIGHT VALIDATION
 # ------------------------------------------------------------------------------
@@ -141,7 +144,14 @@ start_services() {
   log_info "Step 4/5: Launching AI microservices and Golang Gateway Core..."
 
   # Start Gateway, TTS Engine, Audio Processor, Script LLM
-  docker compose --profile services up -d gateway-core tts-engine-service audio-processor-service script-llm-service
+  docker compose --profile services up -d ${BUILD_FLAG:-} gateway-core tts-engine-service audio-processor-service script-llm-service
+
+  # Sync initial seed audio and subtitle assets into shared storage volume
+  if [ -d "storage" ]; then
+    docker cp storage/. meowshadow_gateway:/app/storage/ 2>/dev/null || true
+    # Grant read/write permissions to shared volume for all non-root microservice workers
+    docker compose exec -u 0 gateway-core chmod -R a+rwX /app/storage 2>/dev/null || true
+  fi
 
   log_info "Probing microservice health endpoints..."
   sleep 3
@@ -179,7 +189,7 @@ start_web_studio() {
   # Check if Next.js dev server can run locally or via docker
   if [ -d "apps/web" ]; then
     log_info "Starting Web Studio container or background service..."
-    docker compose --profile full up -d frontend-web || {
+    docker compose --profile full up -d ${BUILD_FLAG:-} frontend-web || {
       log_warn "Starting local Web Studio dev server fallback..."
       (cd apps/web && pnpm dev &)
     }
@@ -277,6 +287,26 @@ case "$1" in
     start_web_studio
     log_info "Starting Expo Mobile Dev Server (iOS / Android)..."
     pnpm --filter @meowshadow/mobile start
+    ;;
+  --build)
+    BUILD_FLAG="--build"
+    print_banner
+    check_preflight
+    start_infra
+    run_migrations_and_seeds
+    start_services
+    start_web_studio
+
+    echo -e "\n${GREEN}${BOLD}======================================================================${RESET}"
+    echo -e "${GREEN}${BOLD}  🎉 MEOWSHADOW LAB v3.2.0 IS FULLY REBUILT, RUNNING AND READY!${RESET}"
+    echo -e "${GREEN}${BOLD}======================================================================${RESET}"
+    echo -e "  • Web Studio:        ${CYAN}http://localhost:3000${RESET}"
+    echo -e "  • API Gateway:       ${CYAN}http://localhost:8000${RESET}"
+    echo -e "  • Database Studio:   ${CYAN}http://localhost:8080${RESET}"
+    echo -e "  • Mobile App:        ${MAGENTA}pnpm --filter @meowshadow/mobile start${RESET}"
+    echo -e "  • Realtime Logs:     ${YELLOW}make logs${RESET}"
+    echo -e "  • Stop System:       ${RED}./scripts/run.sh --down${RESET}"
+    echo -e "${GREEN}${BOLD}======================================================================${RESET}\n"
     ;;
   *)
     print_banner

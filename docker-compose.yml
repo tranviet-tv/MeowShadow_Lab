@@ -29,7 +29,9 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./services/gateway-core/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
-      - meowshadow-network
+      meowshadow-network:
+        aliases:
+          - postgres-db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-meowuser} -d ${POSTGRES_DB:-meowshadow_db}"]
       interval: 5s
@@ -89,7 +91,9 @@ services:
     volumes:
       - redis-data:/data
     networks:
-      - meowshadow-network
+      meowshadow-network:
+        aliases:
+          - redis-broker
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -148,6 +152,7 @@ services:
       - REDIS_ADDR=redis-broker:6379
       - OLLAMA_HOST=http://host.docker.internal:11434
       - LLM_MODEL=${LLM_MODEL:-qwen3:8b}
+      - LLM_TIMEOUT_SECONDS=120.0
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -230,7 +235,11 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
       - NEXT_PUBLIC_WS_URL=ws://localhost:8000
+      - INTERNAL_API_URL=http://gateway-core:8000
+      - SCRIPT_LLM_URL=http://script-llm-service:8001/api/v1/auto-chunk
+      - SCRIPT_LLM_TIMEOUT_MS=120000
     depends_on:
       - gateway-core
+      - script-llm-service
     networks:
       - meowshadow-network

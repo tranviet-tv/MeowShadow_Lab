@@ -42,6 +42,10 @@ help:
 run:
 	./scripts/run.sh
 
+# 1-Click launch with rebuild of all services
+run-build:
+	./scripts/run.sh --build
+
 # Dry-run pre-flight check
 run-dry:
 	./scripts/run.sh --dry-run
