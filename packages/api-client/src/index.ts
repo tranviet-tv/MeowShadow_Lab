@@ -146,6 +146,44 @@ export function createApiClient(config: ApiClientConfig) {
     }
   }
 
+  function normalizeAuthResponse(raw: any): ApiResponse<AuthSession> {
+    if (!raw || !raw.data) return raw;
+    const d = raw.data;
+    const accessToken = d.accessToken || d.tokens?.access_token || d.access_token || '';
+    const refreshToken = d.refreshToken || d.tokens?.refresh_token || d.refresh_token || '';
+    const expiresInSec = d.expiresInSec || d.tokens?.expires_in || d.expires_in || 3600;
+    return {
+      ...raw,
+      data: {
+        user: d.user,
+        accessToken,
+        refreshToken,
+        expiresInSec,
+        tokens: d.tokens,
+      } as unknown as AuthSession,
+    };
+  }
+
+  function normalizeLessonItem(raw: any): LessonItem {
+    if (!raw) return raw;
+    const id = raw.id || '';
+    return {
+      id,
+      userId: raw.userId || raw.user_id,
+      title: raw.title || '',
+      targetLanguage: raw.targetLanguage || raw.target_language || 'en',
+      sourceLanguage: raw.sourceLanguage || raw.source_language || 'vi',
+      totalWords: raw.totalWords ?? raw.total_words ?? 0,
+      durationSec: raw.durationSec ?? raw.duration_sec ?? 0,
+      pacingConfig: raw.pacingConfig || raw.pacing_config || {},
+      transcriptChunks: raw.transcriptChunks || raw.transcript_chunks || [],
+      audioUrl: raw.audioUrl || (id ? `${baseURL.replace(/\/$/, '')}/api/v1/audio/stream/${id}` : ''),
+      srtUrl: raw.srtUrl || (id ? `${baseURL.replace(/\/$/, '')}/api/v1/lessons/${id}/export?format=srt` : ''),
+      createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
+      updatedAt: raw.updatedAt || raw.updated_at,
+    };
+  }
+
   return {
     /** Configuration values */
     config: { baseURL, wsBaseURL },
@@ -156,33 +194,59 @@ export function createApiClient(config: ApiClientConfig) {
     auth: {
       /** Register a new user account */
       async register(payload: { email: string; password: string; fullName?: string }): Promise<ApiResponse<AuthSession>> {
-        return request<ApiResponse<AuthSession>>('/api/v1/auth/register', {
+        const body = {
+          email: payload.email,
+          password: payload.password,
+          full_name: payload.fullName,
+          fullName: payload.fullName,
+        };
+        const res = await request<any>('/api/v1/auth/register', {
           method: 'POST',
-          body: payload,
+          body,
         });
+        return normalizeAuthResponse(res);
       },
 
       /** Login with email and password */
       async login(payload: { email: string; password: string }): Promise<ApiResponse<AuthSession>> {
-        return request<ApiResponse<AuthSession>>('/api/v1/auth/login', {
+        const res = await request<any>('/api/v1/auth/login', {
           method: 'POST',
           body: payload,
         });
+        return normalizeAuthResponse(res);
+      },
+
+      /** Login as guest without credentials */
+      async guest(): Promise<ApiResponse<AuthSession>> {
+        const res = await request<any>('/api/v1/auth/guest', {
+          method: 'POST',
+        });
+        return normalizeAuthResponse(res);
       },
 
       /** Refresh expired access token */
       async refreshToken(refreshToken: string): Promise<ApiResponse<{ accessToken: string; expiresInSec: number }>> {
+        const body = {
+          refresh_token: refreshToken,
+          refreshToken,
+        };
         return request<ApiResponse<{ accessToken: string; expiresInSec: number }>>('/api/v1/auth/refresh', {
           method: 'POST',
-          body: { refreshToken },
+          body,
         });
       },
 
       /** Register mobile/web push device token */
       async registerDevice(payload: RegisterDevicePayload): Promise<ApiResponse<{ registered: boolean }>> {
+        const body = {
+          device_type: payload.deviceType,
+          deviceType: payload.deviceType,
+          push_token: payload.pushToken,
+          pushToken: payload.pushToken,
+        };
         return request<ApiResponse<{ registered: boolean }>>('/api/v1/auth/device', {
           method: 'POST',
-          body: payload,
+          body,
         });
       },
     },
@@ -197,17 +261,35 @@ export function createApiClient(config: ApiClientConfig) {
         limit?: number;
         targetLanguage?: SupportedLanguage;
       }): Promise<ApiResponse<LessonListResponse>> {
-        return request<ApiResponse<LessonListResponse>>('/api/v1/lessons', {
+        const res = await request<any>('/api/v1/lessons', {
           method: 'GET',
           params: params as Record<string, string | number | boolean | undefined>,
         });
+        if (res && res.data) {
+          const rawItems = Array.isArray(res.data) ? res.data : (res.data.items || []);
+          const normalized = rawItems.map(normalizeLessonItem);
+          res.data = {
+            items: normalized,
+            pagination: res.pagination || res.data.pagination || {
+              currentPage: params?.page || 1,
+              totalPages: 1,
+              totalItems: normalized.length,
+              limit: params?.limit || 10,
+            },
+          };
+        }
+        return res;
       },
 
       /** Get lesson details by ID */
       async get(id: string): Promise<ApiResponse<LessonItem>> {
-        return request<ApiResponse<LessonItem>>(`/api/v1/lessons/${id}`, {
+        const res = await request<any>(`/api/v1/lessons/${id}`, {
           method: 'GET',
         });
+        if (res && res.data) {
+          res.data = normalizeLessonItem(res.data);
+        }
+        return res;
       },
 
       /** Create a new lesson */
@@ -216,11 +298,42 @@ export function createApiClient(config: ApiClientConfig) {
         targetLanguage: SupportedLanguage;
         pacingConfig: PacingConfig;
         transcriptChunks: ScriptChunk[];
+        totalWords?: number;
+        durationSec?: number;
       }): Promise<ApiResponse<LessonItem>> {
-        return request<ApiResponse<LessonItem>>('/api/v1/lessons', {
+        const body = {
+          title: payload.title,
+          target_language: payload.targetLanguage,
+          targetLanguage: payload.targetLanguage,
+          source_language: 'vi',
+          sourceLanguage: 'vi',
+          total_words: payload.totalWords || 0,
+          totalWords: payload.totalWords || 0,
+          duration_sec: payload.durationSec || 0,
+          durationSec: payload.durationSec || 0,
+          pacing_config: {
+            vi_voice: payload.pacingConfig.viVoice,
+            target_voice: payload.pacingConfig.targetVoice,
+            vi_speed: payload.pacingConfig.viSpeed,
+            target_speed: payload.pacingConfig.targetSpeed,
+            silence_after_vi_sec: payload.pacingConfig.silenceAfterViSec,
+            silence_after_target_sec: payload.pacingConfig.silenceAfterTargetSec,
+            silence_between_sentences_sec: payload.pacingConfig.silenceBetweenSentencesSec,
+            insert_cue_sound: payload.pacingConfig.insertCueSound,
+            ...payload.pacingConfig,
+          },
+          pacingConfig: payload.pacingConfig,
+          transcript_chunks: payload.transcriptChunks,
+          transcriptChunks: payload.transcriptChunks,
+        };
+        const res = await request<any>('/api/v1/lessons', {
           method: 'POST',
-          body: payload,
+          body,
         });
+        if (res && res.data) {
+          res.data = normalizeLessonItem(res.data);
+        }
+        return res;
       },
 
       /** Delete a lesson by ID */
@@ -232,8 +345,9 @@ export function createApiClient(config: ApiClientConfig) {
 
       /** Get subtitle timestamps for a lesson */
       async getSubtitles(id: string): Promise<ApiResponse<SubtitlesResponse>> {
-        return request<ApiResponse<SubtitlesResponse>>(`/api/v1/lessons/${id}/subtitles`, {
+        return request<ApiResponse<SubtitlesResponse>>(`/api/v1/lessons/${id}/subtitles?format=json`, {
           method: 'GET',
+          headers: { Accept: 'application/json' },
         });
       },
 
@@ -250,10 +364,27 @@ export function createApiClient(config: ApiClientConfig) {
     // =========================================================================
     audio: {
       /** Trigger asynchronous audio generation task */
-      async generate(payload: GenerateAudioRequest): Promise<ApiResponse<GenerateAudioAcceptedResponse>> {
+      async generate(payload: GenerateAudioRequest & { transcriptChunks?: ScriptChunk[]; transcript_chunks?: ScriptChunk[] }): Promise<ApiResponse<GenerateAudioAcceptedResponse>> {
+        const body = {
+          lesson_id: payload.lessonId,
+          lessonId: payload.lessonId,
+          title: payload.title,
+          target_language: payload.targetLanguage,
+          targetLanguage: payload.targetLanguage,
+          source_language: 'vi',
+          sourceLanguage: 'vi',
+          source_text: payload.sourceText,
+          sourceText: payload.sourceText,
+          tts_engine: payload.ttsEngine,
+          ttsEngine: payload.ttsEngine,
+          pacing_config: payload.pacingConfig,
+          pacingConfig: payload.pacingConfig,
+          transcript_chunks: payload.transcriptChunks || payload.transcript_chunks,
+          transcriptChunks: payload.transcriptChunks || payload.transcript_chunks,
+        };
         return request<ApiResponse<GenerateAudioAcceptedResponse>>('/api/v1/audio/generate', {
           method: 'POST',
-          body: payload,
+          body,
         });
       },
 
@@ -274,16 +405,39 @@ export function createApiClient(config: ApiClientConfig) {
     progress: {
       /** Get playback and shadowing progress for a lesson */
       async get(lessonId: string): Promise<ApiResponse<LearningProgress>> {
-        return request<ApiResponse<LearningProgress>>(`/api/v1/progress/${lessonId}`, {
+        const res = await request<any>(`/api/v1/progress/${lessonId}`, {
           method: 'GET',
         });
+        if (res && res.data) {
+          const d = res.data;
+          res.data = {
+            lessonId: d.lessonId || d.lesson_id,
+            userId: d.userId || d.user_id,
+            playbackOffsetSec: d.playbackOffsetSec ?? d.playback_offset_sec ?? 0,
+            shadowingRepeatCount: d.shadowingRepeatCount ?? d.shadowing_repeat_count ?? 0,
+            isCompleted: d.isCompleted ?? d.is_completed ?? false,
+            version: d.version ?? 1,
+            lastListenedAt: d.lastListenedAt || d.last_listened_at,
+          };
+        }
+        return res;
       },
 
       /** Synchronize local progress back to PostgreSQL */
       async sync(payload: SyncProgressPayload): Promise<ApiResponse<LearningProgress>> {
+        const body = {
+          lesson_id: payload.lessonId,
+          lessonId: payload.lessonId,
+          playback_offset_sec: payload.playbackOffsetSec,
+          playbackOffsetSec: payload.playbackOffsetSec,
+          shadowing_repeat_count: payload.shadowingRepeatCount,
+          shadowingRepeatCount: payload.shadowingRepeatCount,
+          is_completed: payload.isCompleted,
+          isCompleted: payload.isCompleted,
+        };
         return request<ApiResponse<LearningProgress>>('/api/v1/progress/sync', {
           method: 'POST',
-          body: payload,
+          body,
         });
       },
     },
@@ -297,7 +451,7 @@ export function createApiClient(config: ApiClientConfig) {
        * Returns an unsubscribe function to cleanly close the WebSocket.
        */
       subscribeTaskProgress(taskId: string, callbacks: TaskProgressCallbacks): () => void {
-        const url = `${wsBaseURL.replace(/\/$/, '')}/ws/v1/progress?taskId=${encodeURIComponent(taskId)}`;
+        const url = `${wsBaseURL.replace(/\/$/, '')}/ws/progress?job_id=${encodeURIComponent(taskId)}&taskId=${encodeURIComponent(taskId)}`;
         let ws: WebSocket | null = null;
         let isClosedManually = false;
 
@@ -306,15 +460,23 @@ export function createApiClient(config: ApiClientConfig) {
 
           ws.onmessage = (event) => {
             try {
-              const data: TaskProgressEvent = JSON.parse(event.data);
-              callbacks.onProgress?.(data);
+              // Support multiple newline-delimited JSON messages within a single frame
+              const lines = String(event.data)
+                .split('\n')
+                .map((l) => l.trim())
+                .filter(Boolean);
 
-              if (data.status === 'COMPLETED') {
-                callbacks.onComplete?.(data.resultLessonId || taskId);
-                ws?.close();
-              } else if (data.status === 'FAILED') {
-                callbacks.onError?.(new Error(data.error || 'Audio generation task failed'));
-                ws?.close();
+              for (const line of lines) {
+                const data: TaskProgressEvent = JSON.parse(line);
+                callbacks.onProgress?.(data);
+
+                if (data.status === 'COMPLETED') {
+                  callbacks.onComplete?.(data.resultLessonId || taskId);
+                  ws?.close();
+                } else if (data.status === 'FAILED') {
+                  callbacks.onError?.(new Error(data.error || 'Audio generation task failed'));
+                  ws?.close();
+                }
               }
             } catch (err) {
               callbacks.onError?.(err instanceof Error ? err : new Error('Invalid JSON payload'));

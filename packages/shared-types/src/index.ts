@@ -146,6 +146,7 @@ export interface GenerateAudioRequest {
   sourceText: string;
   ttsEngine?: TTSEngineType;
   pacingConfig: PacingConfig;
+  lessonId?: string;
 }
 
 export interface GenerateAudioAcceptedResponse {
