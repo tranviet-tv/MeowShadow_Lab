@@ -8,7 +8,8 @@ interface AutoChunkRequestBody {
 }
 
 /**
- * Intelligent fallback generator when backend Script-LLM is offline during dev/test.
+ * Offline fallback generator when backend Script-LLM is unreachable.
+ * Does NOT generate misleading mock translations; leaves target text clean for user/AI action.
  */
 function generateFallbackChunks(
   rawText: string,
@@ -29,14 +30,8 @@ function generateFallbackChunks(
     currentViBatch.push(sentences[i]);
     if (currentViBatch.length >= sentencesPerChunk || i === sentences.length - 1) {
       const viText = currentViBatch.join(' ');
-      let targetText = '';
-
-      if (targetLang === 'ja') {
-        targetText = `これは練習用の日本語翻訳です：「${viText.slice(0, 35)}...」`;
-      } else {
-        // English fallback placeholder
-        targetText = `This is the English translation for: "${viText.slice(0, 45)}..."`;
-      }
+      // Leave target text clean rather than injecting fake translations
+      const targetText = '';
 
       chunks.push({
         order: chunks.length + 1,
@@ -50,7 +45,7 @@ function generateFallbackChunks(
 
   const targetTag = targetLang.toUpperCase();
   const formattedScript = chunks
-    .map((c) => `[VI] ${c.vi}\n[${targetTag}] ${c.target}`)
+    .map((c) => `[VI] ${c.vi}\n[${targetTag}] ${c.target}`.trimEnd())
     .join('\n\n');
 
   const words = formattedScript.split(/\s+/).filter(Boolean).length;
@@ -72,6 +67,7 @@ function generateFallbackChunks(
     word_count: words,
     estimated_duration_sec: estimatedDuration,
     is_fallback: true,
+    warning: 'Máy chủ Script-LLM chưa phản hồi. Đã phân đoạn câu tiếng Việt thành công. Bạn có thể bấm nút "Dịch AI" trên từng thẻ câu để hoàn tất.',
   };
 }
 
@@ -87,32 +83,43 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const scriptLlmUrl =
-      process.env.SCRIPT_LLM_URL || 'http://localhost:8002/api/v1/auto-chunk';
+    const timeoutMs = Number(process.env.SCRIPT_LLM_TIMEOUT_MS) || 120000;
 
-    try {
-      const backendResponse = await fetch(scriptLlmUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          raw_text: rawText,
-          target_lang: targetLang,
-          sentences_per_chunk: sentencesPerChunk,
-        }),
-        signal: AbortSignal.timeout(4000), // 4s timeout before fallback
-      });
+    const candidateUrls = Array.from(
+      new Set(
+        [
+          process.env.SCRIPT_LLM_URL,
+          'http://script-llm-service:8001/api/v1/auto-chunk',
+          'http://localhost:8001/api/v1/auto-chunk',
+        ].filter(Boolean) as string[]
+      )
+    );
 
-      if (backendResponse.ok) {
-        const data = await backendResponse.json();
-        return NextResponse.json(data);
+    for (const url of candidateUrls) {
+      try {
+        const backendResponse = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            raw_text: rawText,
+            target_lang: targetLang,
+            sentences_per_chunk: sentencesPerChunk,
+          }),
+          signal: AbortSignal.timeout(timeoutMs), // 120s timeout
+        });
+
+        if (backendResponse.ok) {
+          const data = await backendResponse.json();
+          return NextResponse.json(data);
+        }
+      } catch {
+        // Try next candidate URL
       }
-    } catch {
-      // Backend not available or timed out, gracefully use fallback parser
     }
 
-    // Return intelligent fallback result
+    // Return clean fallback result without mock text
     const fallbackData = generateFallbackChunks(rawText, targetLang, sentencesPerChunk);
     return NextResponse.json(fallbackData);
   } catch (err: unknown) {

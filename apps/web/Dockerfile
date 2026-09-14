@@ -53,6 +53,7 @@ RUN pnpm --filter @meowshadow/api-client run build
 # Build Next.js standalone distribution
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV INTERNAL_API_URL=http://gateway-core:8000
 RUN pnpm --filter @meowshadow/web run build
 
 # ------------------------------------------------------------------------------
@@ -65,6 +66,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV INTERNAL_API_URL=http://gateway-core:8000
 
 # Security: Run as dedicated non-root user
 RUN addgroup --system --gid 1001 nodejs && \
