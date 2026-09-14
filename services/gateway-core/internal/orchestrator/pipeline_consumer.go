@@ -30,16 +30,20 @@ const (
 
 // WorkerEvent holds structured event data reported back from microservice workers.
 type WorkerEvent struct {
-	JobID            string               `json:"job_id"`
-	LessonID         string               `json:"lesson_id"`
-	Type             WorkerEventType      `json:"type"`
-	TranscriptChunks []domain.ScriptChunk `json:"transcript_chunks,omitempty"`
-	AudioClipPaths   []string             `json:"audio_clip_paths,omitempty"`
-	AudioFilePath    string               `json:"audio_file_path,omitempty"`
-	SrtFilePath      string               `json:"srt_file_path,omitempty"`
-	DurationSec      float64              `json:"duration_sec,omitempty"`
-	TotalWords       int                  `json:"total_words,omitempty"`
-	ErrorMessage     string               `json:"error_message,omitempty"`
+	JobID            string                 `json:"job_id"`
+	TaskID           string                 `json:"task_id,omitempty"`
+	LessonID         string                 `json:"lesson_id"`
+	Type             WorkerEventType        `json:"type"`
+	Event            string                 `json:"event,omitempty"`
+	TranscriptChunks []domain.ScriptChunk   `json:"transcript_chunks,omitempty"`
+	AudioClipPaths   []string               `json:"audio_clip_paths,omitempty"`
+	AudioFilePath    string                 `json:"audio_file_path,omitempty"`
+	SrtFilePath      string                 `json:"srt_file_path,omitempty"`
+	DurationSec      float64                `json:"duration_sec,omitempty"`
+	TotalWords       int                    `json:"total_words,omitempty"`
+	ErrorMessage     string                 `json:"error_message,omitempty"`
+	Error            string                 `json:"error,omitempty"`
+	Result           map[string]interface{} `json:"result,omitempty"`
 }
 
 // ProgressBroadcastEvent represents a real-time event sent across the system.
@@ -62,6 +66,7 @@ var (
 // PipelineConsumer orchestrates worker responses and advances the pipeline.
 type PipelineConsumer interface {
 	RegisterJob(job *RenderJob)
+	StartPipeline(ctx context.Context, job *RenderJob) error
 	GetJob(jobID string) (*RenderJob, error)
 	HandleWorkerEvent(ctx context.Context, event WorkerEvent) (*RenderJob, error)
 }
@@ -87,6 +92,53 @@ func (c *pipelineConsumer) RegisterJob(job *RenderJob) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.jobs[job.ID] = job
+}
+
+// StartPipeline initiates execution for a new render job across microservices.
+func (c *pipelineConsumer) StartPipeline(ctx context.Context, job *RenderJob) error {
+	c.RegisterJob(job)
+	if c.producer != nil {
+		_ = c.producer.SaveJobState(ctx, job.ID, job.GetSnapshot(), 24*time.Hour)
+		c.broadcastProgress(ctx, job)
+	}
+
+	// If transcript chunks are already provided (e.g. from studio editor), advance directly to TTS synthesis
+	if len(job.TranscriptChunks) > 0 {
+		if err := job.TransitionTo(StateSynthesizing, ""); err != nil {
+			return err
+		}
+		if c.producer != nil {
+			ttsPayload := map[string]interface{}{
+				"lesson_id":            job.LessonID,
+				"task_id":              job.ID,
+				"chunks":               job.TranscriptChunks,
+				"default_voice_vi":     job.PacingConfig.ViVoice,
+				"default_voice_target": job.PacingConfig.TargetVoice,
+			}
+			_ = c.producer.PushToQueue(ctx, queue.QueueTtsSynthesis, ttsPayload)
+			_ = c.producer.PublishEvent(ctx, queue.TopicTtsSynthesize, ttsPayload)
+			_ = c.producer.SaveJobState(ctx, job.ID, job.GetSnapshot(), 24*time.Hour)
+			c.broadcastProgress(ctx, job)
+		}
+		return nil
+	}
+
+	// Otherwise dispatch raw text to script-llm parsing
+	if c.producer != nil {
+		_ = job.TransitionTo(StateParsing, "")
+		parsePayload := map[string]interface{}{
+			"job_id":          job.ID,
+			"task_id":         job.ID,
+			"lesson_id":       job.LessonID,
+			"source_text":     job.RawText,
+			"target_language": job.TargetLanguage,
+		}
+		_ = c.producer.PublishEvent(ctx, queue.TopicScriptParse, parsePayload)
+		_ = c.producer.SaveJobState(ctx, job.ID, job.GetSnapshot(), 24*time.Hour)
+		c.broadcastProgress(ctx, job)
+	}
+
+	return nil
 }
 
 // GetJob returns a RenderJob by its jobID.
@@ -116,9 +168,61 @@ func (c *pipelineConsumer) GetJob(jobID string) (*RenderJob, error) {
 
 // HandleWorkerEvent processes an incoming event from a Python worker and advances the pipeline.
 func (c *pipelineConsumer) HandleWorkerEvent(ctx context.Context, event WorkerEvent) (*RenderJob, error) {
+	// Normalize task_id to job_id
+	if event.JobID == "" && event.TaskID != "" {
+		event.JobID = event.TaskID
+	}
+
 	job, err := c.GetJob(event.JobID)
 	if err != nil {
 		return nil, fmt.Errorf("cannot process event: %w", err)
+	}
+
+	// Normalize Python worker events if generic TASK_COMPLETED was published
+	if event.Type == "" && event.Event != "" {
+		switch event.Event {
+		case "TASK_COMPLETED":
+			if event.Result != nil {
+				if _, ok := event.Result["audio_path"]; ok {
+					event.Type = EventMasteringDone
+				} else if _, ok := event.Result["clips"]; ok {
+					event.Type = EventTtsDone
+				}
+			}
+		case "TASK_FAILED":
+			event.Type = EventWorkerFailed
+		}
+	}
+
+	// Extract nested result dictionary fields produced by Python workers
+	if event.Result != nil {
+		if p, ok := event.Result["audio_path"].(string); ok && event.AudioFilePath == "" {
+			event.AudioFilePath = p
+		}
+		if p, ok := event.Result["audio_file_path"].(string); ok && event.AudioFilePath == "" {
+			event.AudioFilePath = p
+		}
+		if p, ok := event.Result["srt_path"].(string); ok && event.SrtFilePath == "" {
+			event.SrtFilePath = p
+		}
+		if p, ok := event.Result["srt_file_path"].(string); ok && event.SrtFilePath == "" {
+			event.SrtFilePath = p
+		}
+		if d, ok := event.Result["duration_sec"].(float64); ok && event.DurationSec == 0 {
+			event.DurationSec = d
+		}
+		if clips, ok := event.Result["clips"].([]interface{}); ok && len(event.AudioClipPaths) == 0 {
+			for _, item := range clips {
+				if clipMap, ok := item.(map[string]interface{}); ok {
+					if fp, ok := clipMap["file_path"].(string); ok {
+						event.AudioClipPaths = append(event.AudioClipPaths, fp)
+					}
+				}
+			}
+		}
+	}
+	if event.ErrorMessage == "" && event.Error != "" {
+		event.ErrorMessage = event.Error
 	}
 
 	switch event.Type {
@@ -135,14 +239,17 @@ func (c *pipelineConsumer) HandleWorkerEvent(ctx context.Context, event WorkerEv
 			job.TranscriptChunks = event.TranscriptChunks
 		}
 
-		// Dispatch synthesis job to Redis stream/topic
+		// Dispatch synthesis job to Redis queue and pub/sub
 		if c.producer != nil {
-			_ = c.producer.PublishEvent(ctx, queue.TopicTtsSynthesize, map[string]interface{}{
-				"job_id":            job.ID,
-				"lesson_id":         job.LessonID,
-				"transcript_chunks": job.TranscriptChunks,
-				"pacing_config":     job.PacingConfig,
-			})
+			ttsPayload := map[string]interface{}{
+				"lesson_id":            job.LessonID,
+				"task_id":              job.ID,
+				"chunks":               job.TranscriptChunks,
+				"default_voice_vi":     job.PacingConfig.ViVoice,
+				"default_voice_target": job.PacingConfig.TargetVoice,
+			}
+			_ = c.producer.PushToQueue(ctx, queue.QueueTtsSynthesis, ttsPayload)
+			_ = c.producer.PublishEvent(ctx, queue.TopicTtsSynthesize, ttsPayload)
 			_ = c.producer.SaveJobState(ctx, job.ID, job.GetSnapshot(), 24*time.Hour)
 			c.broadcastProgress(ctx, job)
 		}
@@ -157,14 +264,32 @@ func (c *pipelineConsumer) HandleWorkerEvent(ctx context.Context, event WorkerEv
 			job.AudioClipPaths = event.AudioClipPaths
 		}
 
-		// Dispatch audio mastering task to Redis
+		// Dispatch audio mastering task to Redis queue and pub/sub
 		if c.producer != nil {
-			_ = c.producer.PublishEvent(ctx, queue.TopicAudioMaster, map[string]interface{}{
-				"job_id":           job.ID,
+			var clips []map[string]interface{}
+			for i, ch := range job.TranscriptChunks {
+				clipPath := ""
+				if i < len(job.AudioClipPaths) {
+					clipPath = job.AudioClipPaths[i]
+				}
+				clips = append(clips, map[string]interface{}{
+					"id":         ch.ID,
+					"order":      ch.Order,
+					"lang":       ch.Lang,
+					"text":       ch.Text,
+					"audio_path": clipPath,
+				})
+			}
+			masteringPayload := map[string]interface{}{
+				"task_id":          job.ID,
 				"lesson_id":        job.LessonID,
+				"title":            job.Title,
+				"clips":            clips,
 				"audio_clip_paths": job.AudioClipPaths,
 				"pacing_config":    job.PacingConfig,
-			})
+			}
+			_ = c.producer.PushToQueue(ctx, queue.QueueAudioMastering, masteringPayload)
+			_ = c.producer.PublishEvent(ctx, queue.TopicAudioMaster, masteringPayload)
 			_ = c.producer.SaveJobState(ctx, job.ID, job.GetSnapshot(), 24*time.Hour)
 			c.broadcastProgress(ctx, job)
 		}

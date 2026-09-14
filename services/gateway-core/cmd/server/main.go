@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -15,6 +16,8 @@ import (
 	"meowshadow/gateway-core/config"
 	deliveryHttp "meowshadow/gateway-core/internal/delivery/http"
 	"meowshadow/gateway-core/internal/delivery/middleware"
+	"meowshadow/gateway-core/internal/orchestrator"
+	"meowshadow/gateway-core/internal/queue"
 	"meowshadow/gateway-core/internal/repository"
 	"meowshadow/gateway-core/internal/repository/db"
 	"meowshadow/gateway-core/internal/repository/postgres"
@@ -24,7 +27,7 @@ import (
 )
 
 // SetupApp builds and configures the Fiber application with all middleware and routes.
-func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc services.LessonService, hubs ...*ws.Hub) *fiber.App {
+func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc services.LessonService, opts ...interface{}) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName:      "MeowShadow Gateway Core v1.0.0",
 		ServerHeader: "Fiber",
@@ -37,6 +40,18 @@ func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc servic
 		},
 	})
 
+	var hub *ws.Hub
+	var consumer orchestrator.PipelineConsumer
+
+	for _, opt := range opts {
+		switch v := opt.(type) {
+		case *ws.Hub:
+			hub = v
+		case orchestrator.PipelineConsumer:
+			consumer = v
+		}
+	}
+
 	// Global Middlewares
 	app.Use(middleware.NewRecover())
 	app.Use(middleware.NewCORS(cfg.CORSAllowOrigins))
@@ -45,6 +60,7 @@ func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc servic
 
 	// Auth JWT Middleware
 	jwtAuth := middleware.NewJWTAuth(cfg.JWTSecret)
+	optionalJwtAuth := middleware.NewOptionalJWTAuth(cfg.JWTSecret)
 
 	// Root identification endpoint
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -72,14 +88,23 @@ func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc servic
 	// Mount Lesson CRUD routes if service is provided
 	if lessonSvc != nil {
 		lessonHandler := deliveryHttp.NewLessonHandler(lessonSvc)
-		lessonHandler.RegisterRoutes(apiV1, jwtAuth)
+		lessonHandler.RegisterRoutes(apiV1, jwtAuth, optionalJwtAuth)
+
+		progressHandler := deliveryHttp.NewProgressHandler(lessonSvc)
+		progressHandler.RegisterRoutes(apiV1, jwtAuth)
+	}
+
+	// Mount Async Audio Generation handler if consumer is provided
+	if consumer != nil {
+		audioHandler := deliveryHttp.NewAudioHandler(lessonSvc, consumer)
+		audioHandler.RegisterRoutes(apiV1, jwtAuth)
 	}
 
 	// Mount Audio Range Streaming route
 	audioStreamHandler := deliveryHttp.NewAudioStreamHandler(lessonSvc, cfg.StorageDir)
 	audioStreamHandler.RegisterRoutes(apiV1)
 
-	// Mount Static Asset Server routes (SRT, VTT, Waveform JSON)
+	// Mount Static Asset Server routes (SRT, VTT, Waveform JSON, Export)
 	assetsHandler := deliveryHttp.NewAssetsHandler(lessonSvc, cfg.StorageDir)
 	assetsHandler.RegisterRoutes(apiV1)
 
@@ -95,21 +120,25 @@ func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc servic
 		return fiber.ErrUpgradeRequired
 	})
 
-	// Mount WebSocket Realtime Hub routes if hub is provided
-	var hub *ws.Hub
-	if len(hubs) > 0 && hubs[0] != nil {
-		hub = hubs[0]
-	}
-
 	if hub != nil {
-		app.Get("/ws/progress", fiberWs.New(func(c *fiberWs.Conn) {
+		handleProgressWs := fiberWs.New(func(c *fiberWs.Conn) {
 			jobID := c.Query("job_id")
+			if jobID == "" {
+				jobID = c.Query("taskId")
+			}
+			if jobID == "" {
+				jobID = c.Params("taskId")
+			}
 			lessonID := c.Query("lesson_id")
 			client := ws.NewClient(hub, c, jobID, lessonID)
 			hub.Register(client)
 			go client.WritePump()
 			client.ReadPump()
-		}))
+		})
+
+		app.Get("/ws/progress", handleProgressWs)
+		app.Get("/ws/v1/progress", handleProgressWs)
+		app.Get("/ws/v1/progress/:taskId", handleProgressWs)
 
 		app.Get("/ws/lessons/:id", fiberWs.New(func(c *fiberWs.Conn) {
 			lessonID := c.Params("id")
@@ -146,19 +175,78 @@ func main() {
 
 	var authSvc services.AuthService
 	var lessonSvc services.LessonService
+	var lessonRepo repository.LessonRepository
 
 	if pool != nil {
 		queries := db.New(pool)
 		userRepo := repository.NewUserRepository(queries)
-		lessonRepo := repository.NewLessonRepository(queries)
+		lessonRepo = repository.NewLessonRepository(queries)
 		authSvc = services.NewAuthService(userRepo, cfg)
 		lessonSvc = services.NewLessonService(lessonRepo)
+	}
+
+	// Initialize Redis Producer and Pipeline Orchestrator
+	var redisProd queue.RedisProducer
+	var pipelineConsumer orchestrator.PipelineConsumer
+
+	rdb := queue.NewRedisClient(cfg.RedisAddr)
+	if rdb != nil {
+		// Retry connecting to Redis with a backoff loop
+		var redisErr error
+		for attempt := 1; attempt <= 5; attempt++ {
+			pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			redisErr = rdb.Ping(pingCtx).Err()
+			cancel()
+			if redisErr == nil {
+				log.Printf("Connected to Redis broker at %s (attempt %d)", cfg.RedisAddr, attempt)
+				break
+			}
+			log.Printf("Waiting for Redis broker at %s (attempt %d/5): %v", cfg.RedisAddr, attempt, redisErr)
+			time.Sleep(1 * time.Second)
+		}
+
+		redisProd = queue.NewRedisProducer(rdb)
+		if lessonRepo != nil {
+			pipelineConsumer = orchestrator.NewPipelineConsumer(redisProd, lessonRepo)
+		}
+		if redisErr != nil {
+			log.Printf("Warning: Initial Redis ping failed, producer and pipeline consumer initialized for automatic reconnection: %v", redisErr)
+		}
 	}
 
 	// Initialize WebSocket Hub
 	hub := ws.NewHub()
 	go hub.Run()
 	defer hub.Close()
+
+	// Forward Redis task event notifications to pipeline orchestrator and WebSocket hub
+	if rdb != nil {
+		go func() {
+			pubsub := rdb.Subscribe(context.Background(), queue.ChannelTaskEvents)
+			defer pubsub.Close()
+			ch := pubsub.Channel()
+			for msg := range ch {
+				var evt orchestrator.WorkerEvent
+				if err := json.Unmarshal([]byte(msg.Payload), &evt); err == nil {
+					taskID := evt.TaskID
+					if taskID == "" {
+						taskID = evt.JobID
+					}
+					if pipelineConsumer != nil {
+						if _, err := pipelineConsumer.HandleWorkerEvent(context.Background(), evt); err != nil {
+							log.Printf("Pipeline event handler error: %v", err)
+						}
+					}
+					hub.BroadcastProgress(orchestrator.ProgressBroadcastEvent{
+						JobID:     taskID,
+						LessonID:  evt.LessonID,
+						Message:   string(evt.Type),
+						Timestamp: time.Now(),
+					})
+				}
+			}
+		}()
+	}
 
 	// Initialize Storage Retention & Cleanup Worker (purges temp files > 24h)
 	cleanupSvc := services.NewStorageCleanupService(services.CleanupConfig{
@@ -170,7 +258,7 @@ func main() {
 	defer cleanupCancel()
 	cleanupSvc.StartScheduler(cleanupCtx, 1*time.Hour)
 
-	app := SetupApp(cfg, authSvc, lessonSvc, hub)
+	app := SetupApp(cfg, authSvc, lessonSvc, hub, pipelineConsumer)
 
 	// Channel to listen for OS signals for graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)

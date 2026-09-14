@@ -21,14 +21,20 @@ const (
 	StreamTtsSynthesize  = "msl:stream:tts"
 	StreamAudioMaster    = "msl:stream:audio"
 	StreamProgressEvents = "msl:stream:progress"
+	QueueTtsSynthesis    = "queue:tts_synthesis"
+	QueueAudioMastering  = "queue:audio_mastering"
+	ChannelTaskEvents    = "channel:task_events"
 )
 
 // RedisProducer defines capabilities for dispatching jobs and saving state in Redis.
 type RedisProducer interface {
 	PublishEvent(ctx context.Context, channel string, payload interface{}) error
+	PushToQueue(ctx context.Context, queueName string, payload interface{}) error
+	Subscribe(ctx context.Context, channels ...string) *redis.PubSub
 	DispatchToStream(ctx context.Context, stream string, values map[string]interface{}) (string, error)
 	SaveJobState(ctx context.Context, jobID string, payload interface{}, ttl time.Duration) error
 	GetJobState(ctx context.Context, jobID string) ([]byte, error)
+	GetClient() *redis.Client
 	Ping(ctx context.Context) error
 	Close() error
 }
@@ -103,6 +109,25 @@ func (p *redisProducer) GetJobState(ctx context.Context, jobID string) ([]byte, 
 	return data, nil
 }
 
+// PushToQueue marshals a payload and pushes it into a Redis list queue.
+func (p *redisProducer) PushToQueue(ctx context.Context, queueName string, payload interface{}) error {
+	bytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal queue payload: %w", err)
+	}
+	return p.client.RPush(ctx, queueName, bytes).Err()
+}
+
+// Subscribe opens a subscription to one or more Redis Pub/Sub channels.
+func (p *redisProducer) Subscribe(ctx context.Context, channels ...string) *redis.PubSub {
+	return p.client.Subscribe(ctx, channels...)
+}
+
+// GetClient returns the underlying raw Redis client.
+func (p *redisProducer) GetClient() *redis.Client {
+	return p.client
+}
+
 // Ping verifies connectivity to the Redis broker.
 func (p *redisProducer) Ping(ctx context.Context) error {
 	return p.client.Ping(ctx).Err()
@@ -112,3 +137,4 @@ func (p *redisProducer) Ping(ctx context.Context) error {
 func (p *redisProducer) Close() error {
 	return p.client.Close()
 }
+

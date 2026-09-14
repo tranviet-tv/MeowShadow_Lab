@@ -25,9 +25,10 @@ var (
 
 // RegisterRequest holds user registration parameters.
 type RegisterRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	FullName string `json:"full_name"`
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	FullName      string `json:"full_name"`
+	FullNameCamel string `json:"fullName,omitempty"`
 }
 
 // LoginRequest holds credentials for logging in.
@@ -47,8 +48,32 @@ type UserDTO struct {
 
 // AuthResponse packages the authenticated user profile and token pair.
 type AuthResponse struct {
-	User   UserDTO          `json:"user"`
-	Tokens pkgJwt.TokenPair `json:"tokens"`
+	User         UserDTO          `json:"user"`
+	Tokens       pkgJwt.TokenPair `json:"tokens"`
+	AccessToken  string           `json:"accessToken,omitempty"`
+	RefreshToken string           `json:"refreshToken,omitempty"`
+	ExpiresInSec int64            `json:"expiresInSec,omitempty"`
+}
+
+// PopulateTokens synchronizes token fields for camelCase client compatibility.
+func (r *AuthResponse) PopulateTokens() {
+	r.AccessToken = r.Tokens.AccessToken
+	r.RefreshToken = r.Tokens.RefreshToken
+	r.ExpiresInSec = r.Tokens.ExpiresIn
+}
+
+// RefreshTokenRequest holds the refresh token payload.
+type RefreshTokenRequest struct {
+	RefreshToken      string `json:"refresh_token"`
+	RefreshTokenCamel string `json:"refreshToken,omitempty"`
+}
+
+// RegisterDeviceRequest holds mobile/web device push token registration parameters.
+type RegisterDeviceRequest struct {
+	DeviceType      string `json:"device_type"`
+	DeviceTypeCamel string `json:"deviceType,omitempty"`
+	PushToken       string `json:"push_token"`
+	PushTokenCamel  string `json:"pushToken,omitempty"`
 }
 
 // AuthService defines business operations for user authentication and session management.
@@ -56,6 +81,8 @@ type AuthService interface {
 	Register(ctx context.Context, req RegisterRequest) (*AuthResponse, error)
 	Login(ctx context.Context, req LoginRequest) (*AuthResponse, error)
 	GuestLogin(ctx context.Context) (*AuthResponse, error)
+	RefreshToken(ctx context.Context, req RefreshTokenRequest) (*pkgJwt.TokenPair, error)
+	RegisterDevice(ctx context.Context, userID string, isGuest bool, req RegisterDeviceRequest) error
 	GetProfile(ctx context.Context, userID string) (*UserDTO, error)
 }
 
@@ -90,7 +117,12 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	created, err := s.userRepo.CreateUser(ctx, email, string(hashedBytes), req.FullName)
+	fullName := req.FullName
+	if fullName == "" && req.FullNameCamel != "" {
+		fullName = req.FullNameCamel
+	}
+
+	created, err := s.userRepo.CreateUser(ctx, email, string(hashedBytes), fullName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
@@ -108,7 +140,7 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 		return nil, err
 	}
 
-	return &AuthResponse{
+	res := &AuthResponse{
 		User: UserDTO{
 			ID:        userIDStr,
 			Email:     created.Email,
@@ -117,7 +149,9 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 			CreatedAt: created.CreatedAt.Time.Format(time.RFC3339),
 		},
 		Tokens: *tokens,
-	}, nil
+	}
+	res.PopulateTokens()
+	return res, nil
 }
 
 func (s *authService) Login(ctx context.Context, req LoginRequest) (*AuthResponse, error) {
@@ -145,7 +179,7 @@ func (s *authService) Login(ctx context.Context, req LoginRequest) (*AuthRespons
 		return nil, err
 	}
 
-	return &AuthResponse{
+	res := &AuthResponse{
 		User: UserDTO{
 			ID:        userIDStr,
 			Email:     user.Email,
@@ -154,15 +188,28 @@ func (s *authService) Login(ctx context.Context, req LoginRequest) (*AuthRespons
 			CreatedAt: user.CreatedAt.Time.Format(time.RFC3339),
 		},
 		Tokens: *tokens,
-	}, nil
+	}
+	res.PopulateTokens()
+	return res, nil
 }
 
 func (s *authService) GuestLogin(ctx context.Context) (*AuthResponse, error) {
 	guestID := uuid.New().String()
 	guestEmail := fmt.Sprintf("guest_%s@meowshadow.local", guestID[:8])
+	dummyHash := "$2a$10$guest.account.not.directly.password.loggable"
+
+	// Persist guest user so foreign key constraints (e.g. learning_progress) are satisfied
+	created, err := s.userRepo.CreateUser(ctx, guestEmail, dummyHash, "Guest Explorer")
+	var userIDStr string
+	if err != nil {
+		userIDStr = guestID
+	} else {
+		userIDStr = uuid.UUID(created.ID.Bytes).String()
+		guestEmail = created.Email
+	}
 
 	tokens, err := pkgJwt.GenerateTokenPair(
-		guestID,
+		userIDStr,
 		guestEmail,
 		true,
 		s.cfg.JWTSecret,
@@ -173,16 +220,18 @@ func (s *authService) GuestLogin(ctx context.Context) (*AuthResponse, error) {
 		return nil, err
 	}
 
-	return &AuthResponse{
+	res := &AuthResponse{
 		User: UserDTO{
-			ID:        guestID,
+			ID:        userIDStr,
 			Email:     guestEmail,
 			FullName:  "Guest Explorer",
 			IsGuest:   true,
 			CreatedAt: time.Now().UTC().Format(time.RFC3339),
 		},
 		Tokens: *tokens,
-	}, nil
+	}
+	res.PopulateTokens()
+	return res, nil
 }
 
 func (s *authService) GetProfile(ctx context.Context, userID string) (*UserDTO, error) {
@@ -214,3 +263,67 @@ func (s *authService) GetProfile(ctx context.Context, userID string) (*UserDTO, 
 		CreatedAt: user.CreatedAt.Time.Format(time.RFC3339),
 	}, nil
 }
+
+func (s *authService) RefreshToken(ctx context.Context, req RefreshTokenRequest) (*pkgJwt.TokenPair, error) {
+	tokenStr := req.RefreshToken
+	if tokenStr == "" && req.RefreshTokenCamel != "" {
+		tokenStr = req.RefreshTokenCamel
+	}
+	if strings.TrimSpace(tokenStr) == "" {
+		return nil, errors.New("refresh token is required")
+	}
+
+	claims, err := pkgJwt.ValidateToken(tokenStr, s.cfg.JWTSecret)
+	if err != nil {
+		return nil, pkgJwt.ErrInvalidToken
+	}
+
+	if claims.TokenType != "" && claims.TokenType != "refresh" {
+		return nil, errors.New("provided token is not a refresh token")
+	}
+
+	tokens, err := pkgJwt.GenerateTokenPair(
+		claims.UserID,
+		claims.Email,
+		claims.IsGuest,
+		s.cfg.JWTSecret,
+		s.cfg.JWTAccessExpMinutes,
+		s.cfg.JWTRefreshExpDays,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return tokens, nil
+}
+
+func (s *authService) RegisterDevice(ctx context.Context, userID string, isGuest bool, req RegisterDeviceRequest) error {
+	pushToken := req.PushToken
+	if pushToken == "" && req.PushTokenCamel != "" {
+		pushToken = req.PushTokenCamel
+	}
+	deviceType := req.DeviceType
+	if deviceType == "" && req.DeviceTypeCamel != "" {
+		deviceType = req.DeviceTypeCamel
+	}
+
+	if strings.TrimSpace(pushToken) == "" || strings.TrimSpace(deviceType) == "" {
+		return errors.New("device_type and push_token are required")
+	}
+
+	if isGuest || userID == "" {
+		return nil
+	}
+
+	parsedUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return errors.New("invalid user ID")
+	}
+
+	var pgUUID pgtype.UUID
+	copy(pgUUID.Bytes[:], parsedUUID[:])
+	pgUUID.Valid = true
+
+	return s.userRepo.UpsertUserDevice(ctx, pgUUID, deviceType, pushToken)
+}
+

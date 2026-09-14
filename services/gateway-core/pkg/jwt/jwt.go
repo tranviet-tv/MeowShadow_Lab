@@ -17,9 +17,10 @@ var (
 
 // Claims represents the standard and custom JWT claims.
 type Claims struct {
-	UserID  string `json:"user_id"`
-	Email   string `json:"email"`
-	IsGuest bool   `json:"is_guest"`
+	UserID    string `json:"user_id"`
+	Email     string `json:"email"`
+	IsGuest   bool   `json:"is_guest"`
+	TokenType string `json:"token_type,omitempty"` // "access" or "refresh"
 	jwt.RegisteredClaims
 }
 
@@ -44,9 +45,10 @@ func GenerateTokenPair(
 	accessExpiresAt := now.Add(accessDuration)
 
 	accessClaims := Claims{
-		UserID:  userID,
-		Email:   email,
-		IsGuest: isGuest,
+		UserID:    userID,
+		Email:     email,
+		IsGuest:   isGuest,
+		TokenType: "access",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID,
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -64,9 +66,10 @@ func GenerateTokenPair(
 	// Generate refresh token
 	refreshExpiresAt := now.Add(time.Duration(refreshExpDays) * 24 * time.Hour)
 	refreshClaims := Claims{
-		UserID:  userID,
-		Email:   email,
-		IsGuest: isGuest,
+		UserID:    userID,
+		Email:     email,
+		IsGuest:   isGuest,
+		TokenType: "refresh",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID,
 			IssuedAt:  jwt.NewNumericDate(now),

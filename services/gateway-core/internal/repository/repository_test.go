@@ -92,6 +92,17 @@ func (m *MockLessonRepository) DeleteLesson(ctx context.Context, id pgtype.UUID)
 	return nil
 }
 
+func (m *MockLessonRepository) GetLearningProgress(ctx context.Context, userID, lessonID pgtype.UUID) (*db.GetLearningProgressRow, error) {
+	return &db.GetLearningProgressRow{
+		UserID:   userID,
+		LessonID: lessonID,
+	}, nil
+}
+
+func (m *MockLessonRepository) UpsertLearningProgress(ctx context.Context, params db.UpsertLearningProgressParams) error {
+	return nil
+}
+
 func TestRepositoryInterfaces(t *testing.T) {
 	// Verify that mock types implement interfaces
 	var userRepo UserRepository = &MockUserRepository{

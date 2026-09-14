@@ -63,6 +63,17 @@ func (m *mockLessonService) DeleteLesson(ctx context.Context, id string) error {
 	return nil
 }
 
+func (m *mockLessonService) GetProgress(ctx context.Context, userID, lessonID string) (*domain.LearningProgressDTO, error) {
+	return &domain.LearningProgressDTO{
+		LessonID: lessonID,
+		UserID:   userID,
+	}, nil
+}
+
+func (m *mockLessonService) SyncProgress(ctx context.Context, userID string, req domain.SyncProgressRequest) error {
+	return nil
+}
+
 func TestLessonHandler_CRUD(t *testing.T) {
 	cfg := &config.Config{
 		JWTSecret: "test_secret_for_lessons_12345678",

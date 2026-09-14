@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS learning_progress (
     playback_offset_sec NUMERIC(6, 2) DEFAULT 0.0,
     shadowing_repeat_count INT DEFAULT 0,
     is_completed BOOLEAN DEFAULT FALSE,
+    version INT DEFAULT 1,
     last_listened_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, lesson_id)
 );

@@ -26,6 +26,8 @@ type LessonService interface {
 	GetLessonByID(ctx context.Context, id string) (*domain.LessonResponse, error)
 	ListLessons(ctx context.Context, userID string, isGuest bool, page, limit int64) ([]domain.LessonResponse, int64, error)
 	DeleteLesson(ctx context.Context, id string) error
+	GetProgress(ctx context.Context, userID, lessonID string) (*domain.LearningProgressDTO, error)
+	SyncProgress(ctx context.Context, userID string, req domain.SyncProgressRequest) error
 }
 
 type lessonService struct {
@@ -115,7 +117,7 @@ func (s *lessonService) CreateLesson(
 
 	lessonIDStr := uuid.UUID(createdRow.ID.Bytes).String()
 
-	return &domain.LessonResponse{
+	resp := &domain.LessonResponse{
 		ID:               lessonIDStr,
 		UserID:           userID,
 		Title:            createdRow.Title,
@@ -130,7 +132,9 @@ func (s *lessonService) CreateLesson(
 		Status:           createdRow.Status,
 		CreatedAt:        createdRow.CreatedAt.Time.Format(time.RFC3339),
 		UpdatedAt:        createdRow.CreatedAt.Time.Format(time.RFC3339),
-	}, nil
+	}
+	resp.PopulateCamelCase()
+	return resp, nil
 }
 
 func (s *lessonService) GetLessonByID(ctx context.Context, id string) (*domain.LessonResponse, error) {
@@ -161,7 +165,7 @@ func (s *lessonService) GetLessonByID(ctx context.Context, id string) (*domain.L
 
 	durationFloat, _ := row.DurationSec.Float64Value()
 
-	return &domain.LessonResponse{
+	resp := &domain.LessonResponse{
 		ID:               uuid.UUID(row.ID.Bytes).String(),
 		UserID:           userUUIDStr,
 		Title:            row.Title,
@@ -176,7 +180,9 @@ func (s *lessonService) GetLessonByID(ctx context.Context, id string) (*domain.L
 		Status:           row.Status,
 		CreatedAt:        row.CreatedAt.Time.Format(time.RFC3339),
 		UpdatedAt:        row.UpdatedAt.Time.Format(time.RFC3339),
-	}, nil
+	}
+	resp.PopulateCamelCase()
+	return resp, nil
 }
 
 func (s *lessonService) ListLessons(
@@ -282,6 +288,10 @@ func (s *lessonService) ListLessons(
 		})
 	}
 
+	for i := range lessons {
+		lessons[i].PopulateCamelCase()
+	}
+
 	return lessons, total, nil
 }
 
@@ -296,4 +306,71 @@ func (s *lessonService) DeleteLesson(ctx context.Context, id string) error {
 	pgID.Valid = true
 
 	return s.lessonRepo.DeleteLesson(ctx, pgID)
+}
+
+func (s *lessonService) GetProgress(ctx context.Context, userID, lessonID string) (*domain.LearningProgressDTO, error) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user id")
+	}
+	lessUUID, err := uuid.Parse(lessonID)
+	if err != nil {
+		return nil, errors.New("invalid lesson id")
+	}
+	var pgUser, pgLesson pgtype.UUID
+	copy(pgUser.Bytes[:], userUUID[:])
+	pgUser.Valid = true
+	copy(pgLesson.Bytes[:], lessUUID[:])
+	pgLesson.Valid = true
+
+	row, err := s.lessonRepo.GetLearningProgress(ctx, pgUser, pgLesson)
+	if err != nil || row == nil {
+		return nil, errors.New("progress not found")
+	}
+
+	offsetFloat, _ := row.PlaybackOffsetSec.Float64Value()
+
+	return &domain.LearningProgressDTO{
+		LessonID:             lessonID,
+		UserID:               userID,
+		PlaybackOffsetSec:    offsetFloat.Float64,
+		ShadowingRepeatCount: int(row.ShadowingRepeatCount.Int32),
+		IsCompleted:          row.IsCompleted.Bool,
+		Version:              int(row.Version.Int32),
+		LastListenedAt:       row.LastListenedAt.Time.Format(time.RFC3339),
+	}, nil
+}
+
+func (s *lessonService) SyncProgress(ctx context.Context, userID string, req domain.SyncProgressRequest) error {
+	req.Normalize()
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return errors.New("invalid user id")
+	}
+	lessUUID, err := uuid.Parse(req.LessonID)
+	if err != nil {
+		return errors.New("invalid lesson id")
+	}
+	var pgUser, pgLesson pgtype.UUID
+	copy(pgUser.Bytes[:], userUUID[:])
+	pgUser.Valid = true
+	copy(pgLesson.Bytes[:], lessUUID[:])
+	pgLesson.Valid = true
+
+	var numOffset pgtype.Numeric
+	_ = numOffset.Scan(fmt.Sprintf("%.2f", req.PlaybackOffsetSec))
+
+	version := int32(req.Version)
+	if version <= 0 {
+		version = 1
+	}
+
+	return s.lessonRepo.UpsertLearningProgress(ctx, db.UpsertLearningProgressParams{
+		UserID:               pgUser,
+		LessonID:             pgLesson,
+		PlaybackOffsetSec:    numOffset,
+		ShadowingRepeatCount: pgtype.Int4{Int32: int32(req.ShadowingRepeatCount), Valid: true},
+		IsCompleted:          pgtype.Bool{Bool: req.IsCompleted, Valid: true},
+		Version:              pgtype.Int4{Int32: version, Valid: true},
+	})
 }

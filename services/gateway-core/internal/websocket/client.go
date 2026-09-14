@@ -97,21 +97,17 @@ func (c *Client) WritePump() {
 				return
 			}
 
-			w, err := c.Conn.NextWriter(websocket.TextMessage)
-			if err != nil {
+			if err := c.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				return
 			}
-			_, _ = w.Write(message)
 
-			// Add queued messages to the current websocket message.
+			// Send any additional queued messages as distinct text frames
 			n := len(c.Send)
 			for i := 0; i < n; i++ {
-				_, _ = w.Write([]byte{'\n'})
-				_, _ = w.Write(<-c.Send)
-			}
-
-			if err := w.Close(); err != nil {
-				return
+				extraMsg := <-c.Send
+				if err := c.Conn.WriteMessage(websocket.TextMessage, extraMsg); err != nil {
+					return
+				}
 			}
 
 		case <-ticker.C:

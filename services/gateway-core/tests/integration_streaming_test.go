@@ -77,6 +77,14 @@ func (m *mockStreamingLessonRepo) DeleteLesson(ctx context.Context, id pgtype.UU
 	return nil
 }
 
+func (m *mockStreamingLessonRepo) GetLearningProgress(ctx context.Context, userID, lessonID pgtype.UUID) (*db.GetLearningProgressRow, error) {
+	return nil, nil
+}
+
+func (m *mockStreamingLessonRepo) UpsertLearningProgress(ctx context.Context, params db.UpsertLearningProgressParams) error {
+	return nil
+}
+
 // Helper to setup test environment with realistic mock files and app instance.
 func setupStreamingTestEnv(t *testing.T) (*mockStreamingLessonRepo, string, string, uuid.UUID) {
 	tempDir := t.TempDir()

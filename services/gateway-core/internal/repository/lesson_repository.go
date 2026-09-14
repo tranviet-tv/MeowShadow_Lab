@@ -18,6 +18,8 @@ type LessonRepository interface {
 	UpdateLessonStatus(ctx context.Context, id pgtype.UUID, status string) error
 	UpdateLessonRenderResult(ctx context.Context, params db.UpdateLessonRenderResultParams) (*db.UpdateLessonRenderResultRow, error)
 	DeleteLesson(ctx context.Context, id pgtype.UUID) error
+	GetLearningProgress(ctx context.Context, userID, lessonID pgtype.UUID) (*db.GetLearningProgressRow, error)
+	UpsertLearningProgress(ctx context.Context, params db.UpsertLearningProgressParams) error
 }
 
 type pgxLessonRepository struct {
@@ -88,3 +90,19 @@ func (r *pgxLessonRepository) UpdateLessonRenderResult(ctx context.Context, para
 func (r *pgxLessonRepository) DeleteLesson(ctx context.Context, id pgtype.UUID) error {
 	return r.queries.DeleteLesson(ctx, id)
 }
+
+func (r *pgxLessonRepository) GetLearningProgress(ctx context.Context, userID, lessonID pgtype.UUID) (*db.GetLearningProgressRow, error) {
+	row, err := r.queries.GetLearningProgress(ctx, db.GetLearningProgressParams{
+		UserID:   userID,
+		LessonID: lessonID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &row, nil
+}
+
+func (r *pgxLessonRepository) UpsertLearningProgress(ctx context.Context, params db.UpsertLearningProgressParams) error {
+	return r.queries.UpsertLearningProgress(ctx, params)
+}
+

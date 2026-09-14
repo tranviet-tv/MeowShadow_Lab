@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/pgvector/pgvector-go"
 )
 
 const countAllLessons = `-- name: CountAllLessons :one
@@ -40,26 +39,25 @@ func (q *Queries) CountLessonsByUserID(ctx context.Context, userID pgtype.UUID) 
 const createLesson = `-- name: CreateLesson :one
 INSERT INTO lessons (
     user_id, title, target_language, source_language, total_words, duration_sec,
-    pacing_config, transcript_chunks, audio_file_path, srt_file_path, embedding, status
+    pacing_config, transcript_chunks, audio_file_path, srt_file_path, status
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
 RETURNING id, title, status, created_at
 `
 
 type CreateLessonParams struct {
-	UserID           pgtype.UUID     `json:"user_id"`
-	Title            string          `json:"title"`
-	TargetLanguage   string          `json:"target_language"`
-	SourceLanguage   pgtype.Text     `json:"source_language"`
-	TotalWords       pgtype.Int4     `json:"total_words"`
-	DurationSec      pgtype.Numeric  `json:"duration_sec"`
-	PacingConfig     []byte          `json:"pacing_config"`
-	TranscriptChunks []byte          `json:"transcript_chunks"`
-	AudioFilePath    string          `json:"audio_file_path"`
-	SrtFilePath      string          `json:"srt_file_path"`
-	Embedding        pgvector.Vector `json:"embedding"`
-	Status           string          `json:"status"`
+	UserID           pgtype.UUID    `json:"user_id"`
+	Title            string         `json:"title"`
+	TargetLanguage   string         `json:"target_language"`
+	SourceLanguage   pgtype.Text    `json:"source_language"`
+	TotalWords       pgtype.Int4    `json:"total_words"`
+	DurationSec      pgtype.Numeric `json:"duration_sec"`
+	PacingConfig     []byte         `json:"pacing_config"`
+	TranscriptChunks []byte         `json:"transcript_chunks"`
+	AudioFilePath    string         `json:"audio_file_path"`
+	SrtFilePath      string         `json:"srt_file_path"`
+	Status           string         `json:"status"`
 }
 
 type CreateLessonRow struct {
@@ -81,7 +79,6 @@ func (q *Queries) CreateLesson(ctx context.Context, arg CreateLessonParams) (Cre
 		arg.TranscriptChunks,
 		arg.AudioFilePath,
 		arg.SrtFilePath,
-		arg.Embedding,
 		arg.Status,
 	)
 	var i CreateLessonRow

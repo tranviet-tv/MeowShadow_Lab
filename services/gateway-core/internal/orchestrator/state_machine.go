@@ -45,7 +45,7 @@ var stateDescriptions = map[JobState]string{
 
 // Allowed state transitions ensuring deterministic pipeline execution.
 var validTransitions = map[JobState][]JobState{
-	StatePending:      {StateParsing, StateFailed},
+	StatePending:      {StateParsing, StateSynthesizing, StateFailed},
 	StateParsing:      {StateSynthesizing, StateFailed},
 	StateSynthesizing: {StateMastering, StateFailed},
 	StateMastering:    {StateReady, StateFailed},

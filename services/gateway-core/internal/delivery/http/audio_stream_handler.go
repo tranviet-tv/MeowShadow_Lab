@@ -95,38 +95,61 @@ func (h *AudioStreamHandler) StreamAudio(c *fiber.Ctx) error {
 	c.Status(fiber.StatusPartialContent)
 
 	sectionReader := io.NewSectionReader(file, byteRange.Start, byteRange.Length)
-	return c.SendStream(sectionReader, int(byteRange.Length))
+	return c.SendStream(&sectionReadCloser{SectionReader: sectionReader, closer: file}, int(byteRange.Length))
+}
+
+// sectionReadCloser wraps an io.SectionReader and ensures the underlying file is closed upon completion.
+type sectionReadCloser struct {
+	*io.SectionReader
+	closer io.Closer
+}
+
+// Close closes the underlying file descriptor.
+func (s *sectionReadCloser) Close() error {
+	if s.closer != nil {
+		return s.closer.Close()
+	}
+	return nil
 }
 
 // resolveAudioFilePath locates the physical path of the audio file on disk.
-func (h *AudioStreamHandler) resolveAudioFilePath(ctx context.Context, lessonID string) (string, error) {
+func (h *AudioStreamHandler) resolveAudioFilePath(ctx context.Context, rawLessonID string) (string, error) {
+	// Strip extensions and prefixes to support all url formats (.mp3, .wav, lesson_ prefix)
+	lessonID := strings.TrimSuffix(rawLessonID, ".mp3")
+	lessonID = strings.TrimSuffix(lessonID, ".wav")
+	cleanUUID := strings.TrimPrefix(lessonID, "lesson_")
+
 	// 1. Try querying lesson from database if service is available
 	if h.lessonSvc != nil {
-		lesson, err := h.lessonSvc.GetLessonByID(ctx, lessonID)
-		if err == nil && lesson != nil && lesson.AudioFilePath != "" {
-			path := lesson.AudioFilePath
-			if _, err := os.Stat(path); err == nil {
-				return path, nil
-			}
+		for _, qID := range []string{cleanUUID, lessonID, rawLessonID} {
+			lesson, err := h.lessonSvc.GetLessonByID(ctx, qID)
+			if err == nil && lesson != nil && lesson.AudioFilePath != "" {
+				path := lesson.AudioFilePath
+				if _, err := os.Stat(path); err == nil {
+					return path, nil
+				}
 
-			// Map container path /app/storage to host storageDir if needed
-			if strings.HasPrefix(path, "/app/storage/") {
-				relPath := strings.TrimPrefix(path, "/app/storage/")
-				mapped := filepath.Join(h.storageDir, relPath)
-				if _, err := os.Stat(mapped); err == nil {
-					return mapped, nil
+				// Map container path /app/storage to host storageDir if needed
+				if strings.HasPrefix(path, "/app/storage/") {
+					relPath := strings.TrimPrefix(path, "/app/storage/")
+					mapped := filepath.Join(h.storageDir, relPath)
+					if _, err := os.Stat(mapped); err == nil {
+						return mapped, nil
+					}
 				}
 			}
 		}
 	}
 
-	// 2. Direct storage search fallbacks
+	// 2. Direct storage search candidates for the specified lesson
 	candidatePaths := []string{
-		filepath.Join(h.storageDir, "audio", lessonID+".mp3"),
+		filepath.Join(h.storageDir, "audio", fmt.Sprintf("lesson_%s.mp3", cleanUUID)),
 		filepath.Join(h.storageDir, "audio", fmt.Sprintf("lesson_%s.mp3", lessonID)),
-		filepath.Join(h.storageDir, lessonID),
-		filepath.Join(h.storageDir, "audio", "test_output_master.mp3"),
-		filepath.Join(h.storageDir, "audio", "full_simulation_lesson.mp3"),
+		filepath.Join(h.storageDir, "audio", cleanUUID+".mp3"),
+		filepath.Join(h.storageDir, "audio", lessonID+".mp3"),
+		filepath.Join(h.storageDir, "audio", rawLessonID),
+		filepath.Join(h.storageDir, rawLessonID),
+		filepath.Join(h.storageDir, cleanUUID),
 	}
 
 	for _, p := range candidatePaths {
@@ -135,5 +158,5 @@ func (h *AudioStreamHandler) resolveAudioFilePath(ctx context.Context, lessonID 
 		}
 	}
 
-	return "", fmt.Errorf("audio file for lesson '%s' not found on storage volume", lessonID)
+	return "", fmt.Errorf("audio file for lesson '%s' not found on storage volume", rawLessonID)
 }

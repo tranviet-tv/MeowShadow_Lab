@@ -92,6 +92,19 @@ func (m *mockDoDAuthService) GetProfile(ctx context.Context, userID string) (*se
 	}, nil
 }
 
+func (m *mockDoDAuthService) RefreshToken(ctx context.Context, req services.RefreshTokenRequest) (*pkgJwt.TokenPair, error) {
+	userId := uuid.New().String()
+	tokens, err := pkgJwt.GenerateTokenPair(userId, "refreshed@meowshadow.local", false, m.secret, 15, 7)
+	if err != nil {
+		return nil, err
+	}
+	return tokens, nil
+}
+
+func (m *mockDoDAuthService) RegisterDevice(ctx context.Context, userID string, isGuest bool, req services.RegisterDeviceRequest) error {
+	return nil
+}
+
 // mockDoDLessonService implements services.LessonService for DoD integration testing.
 type mockDoDLessonService struct {
 	lessons map[string]domain.LessonResponse
@@ -152,6 +165,17 @@ func (m *mockDoDLessonService) DeleteLesson(ctx context.Context, id string) erro
 		return services.ErrLessonNotFound
 	}
 	delete(m.lessons, id)
+	return nil
+}
+
+func (m *mockDoDLessonService) GetProgress(ctx context.Context, userID, lessonID string) (*domain.LearningProgressDTO, error) {
+	return &domain.LearningProgressDTO{
+		LessonID: lessonID,
+		UserID:   userID,
+	}, nil
+}
+
+func (m *mockDoDLessonService) SyncProgress(ctx context.Context, userID string, req domain.SyncProgressRequest) error {
 	return nil
 }
 

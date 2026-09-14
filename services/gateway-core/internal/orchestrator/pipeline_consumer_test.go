@@ -52,6 +52,12 @@ func (m *mockLessonRepo) UpdateLessonRenderResult(ctx context.Context, params db
 func (m *mockLessonRepo) DeleteLesson(ctx context.Context, id pgtype.UUID) error {
 	return nil
 }
+func (m *mockLessonRepo) GetLearningProgress(ctx context.Context, userID, lessonID pgtype.UUID) (*db.GetLearningProgressRow, error) {
+	return nil, nil
+}
+func (m *mockLessonRepo) UpsertLearningProgress(ctx context.Context, params db.UpsertLearningProgressParams) error {
+	return nil
+}
 
 func TestPipelineConsumer_LifecycleFlow(t *testing.T) {
 	mockRepo := &mockLessonRepo{}

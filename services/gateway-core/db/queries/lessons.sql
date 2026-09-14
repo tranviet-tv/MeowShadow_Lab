@@ -20,9 +20,9 @@ WHERE user_id = $1;
 -- name: CreateLesson :one
 INSERT INTO lessons (
     user_id, title, target_language, source_language, total_words, duration_sec,
-    pacing_config, transcript_chunks, audio_file_path, srt_file_path, embedding, status
+    pacing_config, transcript_chunks, audio_file_path, srt_file_path, status
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
 RETURNING id, title, status, created_at;
 

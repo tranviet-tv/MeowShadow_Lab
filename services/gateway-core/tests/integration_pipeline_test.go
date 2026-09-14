@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/redis/go-redis/v9"
 	"meowshadow/gateway-core/internal/domain"
 	"meowshadow/gateway-core/internal/notifications"
 	"meowshadow/gateway-core/internal/orchestrator"
@@ -58,6 +59,12 @@ func (m *mockPipelineLessonRepo) UpdateLessonRenderResult(ctx context.Context, p
 func (m *mockPipelineLessonRepo) DeleteLesson(ctx context.Context, id pgtype.UUID) error {
 	return nil
 }
+func (m *mockPipelineLessonRepo) GetLearningProgress(ctx context.Context, userID, lessonID pgtype.UUID) (*db.GetLearningProgressRow, error) {
+	return nil, nil
+}
+func (m *mockPipelineLessonRepo) UpsertLearningProgress(ctx context.Context, params db.UpsertLearningProgressParams) error {
+	return nil
+}
 
 type mockPipelineUserRepo struct {
 	devices []db.UserDevice
@@ -106,6 +113,15 @@ func (b *bridgeProducer) Ping(ctx context.Context) error {
 	return nil
 }
 func (b *bridgeProducer) Close() error {
+	return nil
+}
+func (b *bridgeProducer) PushToQueue(ctx context.Context, queueName string, payload interface{}) error {
+	return nil
+}
+func (b *bridgeProducer) Subscribe(ctx context.Context, channels ...string) *redis.PubSub {
+	return nil
+}
+func (b *bridgeProducer) GetClient() *redis.Client {
 	return nil
 }
 

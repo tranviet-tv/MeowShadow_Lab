@@ -49,11 +49,47 @@ func NewJWTAuth(secret string) fiber.Handler {
 			)
 		}
 
+		// Reject refresh tokens used as access tokens
+		if claims.TokenType != "" && claims.TokenType != "access" {
+			return response.Error(
+				c,
+				fiber.StatusUnauthorized,
+				"Unauthorized",
+				"Invalid token type: access token required",
+			)
+		}
+
 		// Save claims to context for downstream handlers
 		c.Locals(ContextKeyUserID, claims.UserID)
 		c.Locals(ContextKeyEmail, claims.Email)
 		c.Locals(ContextKeyIsGuest, claims.IsGuest)
 
+		return c.Next()
+	}
+}
+
+// NewOptionalJWTAuth creates middleware that accepts both authenticated users and unauthenticated guests.
+func NewOptionalJWTAuth(secret string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		authHeader := c.Get("Authorization")
+		if authHeader == "" {
+			c.Locals(ContextKeyIsGuest, true)
+			return c.Next()
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+			tokenString := parts[1]
+			if claims, err := pkgJwt.ValidateToken(tokenString, secret); err == nil && (claims.TokenType == "" || claims.TokenType == "access") {
+				c.Locals(ContextKeyUserID, claims.UserID)
+				c.Locals(ContextKeyEmail, claims.Email)
+				c.Locals(ContextKeyIsGuest, claims.IsGuest)
+				return c.Next()
+			}
+		}
+
+		// Fallback to guest mode
+		c.Locals(ContextKeyIsGuest, true)
 		return c.Next()
 	}
 }
