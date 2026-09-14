@@ -36,7 +36,11 @@ export function AIActionBar() {
     if (!textToProcess) return;
 
     setLoading(true);
-    setStatusMessage('Đang kết nối Script-LLM phân đoạn & dịch song ngữ...');
+    setStatusMessage(
+      textToProcess.length > 300
+        ? 'Đang kết nối Script-LLM phân đoạn & dịch văn bản dài (có thể mất 10-25s)...'
+        : 'Đang kết nối Script-LLM phân đoạn & dịch song ngữ...'
+    );
 
     try {
       const res = await fetch('/api/ai/auto-chunk', {
@@ -53,18 +57,28 @@ export function AIActionBar() {
 
       if (data.success && data.formatted_script) {
         setScriptContent(data.formatted_script);
-        setStatusMessage(
-          `Hoàn tất! Đã phân tách ${data.pairs?.length || 3} cặp câu song ngữ chuẩn đẹp.`
-        );
-        setTimeout(() => {
-          setStatusMessage(null);
-          setIsOpen(false);
-        }, 2200);
+        if (data.is_fallback) {
+          setStatusMessage(
+            `⚠️ Đã phân đoạn ${data.pairs?.length || 3} câu tiếng Việt. Hãy dùng nút "✨ Dịch AI" trên từng thẻ câu để hoàn tất.`
+          );
+          setTimeout(() => {
+            setStatusMessage(null);
+            setIsOpen(false);
+          }, 6000);
+        } else {
+          setStatusMessage(
+            `✨ Hoàn tất! Đã dịch và tạo ${data.pairs?.length || 3} cặp câu song ngữ thành công.`
+          );
+          setTimeout(() => {
+            setStatusMessage(null);
+            setIsOpen(false);
+          }, 3200);
+        }
       } else {
-        setStatusMessage('Có lỗi xảy ra, vui lòng thử lại.');
+        setStatusMessage(data.error || 'Có lỗi xảy ra khi phân đoạn văn bản, vui lòng thử lại.');
       }
     } catch {
-      setStatusMessage('Lỗi kết nối dịch vụ AI.');
+      setStatusMessage('Lỗi kết nối dịch vụ AI hoặc yêu cầu bị quá thời gian chờ.');
     } finally {
       setLoading(false);
     }

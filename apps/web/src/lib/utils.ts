@@ -71,10 +71,19 @@ export interface ParsedPair {
   vi: string;
   target: string;
   order: number;
+  hasCue?: boolean;
+}
+
+export interface ScriptValidationResult {
+  isValid: boolean;
+  pairCount: number;
+  warnings: string[];
+  errors: string[];
 }
 
 /**
  * Parses interleaved tagged script string ([VI]...[EN]... or [VI]...[JA]...) into structured chunks.
+ * Accurately extracts [CUE] tags into the pair metadata instead of treating them as Vietnamese sentences.
  */
 export function parseTaggedScript(
   content: string,
@@ -84,58 +93,181 @@ export function parseTaggedScript(
     return { chunks: [], pairs: [] };
   }
 
-  const chunks: ScriptChunk[] = [];
-  const regex = /\[(VI|EN|JA|CUE)\]([\s\S]*?)(?=\[(VI|EN|JA|CUE)\]|$)/gi;
+  const rawTagsRegex = /\[(VI|EN|JA|CUE)\]([\s\S]*?)(?=\[(VI|EN|JA|CUE)\]|$)/gi;
+  interface TagEntry {
+    tag: string;
+    text: string;
+  }
+  const tagEntries: TagEntry[] = [];
   let match: RegExpExecArray | null;
-  let order = 1;
 
-  while ((match = regex.exec(content)) !== null) {
-    const rawTag = match[1].toUpperCase();
-    const text = match[2].trim();
-    if (!text && rawTag !== 'CUE') continue;
-
-    let lang: SupportedLanguage = 'vi';
-    if (rawTag === 'EN') lang = 'en';
-    else if (rawTag === 'JA') lang = 'ja';
-
-    chunks.push({
-      id: `chunk-${order}-${Date.now()}`,
-      order,
-      lang,
-      text,
+  while ((match = rawTagsRegex.exec(content)) !== null) {
+    tagEntries.push({
+      tag: match[1].toUpperCase(),
+      text: match[2].trim(),
     });
-    order++;
   }
 
-  // Pair Vietnamese chunks with matching target chunks
+  const chunks: ScriptChunk[] = [];
   const pairs: ParsedPair[] = [];
-  let currentVi = '';
+  let currentVi: string | null = null;
+  let currentHasCue = false;
   let pairIdx = 1;
+  let chunkOrder = 1;
 
-  for (const chunk of chunks) {
-    if (chunk.lang === 'vi') {
-      currentVi = chunk.text;
-    } else if (chunk.lang === targetLang) {
+  for (const entry of tagEntries) {
+    if (entry.tag === 'CUE') {
+      // Mark cue for the current or upcoming pair
+      currentHasCue = true;
+      continue;
+    }
+
+    if (entry.tag === 'VI') {
+      // If there was an unclosed previous VI chunk, push it first as incomplete pair
+      if (currentVi !== null) {
+        pairs.push({
+          id: `pair-${pairIdx}`,
+          vi: currentVi,
+          target: '',
+          order: pairIdx,
+          hasCue: currentHasCue,
+        });
+        pairIdx++;
+        currentHasCue = false;
+      }
+
+      currentVi = entry.text;
+      chunks.push({
+        id: `chunk-${chunkOrder}`,
+        order: chunkOrder,
+        lang: 'vi',
+        text: entry.text,
+      });
+      chunkOrder++;
+    } else if (entry.tag === targetLang.toUpperCase()) {
       pairs.push({
         id: `pair-${pairIdx}`,
-        vi: currentVi,
-        target: chunk.text,
+        vi: currentVi ?? '',
+        target: entry.text,
         order: pairIdx,
+        hasCue: currentHasCue,
       });
       pairIdx++;
-      currentVi = '';
+      currentVi = null;
+      currentHasCue = false;
+
+      chunks.push({
+        id: `chunk-${chunkOrder}`,
+        order: chunkOrder,
+        lang: targetLang,
+        text: entry.text,
+      });
+      chunkOrder++;
     }
   }
 
   // If there's an unmatched trailing VI chunk
-  if (currentVi) {
+  if (currentVi !== null) {
     pairs.push({
       id: `pair-${pairIdx}`,
       vi: currentVi,
       target: '',
       order: pairIdx,
+      hasCue: currentHasCue,
     });
   }
 
   return { chunks, pairs };
+}
+
+/**
+ * Rebuilds interleaved tagged script string from pairs list, preserving CUE tags.
+ */
+export function rebuildTaggedScriptFromPairs(
+  pairsList: ParsedPair[],
+  targetLang: SupportedLanguage = 'en'
+): string {
+  const targetTag = targetLang.toUpperCase();
+  return pairsList
+    .map((p) => {
+      const vi = p.vi.trim();
+      const target = p.target.trim();
+      const cueLine = p.hasCue ? '\n[CUE]' : '';
+      return `[VI] ${vi}${cueLine}\n[${targetTag}] ${target}`;
+    })
+    .join('\n\n');
+}
+
+/**
+ * Validates tagged script for common syntax inconsistencies and readability issues.
+ */
+export function validateTaggedScript(
+  content: string,
+  targetLang: SupportedLanguage = 'en'
+): ScriptValidationResult {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+
+  if (!content || !content.trim()) {
+    return {
+      isValid: false,
+      pairCount: 0,
+      warnings: [],
+      errors: ['Kịch bản đang trống. Vui lòng nhập nội dung.'],
+    };
+  }
+
+  const viMatches = content.match(/\[VI\]/gi) || [];
+  const targetTagRegex = new RegExp(`\\[${targetLang}\\]`, 'gi');
+  const targetMatches = content.match(targetTagRegex) || [];
+
+  if (viMatches.length === 0) {
+    errors.push('Thiếu thẻ [VI]. Cần ít nhất một thẻ [VI] để nhận diện câu tiếng Việt.');
+  }
+
+  if (targetMatches.length === 0) {
+    errors.push(`Thiếu thẻ [${targetLang.toUpperCase()}]. Cần ít nhất một thẻ câu dịch ngoại ngữ.`);
+  }
+
+  if (viMatches.length !== targetMatches.length && viMatches.length > 0 && targetMatches.length > 0) {
+    warnings.push(
+      `Số lượng thẻ chưa khớp: có ${viMatches.length} thẻ [VI] nhưng có ${targetMatches.length} thẻ [${targetLang.toUpperCase()}]. Một số câu có thể bị thiếu cặp.`
+    );
+  }
+
+  // Detect unknown or mistyped tags like [VN], [VIE], [ENG], [JP]
+  const suspectTags = content.match(/\[(VN|VIE|ENG|JP|JPN|ENGLISH|VIETNAM)\]/gi) || [];
+  if (suspectTags.length > 0) {
+    const uniqueSuspects = Array.from(new Set(suspectTags.map((t) => t.toUpperCase())));
+    warnings.push(
+      `Phát hiện thẻ cú pháp lạ: ${uniqueSuspects.join(', ')}. Hệ thống chỉ hỗ trợ [VI], [${targetLang.toUpperCase()}], [CUE].`
+    );
+  }
+
+  const { pairs } = parseTaggedScript(content, targetLang);
+
+  // Check for overly long sentences (> 25 words) that impair Shadowing effectiveness
+  pairs.forEach((pair, idx) => {
+    const viWords = countWords(pair.vi);
+    const targetWords = countWords(pair.target);
+
+    if (viWords > 28 || targetWords > 28) {
+      warnings.push(
+        `Cặp câu #${idx + 1} khá dài (${Math.max(viWords, targetWords)} từ). Khuyến nghị chia nhỏ câu để việc luyện Shadowing tự nhiên hơn.`
+      );
+    }
+    if (!pair.vi && pair.target) {
+      warnings.push(`Cặp câu #${idx + 1} thiếu nội dung tiếng Việt.`);
+    }
+    if (pair.vi && !pair.target) {
+      warnings.push(`Cặp câu #${idx + 1} thiếu câu dịch ngoại ngữ.`);
+    }
+  });
+
+  return {
+    isValid: errors.length === 0 && pairs.length > 0,
+    pairCount: pairs.length,
+    warnings,
+    errors,
+  };
 }

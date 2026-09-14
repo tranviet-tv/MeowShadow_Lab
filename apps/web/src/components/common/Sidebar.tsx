@@ -94,7 +94,7 @@ export function Sidebar() {
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
             <span>Script-LLM Worker</span>
           </span>
-          <span className="text-emerald-400 font-medium">Ready (:8002)</span>
+          <span className="text-emerald-400 font-medium">Ready (:8001)</span>
         </div>
         <div className="flex items-center justify-between text-[11px] text-slate-400">
           <span className="flex items-center space-x-1.5">

@@ -77,20 +77,33 @@ export function RenderProgressModal({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (targetLessonId) {
+      setCompletedLessonId(targetLessonId);
+    }
+  }, [targetLessonId]);
+
+  useEffect(() => {
     if (!isOpen || !taskId) return;
 
     // Reset state
     setStatus('PARSING');
     setPercent(10);
     setStepMessage('Đang phân tích cú pháp thẻ kịch bản song ngữ...');
+    setCompletedLessonId(targetLessonId);
     setError(null);
 
     let isClosed = false;
+    let hasWsProgress = false;
 
     // 1. Try real WebSocket subscription
     const unsubscribeWs = api.ws.subscribeTaskProgress(taskId, {
       onProgress: (event: TaskProgressEvent) => {
         if (isClosed) return;
+        hasWsProgress = true;
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
         setStatus(event.status);
         setPercent(event.progressPercent);
         if (event.currentStepMessage) {
@@ -102,20 +115,28 @@ export function RenderProgressModal({
       },
       onComplete: (lessonId: string) => {
         if (isClosed) return;
+        hasWsProgress = true;
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
         setStatus('COMPLETED');
         setPercent(100);
         setStepMessage('Quá trình render âm thanh hoàn tất 100%!');
         setCompletedLessonId(lessonId || targetLessonId);
       },
       onError: () => {
-        // Fallback progress simulator when WS is offline
+        // Fallback progress simulator runs when WS is offline
       },
     });
 
     // 2. Intelligent fallback simulator: Smoothly advances stages if WS has no events
     let currentPct = 10;
     timerRef.current = setInterval(() => {
-      if (isClosed) return;
+      if (isClosed || hasWsProgress) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        return;
+      }
 
       currentPct += Math.floor(Math.random() * 8) + 5;
 

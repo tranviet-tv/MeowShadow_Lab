@@ -10,7 +10,7 @@ export interface HotkeyDefinition {
 }
 
 export const HOTKEYS_LIST: HotkeyDefinition[] = [
-  { key: 'Space', description: 'Tạm dừng / Tiếp tục phát', actionName: 'Play/Pause' },
+  { key: 'K', description: 'Tạm dừng / Tiếp tục phát', actionName: 'Play/Pause' },
   { key: 'R', description: 'Tua về đầu câu & lặp lại để nhại giọng', actionName: 'Repeat Chunk' },
   { key: 'J', description: 'Tua lùi 5 giây', actionName: 'Rewind 5s' },
   { key: 'L', description: 'Tua tới 5 giây', actionName: 'Forward 5s' },
@@ -48,6 +48,7 @@ export function usePlayerHotkeys(enabled: boolean = true) {
       }
 
       switch (e.code) {
+        case 'KeyK':
         case 'Space': {
           e.preventDefault();
           togglePlay();
@@ -62,13 +63,15 @@ export function usePlayerHotkeys(enabled: boolean = true) {
 
         case 'KeyJ': {
           e.preventDefault();
-          seek(currentTime - 5);
+          const current = usePlayerStore.getState().currentTime;
+          seek(current - 5);
           break;
         }
 
         case 'KeyL': {
           e.preventDefault();
-          seek(currentTime + 5);
+          const current = usePlayerStore.getState().currentTime;
+          seek(current + 5);
           break;
         }
 
@@ -80,13 +83,15 @@ export function usePlayerHotkeys(enabled: boolean = true) {
 
         case 'ArrowUp': {
           e.preventDefault();
-          setVolume(volume + 0.1);
+          const currentVol = usePlayerStore.getState().volume;
+          setVolume(currentVol + 0.1);
           break;
         }
 
         case 'ArrowDown': {
           e.preventDefault();
-          setVolume(volume - 0.1);
+          const currentVol = usePlayerStore.getState().volume;
+          setVolume(currentVol - 0.1);
           break;
         }
 
@@ -101,11 +106,9 @@ export function usePlayerHotkeys(enabled: boolean = true) {
     };
   }, [
     enabled,
-    currentTime,
     togglePlay,
     seek,
     repeatCurrentChunk,
-    volume,
     setVolume,
     toggleMute,
   ]);

@@ -120,7 +120,7 @@ export function WordCounter() {
             <span>Nhịp điệu Shadowing</span>
           </div>
           <div className="text-lg font-bold text-emerald-300 tracking-tight">
-            1.5s / 3.5s
+            {pacingConfig.silenceAfterViSec.toFixed(1)}s / {pacingConfig.silenceAfterTargetSec.toFixed(1)}s
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
             Lặng VI / Lặng Ngoại ngữ

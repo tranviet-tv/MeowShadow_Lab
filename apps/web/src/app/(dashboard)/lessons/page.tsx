@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import {
   BookOpen,
@@ -13,8 +13,11 @@ import {
   Download,
   Filter,
   ArrowRight,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import type { LessonItem, SupportedLanguage } from '@meowshadow/types';
+import { api } from '@/lib/api';
 import { ExportModal } from '@/components/player/ExportModal';
 import { formatDuration } from '@/lib/utils';
 
@@ -94,19 +97,46 @@ const SAMPLE_LESSONS: LessonItem[] = [
 ];
 
 export default function LessonsPage() {
+  const [lessons, setLessons] = useState<LessonItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUsingDemo, setIsUsingDemo] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLang, setSelectedLang] = useState<'all' | 'en' | 'ja'>('all');
   const [exportLesson, setExportLesson] = useState<LessonItem | null>(null);
 
+  const fetchLessons = async () => {
+    setIsLoading(true);
+    try {
+      const res = await api.lessons.list({ page: 1, limit: 50 });
+      const fetched = res.data?.items || (Array.isArray(res.data) ? res.data : []);
+      if (fetched && fetched.length > 0) {
+        setLessons(fetched);
+        setIsUsingDemo(false);
+      } else {
+        setLessons(SAMPLE_LESSONS);
+        setIsUsingDemo(true);
+      }
+    } catch {
+      setLessons(SAMPLE_LESSONS);
+      setIsUsingDemo(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLessons();
+  }, []);
+
   const filteredLessons = useMemo(() => {
-    return SAMPLE_LESSONS.filter((lesson) => {
+    return lessons.filter((lesson) => {
       const matchLang =
         selectedLang === 'all' || lesson.targetLanguage === selectedLang;
       const matchSearch =
         lesson.title.toLowerCase().includes(searchQuery.toLowerCase());
       return matchLang && matchSearch;
     });
-  }, [searchQuery, selectedLang]);
+  }, [lessons, searchQuery, selectedLang]);
 
   return (
     <div className="space-y-6 pb-12">
@@ -125,13 +155,29 @@ export default function LessonsPage() {
           </p>
         </div>
 
-        <Link
-          href="/studio"
-          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 flex items-center space-x-2 transition-all self-start md:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tạo Bài Học Mới</span>
-        </Link>
+        <div className="flex items-center space-x-2 self-start md:self-auto">
+          {isUsingDemo && (
+            <span className="hidden sm:inline-block text-[11px] px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium">
+              Chế độ Demo mẫu
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={fetchLessons}
+            disabled={isLoading}
+            className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white transition-colors disabled:opacity-50"
+            title="Tải lại danh sách từ Database"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
+          </button>
+          <Link
+            href="/studio"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 flex items-center space-x-2 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tạo Bài Học Mới</span>
+          </Link>
+        </div>
       </div>
 
       {/* Filter & Search Bar */}
@@ -147,7 +193,7 @@ export default function LessonsPage() {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Tất cả bài học ({SAMPLE_LESSONS.length})
+            Tất cả bài học ({lessons.length})
           </button>
           <button
             type="button"

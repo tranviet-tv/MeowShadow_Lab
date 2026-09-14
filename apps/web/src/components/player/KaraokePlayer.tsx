@@ -87,7 +87,14 @@ export function KaraokePlayer() {
     }
   };
 
+  const [audioError, setAudioError] = useState<string | null>(null);
+
   const handleEnded = () => {
+    setIsPlaying(false);
+  };
+
+  const handleAudioError = () => {
+    setAudioError('File âm thanh chưa sẵn sàng hoặc đang được xử lý ở backend.');
     setIsPlaying(false);
   };
 
@@ -101,8 +108,22 @@ export function KaraokePlayer() {
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={handleEnded}
+          onError={handleAudioError}
           preload="metadata"
         />
+      )}
+
+      {audioError && (
+        <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center justify-between animate-in fade-in">
+          <span>{audioError}</span>
+          <button
+            type="button"
+            onClick={() => setAudioError(null)}
+            className="text-[11px] underline text-amber-400 hover:text-amber-200"
+          >
+            Đóng
+          </button>
+        </div>
       )}
 
       {/* Top Lesson Title & Meta Info */}
@@ -149,7 +170,7 @@ export function KaraokePlayer() {
         </div>
         <div className="flex flex-wrap items-center gap-2 font-mono">
           <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-200">
-            <kbd className="text-indigo-400 font-bold">Space</kbd> Play/Pause
+            <kbd className="text-indigo-400 font-bold">K</kbd> Play/Pause
           </span>
           <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-200">
             <kbd className="text-amber-400 font-bold">R</kbd> Nhại lại câu

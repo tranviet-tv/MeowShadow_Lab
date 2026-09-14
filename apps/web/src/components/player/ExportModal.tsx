@@ -82,31 +82,52 @@ export function ExportModal({
 }: ExportModalProps) {
   const [downloadingFormat, setDownloadingFormat] = useState<string | null>(null);
   const [downloadedFormats, setDownloadedFormats] = useState<Record<string, boolean>>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleDownload = (format: 'mp3' | 'srt' | 'vtt' | 'zip') => {
+  const handleDownload = async (format: 'mp3' | 'srt' | 'vtt' | 'zip') => {
+    setErrorMessage(null);
     setDownloadingFormat(format);
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const downloadUrl = `${baseUrl}/api/v1/lessons/${lessonId}/export?format=${format}`;
+    const isDemoLesson =
+      lessonId.startsWith('sample') ||
+      lessonId.startsWith('lesson-daily') ||
+      lessonId.startsWith('lesson-shadowing') ||
+      lessonId.startsWith('lesson-japanese');
 
-    // Create invisible anchor tag to trigger browser file download
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.setAttribute(
-      'download',
-      `${lessonTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${format}`
-    );
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const downloadUrl = `/api/v1/lessons/${lessonId}/export?format=${format}`;
 
-    setTimeout(() => {
-      setDownloadingFormat(null);
+    try {
+      const checkRes = await fetch(downloadUrl, { method: 'HEAD' }).catch(() => null);
+      if (checkRes && !checkRes.ok && checkRes.status === 404) {
+        setErrorMessage(
+          isDemoLesson
+            ? 'Bài học mẫu này chưa có file âm thanh vật lý trên server. Hãy tạo bài học mới từ Studio để tải tài liệu thật.'
+            : 'File tài liệu chưa sẵn sàng trên máy chủ backend. Vui lòng thử lại sau.'
+        );
+        setDownloadingFormat(null);
+        return;
+      }
+
+      // Create invisible anchor tag to trigger browser file download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute(
+        'download',
+        `${lessonTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${format}`
+      );
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       setDownloadedFormats((prev) => ({ ...prev, [format]: true }));
-    }, 1200);
+    } catch {
+      window.open(downloadUrl, '_blank');
+    } finally {
+      setDownloadingFormat(null);
+    }
   };
 
   return (
@@ -136,6 +157,13 @@ export function ExportModal({
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Error notification if demo lesson or offline */}
+        {errorMessage && (
+          <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium flex items-center space-x-2 animate-in fade-in">
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         {/* Audio Spec Badges */}
         <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">

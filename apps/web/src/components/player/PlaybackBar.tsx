@@ -33,11 +33,23 @@ export function PlaybackBar() {
     toggleAutoScroll,
   } = usePlayerStore();
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const [isScrubbing, setIsScrubbing] = React.useState(false);
+  const [scrubValue, setScrubValue] = React.useState<number | null>(null);
+
+  const displayTime = isScrubbing && scrubValue !== null ? scrubValue : currentTime;
+  const progressPercent = duration > 0 ? (displayTime / duration) * 100 : 0;
 
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
-    seek(val);
+    setScrubValue(val);
+  };
+
+  const handleSeekEnd = () => {
+    if (scrubValue !== null) {
+      seek(scrubValue);
+      setScrubValue(null);
+    }
+    setIsScrubbing(false);
   };
 
   const skipSeconds = (delta: number) => {
@@ -56,7 +68,11 @@ export function PlaybackBar() {
             min={0}
             max={duration || 100}
             step={0.1}
-            value={currentTime}
+            value={displayTime}
+            onMouseDown={() => setIsScrubbing(true)}
+            onTouchStart={() => setIsScrubbing(true)}
+            onMouseUp={handleSeekEnd}
+            onTouchEnd={handleSeekEnd}
             onChange={handleSeekChange}
             className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:h-2 transition-all"
           />
@@ -67,7 +83,7 @@ export function PlaybackBar() {
         </div>
 
         <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(displayTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
       </div>
@@ -125,7 +141,7 @@ export function PlaybackBar() {
             type="button"
             onClick={togglePlay}
             className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center transition-transform hover:scale-105"
-            title={isPlaying ? 'Tạm dừng (Space)' : 'Phát bài học (Space)'}
+            title={isPlaying ? 'Tạm dừng (K)' : 'Phát bài học (K)'}
           >
             {isPlaying ? (
               <Pause className="w-5 h-5 fill-current" />

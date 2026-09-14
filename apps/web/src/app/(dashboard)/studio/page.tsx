@@ -6,6 +6,8 @@ import { Sparkles, Sliders, Volume2, Wand2, FileCode, Play, Layers } from 'lucid
 import { SUPPORTED_LANGUAGES } from '@/lib/constants';
 
 import { useState } from 'react';
+import { api } from '@/lib/api';
+import { parseTaggedScript, countWords, estimateAudioDuration } from '@/lib/utils';
 import { AIActionBar } from '@/components/studio/AIActionBar';
 import { ScriptEditor } from '@/components/studio/ScriptEditor';
 import { WordCounter } from '@/components/studio/WordCounter';
@@ -19,15 +21,102 @@ export default function StudioPage() {
     setTitle,
     targetLanguage,
     setTargetLanguage,
+    scriptContent,
+    pacingConfig,
   } = useStudioStore();
 
   const [isRenderModalOpen, setIsRenderModalOpen] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+  const [createdLessonId, setCreatedLessonId] = useState<string>('sample-1');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleStartRender = () => {
-    const taskId = `task-${Date.now()}`;
-    setCurrentTaskId(taskId);
-    setIsRenderModalOpen(true);
+  const handleStartRender = async () => {
+    const { chunks, pairs } = parseTaggedScript(scriptContent, targetLanguage);
+    if (pairs.length === 0) {
+      setErrorMessage('Vui lòng nhập ít nhất một cặp câu song ngữ trước khi tạo bài học.');
+      setTimeout(() => setErrorMessage(null), 3500);
+      return;
+    }
+
+    setErrorMessage(null);
+    setIsSubmitting(true);
+
+    const words = countWords(scriptContent);
+    const estDuration = estimateAudioDuration(words, pairs.length * 5);
+
+    try {
+
+      // 1. Create lesson in Gateway PostgreSQL
+      const createRes = await api.lessons.create({
+        title: title.trim() || 'Bài học Shadowing mới',
+        targetLanguage,
+        pacingConfig,
+        transcriptChunks: chunks,
+        totalWords: words,
+        durationSec: estDuration,
+      });
+
+      const lessonId = createRes.data?.id;
+      if (!lessonId) {
+        throw new Error('Máy chủ không trả về mã định danh bài học hợp lệ.');
+      }
+      setCreatedLessonId(lessonId);
+
+      // 2. Dispatch audio generation job
+      let taskId = `task-${lessonId}`;
+      try {
+        const audioRes = await api.audio.generate({
+          lessonId,
+          title: title.trim() || 'Bài học Shadowing mới',
+          targetLanguage,
+          sourceText: scriptContent,
+          pacingConfig,
+          transcriptChunks: chunks,
+        });
+        if (audioRes.data?.taskId) {
+          taskId = audioRes.data.taskId;
+        }
+      } catch (audioErr) {
+        console.warn('Audio generation dispatch error:', audioErr);
+      }
+
+      setCurrentTaskId(taskId);
+      setIsRenderModalOpen(true);
+    } catch (err: unknown) {
+      console.warn('Backend unavailable, falling back to local simulation with user script', err);
+      const errMsg = err instanceof Error ? err.message : 'Không thể kết nối đến máy chủ backend';
+      setErrorMessage(`Cảnh báo: ${errMsg}. Đang lưu kịch bản vào bộ nhớ trình duyệt.`);
+      setTimeout(() => setErrorMessage(null), 4500);
+
+      const fallbackId = `lesson-${Date.now()}`;
+      if (typeof window !== 'undefined') {
+        const localLesson = {
+          id: fallbackId,
+          title: title.trim() || 'Bài học Shadowing mới',
+          targetLanguage,
+          sourceLanguage: 'vi',
+          totalWords: words,
+          durationSec: estDuration,
+          audioUrl: `/api/v1/audio/stream/${fallbackId}`,
+          srtUrl: `/api/v1/lessons/${fallbackId}/export?format=srt`,
+          createdAt: new Date().toISOString(),
+          pacingConfig,
+          transcriptChunks: chunks,
+        };
+        try {
+          localStorage.setItem(`msl_lesson_${fallbackId}`, JSON.stringify(localLesson));
+        } catch {
+          // Ignore quota error
+        }
+      }
+
+      setCreatedLessonId(fallbackId);
+      setCurrentTaskId(`task-${fallbackId}`);
+      setIsRenderModalOpen(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -122,10 +211,18 @@ export default function StudioPage() {
         </div>
       </div>
 
+      {/* Error banner if validation or submission failed */}
+      {errorMessage && (
+        <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center space-x-2 animate-in fade-in">
+          <span>{errorMessage}</span>
+        </div>
+      )}
+
       {/* Render Progress WebSocket Modal */}
       <RenderProgressModal
         isOpen={isRenderModalOpen}
         taskId={currentTaskId}
+        targetLessonId={createdLessonId}
         onClose={() => setIsRenderModalOpen(false)}
       />
     </div>

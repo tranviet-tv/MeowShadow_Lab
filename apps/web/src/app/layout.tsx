@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className={`dark ${inter.variable}`}>
-      <body className="bg-[#090d16] text-slate-100 min-h-screen antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
+      <body className="bg-background text-foreground min-h-screen antialiased selection:bg-indigo-500/30 selection:text-indigo-200 transition-colors duration-200">
         {children}
       </body>
     </html>

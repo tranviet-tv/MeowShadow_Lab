@@ -43,6 +43,7 @@ export function WaveformVisualizer({
   const [isHovered, setIsHovered] = useState(false);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [scrubTime, setScrubTime] = useState<number | null>(null);
 
   // Fetch real waveform peaks from backend if lessonId is provided
   useEffect(() => {
@@ -86,8 +87,9 @@ export function WaveformVisualizer({
     };
   }, [lessonId]);
 
-  // Compute progress ratio
-  const progressRatio = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
+  // Compute active time and progress ratio
+  const activeTime = isDragging && scrubTime !== null ? scrubTime : currentTime;
+  const progressRatio = duration > 0 ? Math.min(1, Math.max(0, activeTime / duration)) : 0;
 
   // Draw waveform canvas
   const drawWaveform = useCallback(() => {
@@ -168,6 +170,40 @@ export function WaveformVisualizer({
     return () => window.removeEventListener('resize', handleResize);
   }, [height, drawWaveform]);
 
+  // Window drag event listeners to prevent stuttering and handle drag release outside container
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current || duration <= 0) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const currentX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+      const ratio = currentX / rect.width;
+      const targetTime = ratio * duration;
+      setScrubTime(targetTime);
+      setHoverTime(targetTime);
+    };
+
+    const handleWindowMouseUp = (e: MouseEvent) => {
+      if (containerRef.current && duration > 0) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const currentX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+        const ratio = currentX / rect.width;
+        seek(ratio * duration);
+      }
+      setIsDragging(false);
+      setScrubTime(null);
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [isDragging, duration, seek]);
+
   // Scrubbing & click handlers
   const handleSeekFromEvent = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current || duration <= 0) return;
@@ -179,15 +215,11 @@ export function WaveformVisualizer({
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current || duration <= 0) return;
+    if (!containerRef.current || duration <= 0 || isDragging) return;
     const rect = containerRef.current.getBoundingClientRect();
     const currentX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
     const ratio = currentX / rect.width;
     setHoverTime(ratio * duration);
-
-    if (isDragging) {
-      seek(ratio * duration);
-    }
   };
 
   return (
@@ -205,12 +237,12 @@ export function WaveformVisualizer({
         </div>
 
         <div className="font-mono text-xs text-slate-400 flex items-center space-x-2">
-          {isHovered && hoverTime !== null && (
+          {(isHovered || isDragging) && hoverTime !== null && (
             <span className="text-amber-300 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
               Tua đến: {formatTime(hoverTime)}
             </span>
           )}
-          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(activeTime)}</span>
           <span className="text-slate-600">/</span>
           <span>{formatTime(duration)}</span>
         </div>
@@ -221,15 +253,20 @@ export function WaveformVisualizer({
         ref={containerRef}
         onClick={handleSeekFromEvent}
         onMouseDown={(e) => {
+          if (!containerRef.current || duration <= 0) return;
+          const rect = containerRef.current.getBoundingClientRect();
+          const clickX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+          const ratio = clickX / rect.width;
+          const targetTime = ratio * duration;
+          setScrubTime(targetTime);
           setIsDragging(true);
-          handleSeekFromEvent(e);
         }}
-        onMouseUp={() => setIsDragging(false)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => {
           setIsHovered(false);
-          setIsDragging(false);
-          setHoverTime(null);
+          if (!isDragging) {
+            setHoverTime(null);
+          }
         }}
         onMouseMove={handleMouseMove}
         className="relative w-full rounded-xl bg-slate-950/80 border border-slate-800/90 overflow-hidden cursor-pointer hover:border-indigo-500/60 transition-colors py-1"
@@ -241,7 +278,7 @@ export function WaveformVisualizer({
         />
 
         {/* Hover preview marker line */}
-        {isHovered && hoverTime !== null && duration > 0 && (
+        {(isHovered || isDragging) && hoverTime !== null && duration > 0 && (
           <div
             className="absolute top-0 bottom-0 w-[1px] bg-amber-400/80 pointer-events-none"
             style={{
