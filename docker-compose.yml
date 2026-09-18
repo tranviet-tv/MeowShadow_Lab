@@ -119,6 +119,7 @@ services:
       - REDIS_ADDR=redis-broker:6379
       - STORAGE_DIR=/app/storage
       - JWT_SECRET=${JWT_SECRET:-meowshadow_super_secret_jwt_key_2026_change_in_production!}
+      - TTS_ENGINE_URL=http://tts-engine-service:8002
     volumes:
       - storage-data:/app/storage
     depends_on:
@@ -189,6 +190,12 @@ services:
         condition: service_healthy
     networks:
       - meowshadow-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   # ============================================================================
   # 6. PYTHON WORKER: AUDIO PROCESSOR & PACING SERVICE (SPRINT 1)
