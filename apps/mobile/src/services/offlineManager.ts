@@ -78,7 +78,8 @@ class OfflineSyncManager {
    * Push unsynced offline playback sessions to Golang Gateway PostgreSQL
    */
   async syncOfflineProgress(
-    apiBaseUrl = "http://localhost:8000"
+    apiBaseUrl = "http://localhost:8000",
+    token?: string
   ): Promise<SyncResult> {
     const unsynced = await sqliteDb.getUnsyncedProgress();
 
@@ -91,6 +92,26 @@ class OfflineSyncManager {
       };
     }
 
+    let authToken = token;
+    if (!authToken) {
+      try {
+        // Attempt guest login to obtain a valid bearer token if none provided
+        const guestRes = await fetch(`${apiBaseUrl}/api/v1/auth/guest`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        if (guestRes.ok) {
+          const guestData = await guestRes.json();
+          authToken =
+            guestData?.data?.accessToken ||
+            guestData?.data?.tokens?.access_token ||
+            guestData?.data?.access_token;
+        }
+      } catch {
+        // Proceed even if guest login fails
+      }
+    }
+
     const payload = {
       syncBatchId: `sync-${Date.now()}`,
       records: unsynced.map((r: OfflineProgressRecord) => ({
@@ -99,20 +120,25 @@ class OfflineSyncManager {
         shadowingRepeatCount: r.shadowing_repeat_count,
         isCompleted: r.is_completed === 1,
         version: r.version,
-        updatedAt: r.updated_at,
       })),
     };
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    if (authToken) {
+      headers["Authorization"] = `Bearer ${authToken}`;
+    }
+
     try {
-      // Post to Gateway progress sync endpoint
-      const response = await fetch(`${apiBaseUrl}/api/v1/progress/sync`, {
+      // Post to Gateway progress sync-batch endpoint
+      const response = await fetch(`${apiBaseUrl}/api/v1/progress/sync-batch`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        headers,
         body: JSON.stringify(payload),
       });
+
 
       const lessonIds = unsynced.map((r) => r.lesson_id);
 

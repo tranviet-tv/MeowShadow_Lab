@@ -116,7 +116,7 @@ export const SettingsScreen: React.FC = () => {
             <View style={styles.divider} />
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>WebSocket Streaming:</Text>
-              <Text style={styles.infoValue}>ws://localhost:8000/ws/render</Text>
+              <Text style={styles.infoValue}>ws://localhost:8000/ws/progress</Text>
             </View>
           </View>
         </View>

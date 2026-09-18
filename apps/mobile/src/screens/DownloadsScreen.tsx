@@ -1,6 +1,3 @@
-// Downloads Screen - Connected to SQLite Local Storage and Cloud Sync
-// English comments only per project rules
-
 import React, { useEffect } from "react";
 import {
   View,
@@ -10,11 +7,17 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { RootTabParamList } from "../types/navigation";
 import { useOfflineStore } from "../stores/offlineStore";
 import { LocalLessonRecord } from "../db/sqlite";
 import { Colors, Shadows } from "../theme/colors";
 
-export const DownloadsScreen: React.FC = () => {
+type DownloadsScreenProps = {
+  navigation?: BottomTabNavigationProp<RootTabParamList, "Downloads">;
+};
+
+export const DownloadsScreen: React.FC<DownloadsScreenProps> = ({ navigation }) => {
   const {
     lessons,
     isSyncing,
@@ -23,6 +26,7 @@ export const DownloadsScreen: React.FC = () => {
     deleteOfflineLesson,
     syncProgress,
   } = useOfflineStore();
+
 
   useEffect(() => {
     fetchOfflineLessons();
@@ -60,12 +64,20 @@ export const DownloadsScreen: React.FC = () => {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => deleteOfflineLesson(item.id)}
-        >
-          <Text style={styles.deleteButtonText}>✕</Text>
-        </TouchableOpacity>
+        <View style={styles.cardActions}>
+          <TouchableOpacity
+            style={styles.playButton}
+            onPress={() => navigation?.navigate("Player", { lessonId: item.id })}
+          >
+            <Text style={styles.playButtonText}>▶</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => deleteOfflineLesson(item.id)}
+          >
+            <Text style={styles.deleteButtonText}>✕</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -239,6 +251,25 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Colors.accentGreen,
   },
+  cardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginLeft: 12,
+  },
+  playButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  playButtonText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   deleteButton: {
     width: 32,
     height: 32,
@@ -246,7 +277,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceLight,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 12,
   },
   deleteButtonText: {
     color: Colors.textMuted,

@@ -62,13 +62,15 @@ export const KaraokeSubtitleStream: React.FC = () => {
 
             {/* Target Language Line */}
             <Text style={[styles.targetText, isActive && styles.activeTargetText]}>
-              {sub.textTarget}
+              {sub.textTarget || (sub as any).text || sub.textVi}
             </Text>
 
             {/* Vietnamese Meaning Line */}
-            <Text style={[styles.viText, isActive && styles.activeViText]}>
-              {sub.textVi}
-            </Text>
+            {Boolean(sub.textVi && sub.textTarget && sub.textVi !== sub.textTarget) && (
+              <Text style={[styles.viText, isActive && styles.activeViText]}>
+                {sub.textVi}
+              </Text>
+            )}
           </TouchableOpacity>
         );
       })}

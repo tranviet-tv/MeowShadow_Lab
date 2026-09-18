@@ -24,6 +24,7 @@ interface LessonItem {
   durationSec: number;
   wordCount: number;
   level: "Beginner" | "Intermediate" | "Advanced";
+  transcriptChunks?: any[];
 }
 
 const SAMPLE_LESSONS: LessonItem[] = [
@@ -61,8 +62,42 @@ type LibraryScreenProps = {
 };
 
 export const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
+  const [lessons, setLessons] = useState<LessonItem[]>(SAMPLE_LESSONS);
+  const [loading, setLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const { downloadLesson } = useOfflineStore();
+
+  const fetchLessonsFromApi = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/lessons");
+      if (res.ok) {
+        const json = await res.json();
+        const rawList = Array.isArray(json.data) ? json.data : (json.data?.lessons || []);
+        if (rawList.length > 0) {
+          const mapped: LessonItem[] = rawList.map((item: any) => ({
+            id: item.id,
+            title: item.title || "Untitled Lesson",
+            description: item.description || "Shadowing lesson with dual audio tracks.",
+            targetLanguage: (item.targetLanguage || item.target_language || "en").toLowerCase(),
+            durationSec: Math.round(item.durationSec || item.duration_sec || 120),
+            wordCount: item.wordCount || item.word_count || 100,
+            level: "Intermediate",
+            transcriptChunks: item.transcriptChunks || item.transcript_chunks || [],
+          }));
+          setLessons(mapped);
+        }
+      }
+    } catch {
+      // Keep existing lessons on network failure
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchLessonsFromApi();
+  }, []);
 
   const formatDuration = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
@@ -77,14 +112,27 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
   const handleDownload = async (item: LessonItem) => {
     setDownloadingId(item.id);
     try {
+      let chunks = item.transcriptChunks || [];
+      if (chunks.length === 0) {
+        try {
+          const detailRes = await fetch(`http://localhost:8000/api/v1/lessons/${item.id}`);
+          if (detailRes.ok) {
+            const detailJson = await detailRes.json();
+            chunks = detailJson.data?.transcriptChunks || detailJson.data?.transcript_chunks || [];
+          }
+        } catch {
+          // Ignore network fetch error and proceed
+        }
+      }
+
       await downloadLesson({
         id: item.id,
         title: item.title,
         targetLanguage: item.targetLanguage,
         durationSec: item.durationSec,
         audioUrl: `http://localhost:8000/api/v1/audio/stream/${item.id}`,
-        srtUrl: `http://localhost:8000/api/v1/lessons/${item.id}/export?format=srt`,
-        transcriptChunks: [],
+        srtUrl: `http://localhost:8000/api/v1/lessons/${item.id}/subtitles.srt`,
+        transcriptChunks: chunks,
       });
       alert("Đã lưu bài học thành công vào bộ nhớ máy (Offline Storage)!");
     } catch {
@@ -93,6 +141,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
       setDownloadingId(null);
     }
   };
+
 
   const renderLessonCard = ({ item }: { item: LessonItem }) => {
     const isEn = item.targetLanguage === "en";
@@ -157,12 +206,15 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
       </View>
 
       <FlatList
-        data={SAMPLE_LESSONS}
+        data={lessons}
         keyExtractor={(item) => item.id}
         renderItem={renderLessonCard}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshing={loading}
+        onRefresh={fetchLessonsFromApi}
       />
+
     </SafeAreaView>
   );
 };

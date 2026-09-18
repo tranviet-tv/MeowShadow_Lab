@@ -1,6 +1,8 @@
 // Local SQLite Database Storage Layer
 // English comments only per project rules
 
+import * as SQLite from "expo-sqlite";
+
 export interface LocalLessonRecord {
   id: string;
   title: string;
@@ -23,49 +25,44 @@ export interface OfflineProgressRecord {
 }
 
 /**
- * Universal SQLite client interface supporting Expo SQLite and portable in-memory backend
+ * SQLite database manager using expo-sqlite with graceful fallback
  */
 export class SQLiteDatabase {
-  private lessons: Map<string, LocalLessonRecord> = new Map();
-  private progress: Map<string, OfflineProgressRecord> = new Map();
+  private db: SQLite.SQLiteDatabase | null = null;
+  private lessonsFallback: Map<string, LocalLessonRecord> = new Map();
+  private progressFallback: Map<string, OfflineProgressRecord> = new Map();
   private initialized = false;
 
   async init(): Promise<void> {
     if (this.initialized) return;
 
-    // Seed sample offline lesson if empty
-    if (this.lessons.size === 0) {
-      const sampleLesson: LocalLessonRecord = {
-        id: "lesson-en-001",
-        title: "Morning Standup & Sprint Planning",
-        target_language: "en",
-        duration_sec: 580.0,
-        local_audio_path: "file:///data/user/0/com.meowshadow.mobile/files/audio/lesson-en-001.mp3",
-        local_srt_path: "file:///data/user/0/com.meowshadow.mobile/files/subtitles/lesson-en-001.srt",
-        transcript_chunks: JSON.stringify([
-          {
-            id: "chunk-1",
-            startTimeSec: 0.0,
-            endTimeSec: 4.2,
-            lang: "en",
-            textVi: "Chào buổi sáng mọi người.",
-            textTarget: "Good morning everyone.",
-          },
-        ]),
-        downloaded_at: new Date().toISOString(),
-      };
-      this.lessons.set(sampleLesson.id, sampleLesson);
+    try {
+      this.db = SQLite.openDatabaseSync("meowshadow.db");
+      this.db.execSync(`
+        CREATE TABLE IF NOT EXISTS local_lessons (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          target_language TEXT NOT NULL,
+          duration_sec REAL NOT NULL,
+          local_audio_path TEXT NOT NULL,
+          local_srt_path TEXT NOT NULL,
+          transcript_chunks TEXT NOT NULL,
+          downloaded_at TEXT NOT NULL
+        );
 
-      const sampleProgress: OfflineProgressRecord = {
-        lesson_id: "lesson-en-001",
-        playback_offset_sec: 142.5,
-        shadowing_repeat_count: 8,
-        is_completed: 0,
-        version: 1,
-        updated_at: new Date().toISOString(),
-        is_synced: 1,
-      };
-      this.progress.set(sampleProgress.lesson_id, sampleProgress);
+        CREATE TABLE IF NOT EXISTS offline_progress (
+          lesson_id TEXT PRIMARY KEY,
+          playback_offset_sec REAL NOT NULL,
+          shadowing_repeat_count INTEGER NOT NULL,
+          is_completed INTEGER NOT NULL,
+          version INTEGER NOT NULL,
+          updated_at TEXT NOT NULL,
+          is_synced INTEGER NOT NULL DEFAULT 0
+        );
+      `);
+    } catch {
+      // Native SQLite may not be available on Web or mock environment
+      this.db = null;
     }
 
     this.initialized = true;
@@ -74,24 +71,58 @@ export class SQLiteDatabase {
   // --- Lessons CRUD ---
   async saveLesson(lesson: LocalLessonRecord): Promise<void> {
     await this.init();
-    this.lessons.set(lesson.id, { ...lesson });
+    if (this.db) {
+      this.db.runSync(
+        `INSERT OR REPLACE INTO local_lessons (id, title, target_language, duration_sec, local_audio_path, local_srt_path, transcript_chunks, downloaded_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          lesson.id,
+          lesson.title,
+          lesson.target_language,
+          lesson.duration_sec,
+          lesson.local_audio_path,
+          lesson.local_srt_path,
+          lesson.transcript_chunks,
+          lesson.downloaded_at,
+        ]
+      );
+    } else {
+      this.lessonsFallback.set(lesson.id, { ...lesson });
+    }
   }
 
   async getAllLessons(): Promise<LocalLessonRecord[]> {
     await this.init();
-    return Array.from(this.lessons.values());
+    if (this.db) {
+      return this.db.getAllSync<LocalLessonRecord>(
+        "SELECT * FROM local_lessons ORDER BY downloaded_at DESC"
+      );
+    }
+    return Array.from(this.lessonsFallback.values());
   }
 
   async getLessonById(id: string): Promise<LocalLessonRecord | null> {
     await this.init();
-    return this.lessons.get(id) || null;
+    if (this.db) {
+      const row = this.db.getFirstSync<LocalLessonRecord>(
+        "SELECT * FROM local_lessons WHERE id = ?",
+        [id]
+      );
+      return row || null;
+    }
+    return this.lessonsFallback.get(id) || null;
   }
 
   async deleteLesson(id: string): Promise<boolean> {
     await this.init();
-    const removedLesson = this.lessons.delete(id);
-    this.progress.delete(id);
-    return removedLesson;
+    if (this.db) {
+      this.db.runSync("DELETE FROM local_lessons WHERE id = ?", [id]);
+      this.db.runSync("DELETE FROM offline_progress WHERE lesson_id = ?", [id]);
+      return true;
+    }
+    const removed = this.lessonsFallback.delete(id);
+    this.progressFallback.delete(id);
+    return removed;
   }
 
   // --- Offline Progress Tracking & Synchronization ---
@@ -102,44 +133,96 @@ export class SQLiteDatabase {
     isCompleted = false
   ): Promise<OfflineProgressRecord> {
     await this.init();
-    const existing = this.progress.get(lessonId);
-    const newVersion = existing ? existing.version + 1 : 1;
-    const currentRepeat = existing ? existing.shadowing_repeat_count + repeatIncrement : repeatIncrement;
+    let currentVersion = 1;
+    let currentRepeat = repeatIncrement;
+
+    if (this.db) {
+      const existing = this.db.getFirstSync<OfflineProgressRecord>(
+        "SELECT * FROM offline_progress WHERE lesson_id = ?",
+        [lessonId]
+      );
+      if (existing) {
+        currentVersion = existing.version + 1;
+        currentRepeat = existing.shadowing_repeat_count + repeatIncrement;
+      }
+    } else {
+      const existing = this.progressFallback.get(lessonId);
+      if (existing) {
+        currentVersion = existing.version + 1;
+        currentRepeat = existing.shadowing_repeat_count + repeatIncrement;
+      }
+    }
 
     const record: OfflineProgressRecord = {
       lesson_id: lessonId,
       playback_offset_sec: offsetSec,
       shadowing_repeat_count: currentRepeat,
       is_completed: isCompleted ? 1 : 0,
-      version: newVersion,
+      version: currentVersion,
       updated_at: new Date().toISOString(),
       is_synced: 0,
     };
 
-    this.progress.set(lessonId, record);
+    if (this.db) {
+      this.db.runSync(
+        `INSERT OR REPLACE INTO offline_progress (lesson_id, playback_offset_sec, shadowing_repeat_count, is_completed, version, updated_at, is_synced)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          record.lesson_id,
+          record.playback_offset_sec,
+          record.shadowing_repeat_count,
+          record.is_completed,
+          record.version,
+          record.updated_at,
+          record.is_synced ?? 0,
+        ]
+      );
+    } else {
+      this.progressFallback.set(lessonId, record);
+    }
+
     return record;
   }
 
   async getUnsyncedProgress(): Promise<OfflineProgressRecord[]> {
     await this.init();
-    const records = Array.from(this.progress.values());
-    return records.filter((r) => r.is_synced === 0);
+    if (this.db) {
+      return this.db.getAllSync<OfflineProgressRecord>(
+        "SELECT * FROM offline_progress WHERE is_synced = 0"
+      );
+    }
+    return Array.from(this.progressFallback.values()).filter((r) => r.is_synced === 0);
   }
 
   async markProgressAsSynced(lessonIds: string[]): Promise<void> {
     await this.init();
-    for (const id of lessonIds) {
-      const record = this.progress.get(id);
-      if (record) {
-        record.is_synced = 1;
-        this.progress.set(id, record);
+    if (lessonIds.length === 0) return;
+    if (this.db) {
+      const placeholders = lessonIds.map(() => "?").join(",");
+      this.db.runSync(
+        `UPDATE offline_progress SET is_synced = 1 WHERE lesson_id IN (${placeholders})`,
+        lessonIds
+      );
+    } else {
+      for (const id of lessonIds) {
+        const record = this.progressFallback.get(id);
+        if (record) {
+          record.is_synced = 1;
+          this.progressFallback.set(id, record);
+        }
       }
     }
   }
 
   async clearAll(): Promise<void> {
-    this.lessons.clear();
-    this.progress.clear();
+    if (this.db) {
+      this.db.execSync(`
+        DELETE FROM local_lessons;
+        DELETE FROM offline_progress;
+      `);
+    }
+    this.lessonsFallback.clear();
+    this.progressFallback.clear();
     this.initialized = false;
   }
 }

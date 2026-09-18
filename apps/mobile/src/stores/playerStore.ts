@@ -173,8 +173,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   syncFromNativeStatus: (positionSec: number, durationSec: number, isPlaying: boolean) => {
-    const { subtitles } = get();
-    let newActiveIndex = 0;
+    const { subtitles, activeSubtitleIndex } = get();
+    let newActiveIndex = activeSubtitleIndex;
     for (let i = 0; i < subtitles.length; i++) {
       if (
         positionSec >= subtitles[i].startTimeSec &&
@@ -182,6 +182,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       ) {
         newActiveIndex = i;
         break;
+      } else if (positionSec >= subtitles[i].startTimeSec) {
+        newActiveIndex = i;
       }
     }
 
@@ -193,3 +195,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     });
   },
 }));
+
+// Automatically bind native audio playback status updates to Zustand store
+audioService.addStatusListener((state) => {
+  if (state.isLoaded) {
+    usePlayerStore.getState().syncFromNativeStatus(
+      state.positionMillis / 1000,
+      state.durationMillis / 1000,
+      state.isPlaying
+    );
+  } else {
+    usePlayerStore.setState({ isPlaying: false });
+  }
+});

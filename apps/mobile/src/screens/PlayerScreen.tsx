@@ -13,13 +13,14 @@ import {
 import { RouteProp } from "@react-navigation/native";
 import { RootTabParamList } from "../types/navigation";
 import { usePlayerStore } from "../stores/playerStore";
+import { sqliteDb } from "../db/sqlite";
 import { LockScreenPlayer } from "../components/LockScreenPlayer";
 import { KaraokeSubtitleStream } from "../components/KaraokeSubtitleStream";
 import { Colors, Shadows } from "../theme/colors";
 
 type PlayerScreenRouteProp = RouteProp<RootTabParamList, "Player">;
 
-export const PlayerScreen: React.FC<{ route?: PlayerScreenRouteProp }> = () => {
+export const PlayerScreen: React.FC<{ route?: PlayerScreenRouteProp }> = ({ route }) => {
   const [activeTab, setActiveTab] = useState<"karaoke" | "lockscreen">("karaoke");
 
   const {
@@ -29,11 +30,146 @@ export const PlayerScreen: React.FC<{ route?: PlayerScreenRouteProp }> = () => {
     isPlaying,
     repeatCount,
     playbackRate,
+    loadLesson,
     togglePlay,
     seek,
     repeatCurrentChunk,
     setPlaybackRate,
   } = usePlayerStore();
+
+  const lessonId = route?.params?.lessonId;
+
+  const normalizeToSubtitleChunks = (
+    rawChunks: any[],
+    duration: number,
+    targetLang: string
+  ) => {
+    if (!rawChunks || rawChunks.length === 0) return [];
+
+    if (
+      rawChunks[0].startTimeSec !== undefined &&
+      (rawChunks[0].textTarget !== undefined || rawChunks[0].textVi !== undefined)
+    ) {
+      return rawChunks;
+    }
+
+    if (rawChunks[0].startTimeSec !== undefined && rawChunks[0].text !== undefined) {
+      return rawChunks.map((item, idx) => ({
+        id: String(item.id || `sub_${idx}`),
+        startTimeSec: item.startTimeSec,
+        endTimeSec: item.endTimeSec || item.startTimeSec + 3.0,
+        lang: item.lang || targetLang,
+        textVi: item.lang === "vi" ? item.text : "",
+        textTarget: item.lang !== "vi" ? item.text : item.text,
+      }));
+    }
+
+    const total = rawChunks.length;
+    const chunkDuration = (duration > 0 ? duration : total * 4.0) / total;
+    return rawChunks.map((c, idx) => {
+      const start = idx * chunkDuration;
+      const end = start + Math.max(1.0, chunkDuration - 0.3);
+      const isVi = c.lang === "vi";
+      return {
+        id: c.id || `chunk_${idx}`,
+        startTimeSec: start,
+        endTimeSec: end,
+        lang: c.lang || targetLang,
+        textVi: isVi ? c.text : "",
+        textTarget: !isVi ? c.text : c.text,
+      };
+    });
+  };
+
+  React.useEffect(() => {
+    if (!lessonId) return;
+    if (currentLesson?.id === lessonId) return;
+
+    const loadTargetLesson = async () => {
+      // 1. Check local SQLite storage first
+      try {
+        const local = await sqliteDb.getLessonById(lessonId);
+        if (local) {
+          let chunks = [];
+          try {
+            chunks = JSON.parse(local.transcript_chunks || "[]");
+          } catch {
+            chunks = [];
+          }
+          const normalized = normalizeToSubtitleChunks(
+            chunks,
+            local.duration_sec,
+            local.target_language || "en"
+          );
+          await loadLesson(
+            {
+              id: local.id,
+              title: local.title,
+              targetLanguage: (local.target_language || "en") as "en" | "ja" | "vi",
+              audioUrl: local.local_audio_path,
+              durationSec: local.duration_sec,
+            },
+            normalized
+          );
+          return;
+        }
+      } catch {
+        // Fallback to network
+      }
+
+      // 2. Fetch from backend API
+      try {
+        const res = await fetch(`http://localhost:8000/api/v1/lessons/${lessonId}`);
+        if (res.ok) {
+          const json = await res.json();
+          const data = json.data;
+          if (data) {
+            const rawAudioUrl = data.audioUrl || data.audio_url || `/api/v1/audio/stream/${lessonId}`;
+            const audioUrl = rawAudioUrl.startsWith("http")
+              ? rawAudioUrl
+              : `http://localhost:8000${rawAudioUrl}`;
+            const targetLanguage = (data.targetLanguage || data.target_language || "en") as "en" | "ja" | "vi";
+            const durationSec = data.durationSec || data.duration_sec || 60;
+
+            let finalChunks: any[] = [];
+            try {
+              const subRes = await fetch(`http://localhost:8000/api/v1/lessons/${lessonId}/subtitles?format=json`);
+              if (subRes.ok) {
+                const subJson = await subRes.json();
+                const subs = subJson.data?.subtitles || [];
+                if (subs.length > 0) {
+                  finalChunks = normalizeToSubtitleChunks(subs, durationSec, targetLanguage);
+                }
+              }
+            } catch {
+              // Ignore subtitle fetch failure
+            }
+
+            if (finalChunks.length === 0) {
+              const rawChunks = data.transcriptChunks || data.transcript_chunks || [];
+              finalChunks = normalizeToSubtitleChunks(rawChunks, durationSec, targetLanguage);
+            }
+
+            await loadLesson(
+              {
+                id: data.id,
+                title: data.title || "Lesson",
+                targetLanguage,
+                audioUrl,
+                durationSec,
+              },
+              finalChunks
+            );
+          }
+        }
+      } catch {
+        // Fallback gracefully
+      }
+    };
+
+    loadTargetLesson();
+  }, [lessonId]);
+
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);

@@ -75,7 +75,7 @@ export const LockScreenPlayer: React.FC = () => {
 
           {/* Active Speaking Sentence on Lockscreen */}
           <Text style={styles.activeDialogue} numberOfLines={2}>
-            {activeSub?.textTarget || "Đang chờ phát..."}
+            {activeSub?.textTarget || (activeSub as any)?.text || activeSub?.textVi || "Đang chờ phát..."}
           </Text>
         </View>
       </View>
