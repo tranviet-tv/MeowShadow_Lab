@@ -64,56 +64,32 @@ export default function StudioPage() {
       setCreatedLessonId(lessonId);
 
       // 2. Dispatch audio generation job
-      let taskId = `task-${lessonId}`;
-      try {
-        const audioRes = await api.audio.generate({
-          lessonId,
-          title: title.trim() || 'Bài học Shadowing mới',
-          targetLanguage,
-          sourceText: scriptContent,
-          pacingConfig,
-          transcriptChunks: chunks,
-        });
-        if (audioRes.data?.taskId) {
-          taskId = audioRes.data.taskId;
-        }
-      } catch (audioErr) {
-        console.warn('Audio generation dispatch error:', audioErr);
-      }
+      const isKokoro =
+        pacingConfig.targetVoice?.startsWith('kokoro-') ||
+        pacingConfig.viVoice?.startsWith('kokoro-');
 
+      const audioRes = await api.audio.generate({
+        lessonId,
+        title: title.trim() || 'Bài học Shadowing mới',
+        targetLanguage,
+        sourceText: scriptContent,
+        ttsEngine: isKokoro ? 'kokoro' : 'edge-tts',
+        pacingConfig,
+        transcriptChunks: chunks,
+      });
+
+      const taskId =
+        audioRes.data?.taskId ||
+        (audioRes.data as any)?.task_id ||
+        (audioRes as any)?.taskId ||
+        (audioRes as any)?.task_id ||
+        `task-${lessonId}`;
       setCurrentTaskId(taskId);
       setIsRenderModalOpen(true);
     } catch (err: unknown) {
-      console.warn('Backend unavailable, falling back to local simulation with user script', err);
+      console.error('Failed to create lesson or dispatch audio generation:', err);
       const errMsg = err instanceof Error ? err.message : 'Không thể kết nối đến máy chủ backend';
-      setErrorMessage(`Cảnh báo: ${errMsg}. Đang lưu kịch bản vào bộ nhớ trình duyệt.`);
-      setTimeout(() => setErrorMessage(null), 4500);
-
-      const fallbackId = `lesson-${Date.now()}`;
-      if (typeof window !== 'undefined') {
-        const localLesson = {
-          id: fallbackId,
-          title: title.trim() || 'Bài học Shadowing mới',
-          targetLanguage,
-          sourceLanguage: 'vi',
-          totalWords: words,
-          durationSec: estDuration,
-          audioUrl: `/api/v1/audio/stream/${fallbackId}`,
-          srtUrl: `/api/v1/lessons/${fallbackId}/export?format=srt`,
-          createdAt: new Date().toISOString(),
-          pacingConfig,
-          transcriptChunks: chunks,
-        };
-        try {
-          localStorage.setItem(`msl_lesson_${fallbackId}`, JSON.stringify(localLesson));
-        } catch {
-          // Ignore quota error
-        }
-      }
-
-      setCreatedLessonId(fallbackId);
-      setCurrentTaskId(`task-${fallbackId}`);
-      setIsRenderModalOpen(true);
+      setErrorMessage(`Lỗi tạo bài học: ${errMsg}. Vui lòng kiểm tra kết nối hệ thống.`);
     } finally {
       setIsSubmitting(false);
     }

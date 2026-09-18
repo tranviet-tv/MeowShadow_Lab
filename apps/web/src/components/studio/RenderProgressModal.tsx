@@ -93,81 +93,63 @@ export function RenderProgressModal({
     setError(null);
 
     let isClosed = false;
-    let hasWsProgress = false;
 
-    // 1. Try real WebSocket subscription
-    const unsubscribeWs = api.ws.subscribeTaskProgress(taskId, {
-      onProgress: (event: TaskProgressEvent) => {
-        if (isClosed) return;
-        hasWsProgress = true;
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-        setStatus(event.status);
-        setPercent(event.progressPercent);
-        if (event.currentStepMessage) {
-          setStepMessage(event.currentStepMessage);
-        }
-        if (event.resultLessonId) {
-          setCompletedLessonId(event.resultLessonId);
-        }
+    // Real WebSocket subscription for render progress
+    const unsubscribeWs = api.ws.subscribeTaskProgress(
+      taskId,
+      {
+        onProgress: (event: TaskProgressEvent) => {
+          if (isClosed) return;
+          setStatus(event.status);
+          setPercent(event.progressPercent);
+          if (event.currentStepMessage) {
+            setStepMessage(event.currentStepMessage);
+          }
+          if (event.resultLessonId) {
+            setCompletedLessonId(event.resultLessonId);
+          }
+          if (event.status === 'FAILED') {
+            setError(event.error || 'Quá trình render thất bại trên máy chủ.');
+          }
+        },
+        onComplete: (lessonId: string) => {
+          if (isClosed) return;
+          setStatus('COMPLETED');
+          setPercent(100);
+          setStepMessage('Quá trình render âm thanh hoàn tất 100%!');
+          setCompletedLessonId(lessonId || targetLessonId);
+        },
+        onError: (err) => {
+          if (isClosed) return;
+          console.warn('WebSocket subscription issue:', err);
+        },
       },
-      onComplete: (lessonId: string) => {
-        if (isClosed) return;
-        hasWsProgress = true;
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-        setStatus('COMPLETED');
-        setPercent(100);
-        setStepMessage('Quá trình render âm thanh hoàn tất 100%!');
-        setCompletedLessonId(lessonId || targetLessonId);
-      },
-      onError: () => {
-        // Fallback progress simulator runs when WS is offline
-      },
-    });
+      targetLessonId
+    );
 
-    // 2. Intelligent fallback simulator: Smoothly advances stages if WS has no events
-    let currentPct = 10;
-    timerRef.current = setInterval(() => {
-      if (isClosed || hasWsProgress) {
-        if (timerRef.current) clearInterval(timerRef.current);
-        return;
+    // Polling fallback to ensure completion is detected even if WebSocket is interrupted
+    const pollInterval = setInterval(async () => {
+      if (isClosed) return;
+      try {
+        const lessonRes = await api.lessons.getById(targetLessonId);
+        if (lessonRes.data && !isClosed) {
+          const l = lessonRes.data;
+          if (l.durationSec && l.durationSec > 0) {
+            setStatus('COMPLETED');
+            setPercent(100);
+            setStepMessage('Quá trình render âm thanh hoàn tất 100%!');
+            setCompletedLessonId(l.id || targetLessonId);
+          }
+        }
+      } catch {
+        // Silent catch during ongoing render polling
       }
-
-      currentPct += Math.floor(Math.random() * 8) + 5;
-
-      if (currentPct < 30) {
-        setStatus('PARSING');
-        setPercent(currentPct);
-        setStepMessage('Đang tách cú pháp các câu [VI] và ngoại ngữ...');
-      } else if (currentPct < 85) {
-        setStatus('SYNTHESIZING');
-        setPercent(currentPct);
-        setStepMessage(
-          `Đang tổng hợp giọng nói đa ngữ (${Math.round((currentPct - 30) / 10)} / 5 câu)...`
-        );
-      } else if (currentPct < 100) {
-        setStatus('MASTERING');
-        setPercent(currentPct);
-        setStepMessage(
-          'Đang ghép nối khoảng lặng Pacing và chuẩn hóa âm lượng EBU R128 (-16 LUFS)...'
-        );
-      } else {
-        setStatus('COMPLETED');
-        setPercent(100);
-        setStepMessage('Bài học đã sẵn sàng để phát Karaoke và luyện tập!');
-        if (timerRef.current) clearInterval(timerRef.current);
-      }
-    }, 450);
+    }, 2500);
 
     return () => {
       isClosed = true;
+      clearInterval(pollInterval);
       unsubscribeWs();
-      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [isOpen, taskId, targetLessonId]);
 
@@ -272,7 +254,15 @@ export function RenderProgressModal({
           })}
         </div>
 
-        {/* Action Button on Complete */}
+        {/* Error Notification Banner if Failed */}
+        {error && (
+          <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center space-x-2 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Action Button on Complete or Failure */}
         <div className="pt-2">
           {status === 'COMPLETED' ? (
             <button
@@ -283,6 +273,14 @@ export function RenderProgressModal({
               <Headphones className="w-4 h-4" />
               <span>Vào Trình Phát Karaoke Ngay</span>
               <ArrowRight className="w-4 h-4 ml-1" />
+            </button>
+          ) : status === 'FAILED' || error ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-2.5 px-4 rounded-xl font-semibold text-xs bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 transition-all flex items-center justify-center space-x-2"
+            >
+              <span>Đóng và kiểm tra lại cấu hình</span>
             </button>
           ) : (
             <div className="text-center text-xs text-slate-500 italic py-1">

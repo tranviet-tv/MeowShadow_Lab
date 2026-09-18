@@ -8,7 +8,8 @@ import { PlaybackBar } from './PlaybackBar';
 import { WaveformVisualizer } from './WaveformVisualizer';
 import { ExportModal } from './ExportModal';
 import { usePlayerHotkeys, HOTKEYS_LIST } from '@/hooks/usePlayerHotkeys';
-import { Headphones, Sparkles, BookOpen, Keyboard, Download } from 'lucide-react';
+import { Headphones, Sparkles, BookOpen, Keyboard, Download, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export function KaraokePlayer() {
   // Activate global hotkeys
@@ -205,6 +206,22 @@ export function KaraokePlayer() {
           ))
         )}
       </div>
+
+      {/* Persistent Audio Error Banner above playback bar */}
+      {audioError && (
+        <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            <span>{audioError}</span>
+          </div>
+          <Link
+            href="/studio"
+            className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 rounded-lg text-amber-200 text-xs font-bold transition-colors ml-2 flex-shrink-0"
+          >
+            Quay lại Studio
+          </Link>
+        </div>
+      )}
 
       {/* Sticky Bottom Playback Controller */}
       <PlaybackBar />

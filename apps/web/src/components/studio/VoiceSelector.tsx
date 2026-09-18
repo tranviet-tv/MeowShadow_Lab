@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStudioStore } from '@/stores/useStudioStore';
 import { AVAILABLE_VOICES, type VoiceOption } from '@/lib/constants';
-import { Volume2, VolumeX, Mic, CheckCircle2, Sparkles, User, UserCheck } from 'lucide-react';
+import { Volume2, VolumeX, Mic, CheckCircle2, Sparkles, User, UserCheck, Loader2 } from 'lucide-react';
+import { api } from '@/lib/api';
 
 export function VoiceSelector() {
   const {
@@ -13,11 +14,17 @@ export function VoiceSelector() {
   } = useStudioStore();
 
   const [activeTab, setActiveTab] = useState<'target' | 'vi'>('target');
+  const [loadingVoiceId, setLoadingVoiceId] = useState<string | null>(null);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const audioInstanceRef = useRef<HTMLAudioElement | null>(null);
 
-  // Stop speech synthesis when unmounting
+  // Stop speech audio when unmounting
   useEffect(() => {
     return () => {
+      if (audioInstanceRef.current) {
+        audioInstanceRef.current.pause();
+        audioInstanceRef.current = null;
+      }
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
@@ -32,34 +39,61 @@ export function VoiceSelector() {
     targetVoices.find((v) => v.id === pacingConfig.targetVoice) || targetVoices[0];
 
   /**
-   * Previews sample audio speech for the selected voice.
+   * Previews sample audio speech using Edge-TTS backend with fallback.
    */
-  const playVoicePreview = (voice: VoiceOption) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      return;
+  const playVoicePreview = async (voice: VoiceOption) => {
+    if (audioInstanceRef.current) {
+      audioInstanceRef.current.pause();
+      audioInstanceRef.current = null;
     }
 
     if (playingVoiceId === voice.id) {
-      window.speechSynthesis.cancel();
       setPlayingVoiceId(null);
       return;
     }
 
-    window.speechSynthesis.cancel();
-    setPlayingVoiceId(voice.id);
+    setLoadingVoiceId(voice.id);
+    try {
+      const speed = voice.lang === 'vi' ? pacingConfig.viSpeed : pacingConfig.targetSpeed;
+      const audioBlob = await api.audio.preview({
+        text: voice.previewSampleText,
+        voiceId: voice.id,
+        engine: voice.engine,
+        rate: speed,
+      });
 
-    const utterance = new SpeechSynthesisUtterance(voice.previewSampleText);
-    if (voice.lang === 'vi') utterance.lang = 'vi-VN';
-    else if (voice.lang === 'ja') utterance.lang = 'ja-JP';
-    else utterance.lang = 'en-US';
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audioInstanceRef.current = audio;
 
-    // Apply speed from pacing config
-    utterance.rate = voice.lang === 'vi' ? pacingConfig.viSpeed : pacingConfig.targetSpeed;
+      audio.onended = () => {
+        setPlayingVoiceId(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+      audio.onerror = () => {
+        setPlayingVoiceId(null);
+        URL.revokeObjectURL(audioUrl);
+      };
 
-    utterance.onend = () => setPlayingVoiceId(null);
-    utterance.onerror = () => setPlayingVoiceId(null);
-
-    window.speechSynthesis.speak(utterance);
+      setPlayingVoiceId(voice.id);
+      await audio.play();
+    } catch (err) {
+      console.warn('Backend preview failed, falling back to browser synthesis:', err);
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(voice.previewSampleText);
+        if (voice.lang === 'vi') utterance.lang = 'vi-VN';
+        else if (voice.lang === 'ja') utterance.lang = 'ja-JP';
+        else utterance.lang = 'en-US';
+        utterance.rate = voice.lang === 'vi' ? pacingConfig.viSpeed : pacingConfig.targetSpeed;
+        utterance.onend = () => setPlayingVoiceId(null);
+        utterance.onerror = () => setPlayingVoiceId(null);
+        setPlayingVoiceId(voice.id);
+        window.speechSynthesis.speak(utterance);
+      }
+    } finally {
+      setLoadingVoiceId(null);
+    }
   };
 
   return (
@@ -177,7 +211,12 @@ export function VoiceSelector() {
                   }`}
                   title="Nghe thử giọng này"
                 >
-                  {isPlaying ? (
+                  {loadingVoiceId === voice.id ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                      <span className="text-[11px]">Đang tải...</span>
+                    </>
+                  ) : isPlaying ? (
                     <>
                       <VolumeX className="w-3.5 h-3.5 animate-pulse" />
                       <span className="text-[11px]">Đang đọc...</span>

@@ -54,10 +54,13 @@ function generateFallbackChunks(
   return {
     success: true,
     formatted_script: formattedScript,
-    chunks: chunks.flatMap((c) => [
-      { id: `c-${c.order}-vi`, order: c.order * 2 - 1, lang: 'vi', text: c.vi },
-      { id: `c-${c.order}-tgt`, order: c.order * 2, lang: targetLang, text: c.target },
-    ]),
+    chunks: chunks.flatMap((c) => {
+      const list = [{ id: `c-${c.order}-vi`, order: c.order * 2 - 1, lang: 'vi', text: c.vi }];
+      if (c.target && c.target.trim().length > 0) {
+        list.push({ id: `c-${c.order}-tgt`, order: c.order * 2, lang: targetLang, text: c.target });
+      }
+      return list;
+    }),
     pairs: chunks.map((c) => ({
       id: `pair-${c.order}`,
       order: c.order,
