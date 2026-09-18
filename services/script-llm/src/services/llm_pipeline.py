@@ -53,8 +53,9 @@ class LLMPipeline:
             )
             return translated.strip()
         except Exception as err:
-            logger.warning("Ollama unavailable for translation (%s).", str(err))
-            return ""
+            logger.warning("Ollama unavailable for translation (%s). Using fallback.", str(err))
+            return f"[{target_lang.upper()}] {cleaned}"
+
 
     async def auto_chunk_and_translate(
         self,
@@ -148,9 +149,12 @@ class LLMPipeline:
         for p_idx, item in enumerate(chunks_data):
             vi_text = item.get("vi", "").strip()
             target_text = item.get("target", "").strip()
+            if not target_text and vi_text:
+                target_text = f"[{target_tag}] {vi_text}"
 
             if not vi_text:
                 continue
+
 
             vi_chunk = ScriptChunk(
                 id=str(uuid.uuid4()),

@@ -7,6 +7,8 @@ from src.config import settings
 from src.core.logging import setup_logging
 from src.api.v1.router import api_router
 
+from src.workers.script_worker import ScriptWorker
+
 logger = setup_logging()
 
 
@@ -15,8 +17,16 @@ async def lifespan(app: FastAPI):
     """Handle application startup and shutdown lifecycle events."""
     logger.info("Starting %s (v%s) on %s:%d...", settings.app_name, settings.app_version, settings.host, settings.port)
     logger.info("Configured Ollama backend: %s (model: %s)", settings.ollama_host, settings.llm_model)
+
+    # Start background Redis script worker
+    worker = ScriptWorker()
+    worker.start_background()
+
     yield
+
     logger.info("Shutting down %s...", settings.app_name)
+    worker.stop()
+
 
 
 app = FastAPI(
