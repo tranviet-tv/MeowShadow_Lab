@@ -95,6 +95,8 @@ async def test_kokoro_batch_synthesis():
         assert response.total_chunks == 2
         assert response.successful_chunks == 2
         assert response.total_duration_sec > 1.0
+        assert len(response.clips) == 2
+        assert response.clips[0].file_path != ""
 
 
 def test_api_endpoint_synthesize_preview_kokoro():
@@ -137,3 +139,4 @@ def test_api_endpoint_synthesize_batch_kokoro():
     assert data["success"] is True
     assert data["successful_chunks"] == 2
     assert data["total_duration_sec"] > 0
+    assert len(data["clips"]) == 2

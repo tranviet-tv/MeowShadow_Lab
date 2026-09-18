@@ -39,8 +39,8 @@ class Settings(BaseSettings):
     default_pitch: str = "+0Hz"
     default_volume: str = "+0%"
 
-    # Concurrency control for async batch synthesis
-    concurrency_limit: int = 5
+    # Concurrency control for async batch synthesis (3 is optimal for Edge-TTS stability)
+    concurrency_limit: int = 3
 
     def get_storage_path(self) -> Path:
         """Resolve base storage directory and ensure it exists."""

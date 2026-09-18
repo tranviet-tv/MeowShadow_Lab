@@ -117,3 +117,28 @@ def test_handle_task_failure_events():
     assert event["event"] == "TASK_FAILED"
     assert event["status"] == "failed"
     assert "error" in event
+
+
+def test_process_job_payload_kokoro_routing():
+    """Verify execution of job payload with Kokoro engine routes to Kokoro WAV clips."""
+    worker = TTSWorker()
+    payload = {
+        "lesson_id": "test-kokoro-worker-lesson",
+        "engine": "kokoro",
+        "chunks": [
+            {
+                "id": "kw1",
+                "order": 0,
+                "text": "Hello from Kokoro worker routing test.",
+                "voice_id": "kokoro-en-female-bella",
+            },
+        ],
+        "concurrency": 1,
+    }
+
+    result = worker.process_job_payload(json.dumps(payload))
+    assert result["success"] is True
+    assert result["total_chunks"] == 1
+    assert len(result["clips"]) == 1
+    assert result["clips"][0]["file_path"].endswith(".wav")
+

@@ -135,7 +135,7 @@ class EdgeEngine(BaseTTSEngine):
         )
 
         audio_bytes = b""
-        max_retries = 3
+        max_retries = 5
         for attempt in range(1, max_retries + 1):
             try:
                 communicate = edge_tts.Communicate(
@@ -159,7 +159,7 @@ class EdgeEngine(BaseTTSEngine):
                 if attempt == max_retries:
                     logger.error("All %d Edge-TTS synthesis attempts failed for: '%s': %s", max_retries, clean_text[:40], exc)
                     raise exc
-                backoff = 0.4 * attempt
+                backoff = min(1.0 * (2 ** (attempt - 1)), 5.0)
                 logger.warning(
                     "Edge-TTS synthesis attempt %d/%d failed (%s). Retrying in %.1fs...",
                     attempt, max_retries, exc, backoff

@@ -13,6 +13,7 @@ class TTSChunkRequest(BaseModel):
     voice_id: Optional[str] = Field(default=None, description="Voice identifier, e.g. vi-VN-HoaiMyNeural")
     lang: Optional[str] = Field(default=None, description="Language code ('vi', 'en', 'ja') if voice_id not specified")
     rate: str = Field(default="+0%", description="Speech speed adjustment (e.g. +0%, +10%, -15%)")
+    speed_rate: Optional[float] = Field(default=None, description="Speech rate multiplier (e.g. 1.0, 1.05)")
     pitch: str = Field(default="+0Hz", description="Voice pitch adjustment (e.g. +0Hz, +5Hz, -5Hz)")
     volume: str = Field(default="+0%", description="Volume adjustment (e.g. +0%, +10%)")
 
@@ -36,6 +37,8 @@ class BatchTTSRequest(BaseModel):
     engine: Optional[str] = Field(default="edge-tts", description="TTS engine name ('edge-tts' or 'kokoro')")
     default_voice_vi: Optional[str] = Field(default=None, description="Default voice for Vietnamese chunks")
     default_voice_target: Optional[str] = Field(default=None, description="Default voice for target language chunks")
+    default_speed_vi: Optional[float] = Field(default=None, description="Default speed rate for Vietnamese chunks")
+    default_speed_target: Optional[float] = Field(default=None, description="Default speed rate for target language chunks")
     concurrency: Optional[int] = Field(default=5, ge=1, le=20, description="Max concurrent synthesis tasks")
 
 

@@ -19,6 +19,8 @@ from src.schemas.tts import (
     TTSClipResult,
 )
 from src.services.edge_engine import edge_engine
+from src.services.kokoro_engine import export_kokoro_engine as kokoro_engine
+from src.utils.audio import format_rate
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +83,7 @@ class TTSWorker:
         output_dir.mkdir(parents=True, exist_ok=True)
         semaphore = asyncio.Semaphore(concurrency)
 
-        # Prepare processed chunks with default voice fallbacks
+        # Prepare processed chunks with default voice fallbacks and speed rate
         processed_chunks: List[TTSChunkRequest] = []
         for c in chunks:
             item = c.model_copy()
@@ -90,13 +92,28 @@ class TTSWorker:
                     item.voice_id = request.default_voice_vi
                 elif item.lang in ("en", "ja") and request.default_voice_target:
                     item.voice_id = request.default_voice_target
+
+            # Apply speed rate if chunk has specific speed_rate or fallback to request default speed
+            if item.speed_rate is not None and item.speed_rate > 0:
+                item.rate = format_rate(item.speed_rate)
+            elif item.rate in ("+0%", "", None):
+                if item.lang == "vi" and request.default_speed_vi is not None:
+                    item.rate = format_rate(request.default_speed_vi)
+                elif item.lang in ("en", "ja") and request.default_speed_target is not None:
+                    item.rate = format_rate(request.default_speed_target)
+
             processed_chunks.append(item)
 
         results: List[TTSClipResult] = []
 
         async def _run_single(chunk: TTSChunkRequest) -> TTSClipResult:
             nonlocal completed_count
-            res = await edge_engine._synthesize_chunk_task(
+            is_kokoro = (
+                request.engine == "kokoro"
+                or (chunk.voice_id and chunk.voice_id.startswith("kokoro-"))
+            )
+            engine = kokoro_engine if is_kokoro else edge_engine
+            res = await engine._synthesize_chunk_task(
                 chunk=chunk,
                 output_dir=output_dir,
                 semaphore=semaphore,

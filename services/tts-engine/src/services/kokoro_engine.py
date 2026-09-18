@@ -223,6 +223,60 @@ class KokoroEngine(BaseTTSEngine):
 
         return out_p, duration_sec
 
+    async def _synthesize_chunk_task(
+        self,
+        chunk: TTSChunkRequest,
+        output_dir: Union[str, Path],
+        semaphore: asyncio.Semaphore,
+        use_cache: bool = True,
+    ) -> TTSClipResult:
+        """Execute synthesis for a single chunk using Kokoro within a concurrency limiter."""
+        out_dir = Path(output_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        async with semaphore:
+            clip_id = chunk.id or f"chunk_{chunk.order:04d}"
+            dest_file = out_dir / f"{chunk.order:04d}_{clip_id}.wav"
+            resolved_voice = self.resolve_voice_id(chunk.voice_id, chunk.lang)
+
+            cache_key = cache_manager.compute_hash(
+                text=chunk.text,
+                voice_id=f"kokoro:{resolved_voice}",
+                rate=chunk.rate,
+                pitch=chunk.pitch,
+            )
+            was_cached = cache_manager.is_cached(cache_key) if use_cache else False
+
+            try:
+                _, duration = await self.synthesize_to_file(
+                    text=chunk.text,
+                    voice_id=resolved_voice,
+                    output_path=dest_file,
+                    rate=chunk.rate,
+                    pitch=chunk.pitch,
+                    volume=chunk.volume,
+                )
+
+                return TTSClipResult(
+                    clip_id=clip_id,
+                    order=chunk.order,
+                    file_path=str(dest_file),
+                    duration_sec=round(duration, 3),
+                    cached=was_cached,
+                    md5_hash=cache_key,
+                    error=None,
+                )
+            except Exception as exc:
+                logger.error("Kokoro synthesis error on chunk %s: %s", clip_id, exc)
+                return TTSClipResult(
+                    clip_id=clip_id,
+                    order=chunk.order,
+                    file_path="",
+                    duration_sec=0.0,
+                    cached=False,
+                    md5_hash=cache_key,
+                    error=str(exc),
+                )
+
     async def synthesize_batch(
         self,
         chunks: List[TTSChunkRequest],
@@ -236,54 +290,7 @@ class KokoroEngine(BaseTTSEngine):
         out_dir.mkdir(parents=True, exist_ok=True)
 
         sem = asyncio.Semaphore(concurrency)
-        results: List[TTSClipResult] = []
-
-        async def _process_chunk(chunk: TTSChunkRequest) -> TTSClipResult:
-            async with sem:
-                clip_id = chunk.id or f"clip_{chunk.order:04d}"
-                dest_file = out_dir / f"{clip_id}.wav"
-                resolved_voice = self.resolve_voice_id(chunk.voice_id, chunk.lang)
-
-                cache_key = cache_manager.compute_hash(
-                    text=chunk.text,
-                    voice_id=f"kokoro:{resolved_voice}",
-                    rate=chunk.rate,
-                    pitch=chunk.pitch,
-                )
-                was_cached = cache_manager.is_cached(cache_key)
-
-                try:
-                    _, duration = await self.synthesize_to_file(
-                        text=chunk.text,
-                        voice_id=resolved_voice,
-                        output_path=dest_file,
-                        rate=chunk.rate,
-                        pitch=chunk.pitch,
-                        volume=chunk.volume,
-                    )
-
-                    return TTSClipResult(
-                        clip_id=clip_id,
-                        order=chunk.order,
-                        file_path=str(dest_file),
-                        duration_sec=round(duration, 3),
-                        cached=was_cached,
-                        md5_hash=cache_key,
-                        error=None,
-                    )
-                except Exception as exc:
-                    logger.error("Kokoro synthesis error on chunk %s: %s", clip_id, exc)
-                    return TTSClipResult(
-                        clip_id=clip_id,
-                        order=chunk.order,
-                        file_path="",
-                        duration_sec=0.0,
-                        cached=False,
-                        md5_hash=cache_key,
-                        error=str(exc),
-                    )
-
-        tasks = [_process_chunk(c) for c in chunks]
+        tasks = [self._synthesize_chunk_task(c, out_dir, sem, use_cache=True) for c in chunks]
         results = await asyncio.gather(*tasks)
 
         successful = [r for r in results if r.error is None]
@@ -297,7 +304,7 @@ class KokoroEngine(BaseTTSEngine):
             successful_chunks=len(successful),
             total_duration_sec=round(total_duration, 3),
             cache_hits=cache_hits,
-            results=results,
+            clips=list(results),
         )
 
 

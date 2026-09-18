@@ -18,7 +18,7 @@ def test_settings_initialization():
     assert settings.app_name == "msl-tts-engine"
     assert settings.port == 8002
     assert settings.default_engine == "edge-tts"
-    assert settings.concurrency_limit == 5
+    assert settings.concurrency_limit == 3
 
     # Check path resolvers
     storage_path = settings.get_storage_path()
