@@ -128,6 +128,21 @@ export function createApiClient(config: ApiClientConfig) {
 
       if (res.status === 401 && onUnauthorized) {
         onUnauthorized();
+        // Attempt a single retry if token provider is configured
+        if (getToken) {
+          const freshToken = await getToken();
+          if (freshToken) {
+            reqHeaders['Authorization'] = `Bearer ${freshToken}`;
+            const retryRes = await fetch(url, {
+              method,
+              headers: reqHeaders,
+              body: body !== undefined ? JSON.stringify(body) : undefined,
+            });
+            if (retryRes.ok) {
+              return (await retryRes.json()) as T;
+            }
+          }
+        }
       }
 
       if (!res.ok) {
@@ -292,6 +307,11 @@ export function createApiClient(config: ApiClientConfig) {
         return res;
       },
 
+      /** Alias for get(id) */
+      async getById(id: string): Promise<ApiResponse<LessonItem>> {
+        return this.get(id);
+      },
+
       /** Create a new lesson */
       async create(payload: {
         title: string;
@@ -365,6 +385,20 @@ export function createApiClient(config: ApiClientConfig) {
     audio: {
       /** Trigger asynchronous audio generation task */
       async generate(payload: GenerateAudioRequest & { transcriptChunks?: ScriptChunk[]; transcript_chunks?: ScriptChunk[] }): Promise<ApiResponse<GenerateAudioAcceptedResponse>> {
+        const pConfig = payload.pacingConfig;
+        const normalizedPacing = {
+          ...pConfig,
+          vi_voice: pConfig?.viVoice,
+          target_voice: pConfig?.targetVoice,
+          vi_speed: pConfig?.viSpeed ?? 1.0,
+          target_speed: pConfig?.targetSpeed ?? 1.0,
+          silence_after_vi_sec: pConfig?.silenceAfterViSec ?? 1.5,
+          silence_after_target_sec: pConfig?.silenceAfterTargetSec ?? 3.5,
+          silence_between_sentences_sec: pConfig?.silenceBetweenSentencesSec ?? 0.5,
+          insert_cue_sound: pConfig?.insertCueSound ?? true,
+          export_format: pConfig?.exportFormat ?? 'mp3',
+          audio_bitrate: pConfig?.audioBitrate ?? '192k',
+        };
         const body = {
           lesson_id: payload.lessonId,
           lessonId: payload.lessonId,
@@ -377,15 +411,68 @@ export function createApiClient(config: ApiClientConfig) {
           sourceText: payload.sourceText,
           tts_engine: payload.ttsEngine,
           ttsEngine: payload.ttsEngine,
-          pacing_config: payload.pacingConfig,
-          pacingConfig: payload.pacingConfig,
+          pacing_config: normalizedPacing,
+          pacingConfig: normalizedPacing,
           transcript_chunks: payload.transcriptChunks || payload.transcript_chunks,
           transcriptChunks: payload.transcriptChunks || payload.transcript_chunks,
         };
-        return request<ApiResponse<GenerateAudioAcceptedResponse>>('/api/v1/audio/generate', {
+        const res = await request<ApiResponse<any>>('/api/v1/audio/generate', {
           method: 'POST',
           body,
         });
+        const rawData = res.data || {};
+        const normalizedTaskId = rawData.taskId || rawData.task_id || '';
+        const normalizedLessonId = rawData.lessonId || rawData.lesson_id || payload.lessonId || '';
+        return {
+          ...res,
+          data: {
+            ...rawData,
+            taskId: normalizedTaskId,
+            lessonId: normalizedLessonId,
+          },
+        };
+      },
+
+      /** Preview voice synthesis as audio blob */
+      async preview(payload: {
+        text: string;
+        voiceId: string;
+        engine?: string;
+        rate?: string | number;
+        pitch?: string;
+        volume?: string;
+      }): Promise<Blob> {
+        let previewToken = '';
+        if (getToken) {
+          previewToken = (await getToken()) || '';
+        }
+        const reqHeaders: Record<string, string> = {
+          'Content-Type': 'application/json',
+          Accept: 'audio/mpeg, audio/wav, application/octet-stream',
+        };
+        if (previewToken) {
+          reqHeaders['Authorization'] = `Bearer ${previewToken}`;
+        }
+        const res = await fetch(`${baseURL.replace(/\/$/, '')}/api/v1/audio/preview`, {
+          method: 'POST',
+          headers: reqHeaders,
+          body: JSON.stringify({
+            text: payload.text,
+            voice_id: payload.voiceId,
+            voiceId: payload.voiceId,
+            engine: payload.engine || 'edge-tts',
+            rate:
+              typeof payload.rate === 'number'
+                ? `${payload.rate >= 1 ? '+' : '-'}${Math.round(Math.abs(payload.rate - 1) * 100)}%`
+                : payload.rate || '+0%',
+            pitch: payload.pitch || '+0Hz',
+            volume: payload.volume || '+0%',
+          }),
+        });
+        if (!res.ok) {
+          throw new Error(`Preview synthesis failed: HTTP ${res.status}`);
+        }
+        return await res.blob();
       },
 
       /** Get HTTP 206 Partial Content range audio stream URL */
@@ -450,8 +537,22 @@ export function createApiClient(config: ApiClientConfig) {
        * Subscribe to real-time audio generation task progress events.
        * Returns an unsubscribe function to cleanly close the WebSocket.
        */
-      subscribeTaskProgress(taskId: string, callbacks: TaskProgressCallbacks): () => void {
-        const url = `${wsBaseURL.replace(/\/$/, '')}/ws/progress?job_id=${encodeURIComponent(taskId)}&taskId=${encodeURIComponent(taskId)}`;
+      subscribeTaskProgress(
+        taskId: string,
+        callbacks: TaskProgressCallbacks,
+        lessonId?: string
+      ): () => void {
+        const params = new URLSearchParams();
+        if (taskId) {
+          params.set('job_id', taskId);
+          params.set('taskId', taskId);
+          params.set('task_id', taskId);
+        }
+        if (lessonId) {
+          params.set('lesson_id', lessonId);
+          params.set('lessonId', lessonId);
+        }
+        const url = `${wsBaseURL.replace(/\/$/, '')}/ws/progress?${params.toString()}`;
         let ws: WebSocket | null = null;
         let isClosedManually = false;
 
@@ -470,13 +571,14 @@ export function createApiClient(config: ApiClientConfig) {
                 const data: TaskProgressEvent = JSON.parse(line);
                 callbacks.onProgress?.(data);
 
-                if (data.status === 'COMPLETED') {
-                  callbacks.onComplete?.(data.resultLessonId || taskId);
+                if (data.status === 'COMPLETED' || data.status === 'READY') {
+                  callbacks.onComplete?.(data.resultLessonId || (data as any).lesson_id || taskId);
                   ws?.close();
                 } else if (data.status === 'FAILED') {
                   callbacks.onError?.(new Error(data.error || 'Audio generation task failed'));
                   ws?.close();
                 }
+
               }
             } catch (err) {
               callbacks.onError?.(err instanceof Error ? err : new Error('Invalid JSON payload'));

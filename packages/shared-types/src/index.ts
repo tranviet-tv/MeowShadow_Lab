@@ -149,6 +149,15 @@ export interface GenerateAudioRequest {
   lessonId?: string;
 }
 
+export interface TTSPreviewRequest {
+  text: string;
+  voiceId: string;
+  engine?: TTSEngineType;
+  rate?: string;
+  pitch?: string;
+  volume?: string;
+}
+
 export interface GenerateAudioAcceptedResponse {
   taskId: string;
   status: 'QUEUED';
@@ -156,12 +165,15 @@ export interface GenerateAudioAcceptedResponse {
 }
 
 export type TaskStatus =
+  | 'PENDING'
   | 'QUEUED'
   | 'PARSING'
   | 'SYNTHESIZING'
   | 'MASTERING'
   | 'COMPLETED'
+  | 'READY'
   | 'FAILED';
+
 
 export interface TaskProgressEvent {
   taskId: string;
