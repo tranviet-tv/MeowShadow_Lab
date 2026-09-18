@@ -69,6 +69,7 @@ type RenderJob struct {
 	TargetLanguage   string               `json:"target_language"`
 	SourceLanguage   string               `json:"source_language"`
 	RawText          string               `json:"raw_text,omitempty"`
+	TtsEngine        string               `json:"tts_engine,omitempty"`
 	PacingConfig     domain.PacingConfig  `json:"pacing_config"`
 	TranscriptChunks []domain.ScriptChunk `json:"transcript_chunks,omitempty"`
 	AudioClipPaths   []string             `json:"audio_clip_paths,omitempty"`
@@ -110,6 +111,7 @@ func NewRenderJob(
 		TargetLanguage:  targetLang,
 		SourceLanguage:  sourceLang,
 		RawText:         rawText,
+		TtsEngine:       "edge-tts",
 		PacingConfig:    pacing,
 		CurrentState:    StatePending,
 		ProgressPercent: stateProgress[StatePending],

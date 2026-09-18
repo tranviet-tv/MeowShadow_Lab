@@ -65,9 +65,14 @@ func (h *AudioStreamHandler) StreamAudio(c *fiber.Ctx) error {
 
 	rangeHeader := c.Get("Range")
 
+	contentType := "audio/mpeg"
+	if strings.HasSuffix(strings.ToLower(filePath), ".wav") {
+		contentType = "audio/wav"
+	}
+
 	// Case 1: No Range header present -> deliver full audio file with 200 OK
 	if rangeHeader == "" {
-		c.Set("Content-Type", "audio/mpeg")
+		c.Set("Content-Type", contentType)
 		c.Set("Accept-Ranges", "bytes")
 		c.Set("Content-Length", strconv.FormatInt(totalSize, 10))
 		c.Set("Cache-Control", "public, max-age=3600")
@@ -90,7 +95,7 @@ func (h *AudioStreamHandler) StreamAudio(c *fiber.Ctx) error {
 	c.Set("Content-Range", byteRange.ContentRangeHeader())
 	c.Set("Accept-Ranges", "bytes")
 	c.Set("Content-Length", strconv.FormatInt(byteRange.Length, 10))
-	c.Set("Content-Type", "audio/mpeg")
+	c.Set("Content-Type", contentType)
 	c.Set("Cache-Control", "public, max-age=3600")
 	c.Status(fiber.StatusPartialContent)
 
@@ -144,9 +149,13 @@ func (h *AudioStreamHandler) resolveAudioFilePath(ctx context.Context, rawLesson
 	// 2. Direct storage search candidates for the specified lesson
 	candidatePaths := []string{
 		filepath.Join(h.storageDir, "audio", fmt.Sprintf("lesson_%s.mp3", cleanUUID)),
+		filepath.Join(h.storageDir, "audio", fmt.Sprintf("lesson_%s.wav", cleanUUID)),
 		filepath.Join(h.storageDir, "audio", fmt.Sprintf("lesson_%s.mp3", lessonID)),
+		filepath.Join(h.storageDir, "audio", fmt.Sprintf("lesson_%s.wav", lessonID)),
 		filepath.Join(h.storageDir, "audio", cleanUUID+".mp3"),
+		filepath.Join(h.storageDir, "audio", cleanUUID+".wav"),
 		filepath.Join(h.storageDir, "audio", lessonID+".mp3"),
+		filepath.Join(h.storageDir, "audio", lessonID+".wav"),
 		filepath.Join(h.storageDir, "audio", rawLessonID),
 		filepath.Join(h.storageDir, rawLessonID),
 		filepath.Join(h.storageDir, cleanUUID),

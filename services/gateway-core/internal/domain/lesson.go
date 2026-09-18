@@ -1,6 +1,8 @@
 // Package domain defines core entities, domain models, and data contracts.
 package domain
 
+import "encoding/json"
+
 // ScriptChunk represents a single transcribed or synthesized sentence chunk.
 type ScriptChunk struct {
 	ID        string  `json:"id"`
@@ -21,20 +23,107 @@ type PacingConfig struct {
 	SilenceAfterTargetSec      float64 `json:"silence_after_target_sec"`
 	SilenceBetweenSentencesSec float64 `json:"silence_between_sentences_sec"`
 	InsertCueSound             bool    `json:"insert_cue_sound"`
+	ExportFormat               string  `json:"export_format,omitempty"`
+	AudioBitrate               string  `json:"audio_bitrate,omitempty"`
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling to support both camelCase and snake_case fields.
+func (p *PacingConfig) UnmarshalJSON(data []byte) error {
+	type Alias PacingConfig
+	aux := struct {
+		*Alias
+		ViVoiceCamel                    *string  `json:"viVoice"`
+		TargetVoiceCamel                *string  `json:"targetVoice"`
+		ViSpeedCamel                    *float64 `json:"viSpeed"`
+		TargetSpeedCamel                *float64 `json:"targetSpeed"`
+		SilenceAfterViSecCamel          *float64 `json:"silenceAfterViSec"`
+		SilenceAfterTargetSecCamel      *float64 `json:"silenceAfterTargetSec"`
+		SilenceBetweenSentencesSecCamel *float64 `json:"silenceBetweenSentencesSec"`
+		InsertCueSoundCamel             *bool    `json:"insertCueSound"`
+		ExportFormatCamel               *string  `json:"exportFormat"`
+		AudioBitrateCamel               *string  `json:"audioBitrate"`
+	}{
+		Alias: (*Alias)(p),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if p.ViVoice == "" && aux.ViVoiceCamel != nil {
+		p.ViVoice = *aux.ViVoiceCamel
+	}
+	if p.TargetVoice == "" && aux.TargetVoiceCamel != nil {
+		p.TargetVoice = *aux.TargetVoiceCamel
+	}
+	if p.ViSpeed == 0 && aux.ViSpeedCamel != nil {
+		p.ViSpeed = *aux.ViSpeedCamel
+	}
+	if p.TargetSpeed == 0 && aux.TargetSpeedCamel != nil {
+		p.TargetSpeed = *aux.TargetSpeedCamel
+	}
+	if p.SilenceAfterViSec == 0 && aux.SilenceAfterViSecCamel != nil {
+		p.SilenceAfterViSec = *aux.SilenceAfterViSecCamel
+	}
+	if p.SilenceAfterTargetSec == 0 && aux.SilenceAfterTargetSecCamel != nil {
+		p.SilenceAfterTargetSec = *aux.SilenceAfterTargetSecCamel
+	}
+	if p.SilenceBetweenSentencesSec == 0 && aux.SilenceBetweenSentencesSecCamel != nil {
+		p.SilenceBetweenSentencesSec = *aux.SilenceBetweenSentencesSecCamel
+	}
+	if !p.InsertCueSound && aux.InsertCueSoundCamel != nil {
+		p.InsertCueSound = *aux.InsertCueSoundCamel
+	}
+	if p.ExportFormat == "" && aux.ExportFormatCamel != nil {
+		p.ExportFormat = *aux.ExportFormatCamel
+	}
+	if p.AudioBitrate == "" && aux.AudioBitrateCamel != nil {
+		p.AudioBitrate = *aux.AudioBitrateCamel
+	}
+
+	return nil
 }
 
 // CreateLessonRequest holds input parameters for creating a new lesson.
 type CreateLessonRequest struct {
-	Title            string        `json:"title"`
-	TargetLanguage   string        `json:"target_language"` // "en" or "ja"
-	SourceLanguage   string        `json:"source_language"` // default "vi"
-	TotalWords       int           `json:"total_words"`
-	DurationSec      float64       `json:"duration_sec"`
-	PacingConfig     PacingConfig  `json:"pacing_config"`
-	TranscriptChunks []ScriptChunk `json:"transcript_chunks"`
-	AudioFilePath    string        `json:"audio_file_path"`
-	SrtFilePath      string        `json:"srt_file_path"`
-	Status           string        `json:"status,omitempty"` // "READY", "PENDING", etc.
+	Title                 string        `json:"title"`
+	TargetLanguage        string        `json:"target_language"`
+	TargetLanguageCamel   string        `json:"targetLanguage,omitempty"`
+	SourceLanguage        string        `json:"source_language"`
+	SourceLanguageCamel   string        `json:"sourceLanguage,omitempty"`
+	TotalWords            int           `json:"total_words"`
+	TotalWordsCamel       int           `json:"totalWords,omitempty"`
+	DurationSec           float64       `json:"duration_sec"`
+	DurationSecCamel      float64       `json:"durationSec,omitempty"`
+	PacingConfig          PacingConfig  `json:"pacing_config"`
+	PacingConfigCamel     *PacingConfig `json:"pacingConfig,omitempty"`
+	TranscriptChunks      []ScriptChunk `json:"transcript_chunks"`
+	TranscriptChunksCamel []ScriptChunk `json:"transcriptChunks,omitempty"`
+	AudioFilePath         string        `json:"audio_file_path"`
+	SrtFilePath           string        `json:"srt_file_path"`
+	Status                string        `json:"status,omitempty"`
+}
+
+// Normalize ensures values provided in either snake_case or camelCase are properly set.
+func (r *CreateLessonRequest) Normalize() {
+	if r.TargetLanguage == "" && r.TargetLanguageCamel != "" {
+		r.TargetLanguage = r.TargetLanguageCamel
+	}
+	if r.SourceLanguage == "" && r.SourceLanguageCamel != "" {
+		r.SourceLanguage = r.SourceLanguageCamel
+	}
+	if r.TotalWords == 0 && r.TotalWordsCamel != 0 {
+		r.TotalWords = r.TotalWordsCamel
+	}
+	if r.DurationSec == 0 && r.DurationSecCamel != 0 {
+		r.DurationSec = r.DurationSecCamel
+	}
+	if r.PacingConfigCamel != nil && (r.PacingConfig.TargetVoice == "" || r.PacingConfig.TargetSpeed == 0) {
+		r.PacingConfig = *r.PacingConfigCamel
+	}
+	if len(r.TranscriptChunks) == 0 && len(r.TranscriptChunksCamel) > 0 {
+		r.TranscriptChunks = r.TranscriptChunksCamel
+	}
 }
 
 // LessonResponse represents a complete lesson returned by API endpoints.
@@ -129,10 +218,13 @@ func (r *GenerateAudioRequest) Normalize() {
 
 // GenerateAudioResponse is returned with HTTP 202 Accepted when a render task is queued.
 type GenerateAudioResponse struct {
-	TaskID     string `json:"task_id"`
-	Status     string `json:"status"`
-	Message    string `json:"message"`
-	WsEndpoint string `json:"ws_endpoint"`
+	TaskID      string `json:"task_id"`
+	TaskIDCamel string `json:"taskId,omitempty"`
+	LessonID    string `json:"lesson_id,omitempty"`
+	LessonIDCamel string `json:"lessonId,omitempty"`
+	Status      string `json:"status"`
+	Message     string `json:"message"`
+	WsEndpoint  string `json:"ws_endpoint"`
 }
 
 // SyncProgressRequest defines parameters for updating playback/learning progress.
@@ -173,5 +265,12 @@ type LearningProgressDTO struct {
 	IsCompleted          bool    `json:"is_completed"`
 	Version              int     `json:"version"`
 	LastListenedAt       string  `json:"last_listened_at"`
+}
+
+// SyncBatchProgressRequest defines batch synchronization parameters for mobile clients.
+type SyncBatchProgressRequest struct {
+	SyncBatchID      string                `json:"sync_batch_id,omitempty"`
+	SyncBatchIDCamel string                `json:"syncBatchId,omitempty"`
+	Records          []SyncProgressRequest `json:"records"`
 }
 

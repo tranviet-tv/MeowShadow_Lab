@@ -20,7 +20,7 @@ const (
 	StreamScriptParse    = "msl:stream:script"
 	StreamTtsSynthesize  = "msl:stream:tts"
 	StreamAudioMaster    = "msl:stream:audio"
-	StreamProgressEvents = "msl:stream:progress"
+	QueueScriptParse     = "queue:script_parse"
 	QueueTtsSynthesis    = "queue:tts_synthesis"
 	QueueAudioMastering  = "queue:audio_mastering"
 	ChannelTaskEvents    = "channel:task_events"

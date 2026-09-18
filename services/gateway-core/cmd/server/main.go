@@ -8,14 +8,17 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
+
 
 	"github.com/gofiber/fiber/v2"
 	fiberWs "github.com/gofiber/websocket/v2"
 	"meowshadow/gateway-core/config"
 	deliveryHttp "meowshadow/gateway-core/internal/delivery/http"
 	"meowshadow/gateway-core/internal/delivery/middleware"
+	"meowshadow/gateway-core/internal/notifications"
 	"meowshadow/gateway-core/internal/orchestrator"
 	"meowshadow/gateway-core/internal/queue"
 	"meowshadow/gateway-core/internal/repository"
@@ -96,7 +99,7 @@ func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc servic
 
 	// Mount Async Audio Generation handler if consumer is provided
 	if consumer != nil {
-		audioHandler := deliveryHttp.NewAudioHandler(lessonSvc, consumer)
+		audioHandler := deliveryHttp.NewAudioHandler(lessonSvc, consumer, cfg.TTSEngineURL)
 		audioHandler.RegisterRoutes(apiV1, jwtAuth)
 	}
 
@@ -127,9 +130,18 @@ func SetupApp(cfg *config.Config, authSvc services.AuthService, lessonSvc servic
 				jobID = c.Query("taskId")
 			}
 			if jobID == "" {
+				jobID = c.Query("task_id")
+			}
+			if jobID == "" {
 				jobID = c.Params("taskId")
 			}
 			lessonID := c.Query("lesson_id")
+			if lessonID == "" {
+				lessonID = c.Query("lessonId")
+			}
+			if lessonID == "" {
+				lessonID = c.Query("targetLessonId")
+			}
 			client := ws.NewClient(hub, c, jobID, lessonID)
 			hub.Register(client)
 			go client.WritePump()
@@ -162,6 +174,10 @@ func main() {
 	cfg := config.LoadConfig()
 	ctx := context.Background()
 
+	// Ensure seed audio and subtitle assets exist on disk for immediate playback
+	ensureSeedFiles(cfg.StorageDir)
+
+
 	// Initialize database connection pool
 	pool, err := postgres.NewPool(ctx, cfg.DatabaseURL)
 	if err != nil {
@@ -176,6 +192,7 @@ func main() {
 	var authSvc services.AuthService
 	var lessonSvc services.LessonService
 	var lessonRepo repository.LessonRepository
+	var pushDispatcher notifications.PushDispatcher
 
 	if pool != nil {
 		queries := db.New(pool)
@@ -183,6 +200,7 @@ func main() {
 		lessonRepo = repository.NewLessonRepository(queries)
 		authSvc = services.NewAuthService(userRepo, cfg)
 		lessonSvc = services.NewLessonService(lessonRepo)
+		pushDispatcher = notifications.NewPushDispatcher(userRepo, nil)
 	}
 
 	// Initialize Redis Producer and Pipeline Orchestrator
@@ -208,6 +226,9 @@ func main() {
 		redisProd = queue.NewRedisProducer(rdb)
 		if lessonRepo != nil {
 			pipelineConsumer = orchestrator.NewPipelineConsumer(redisProd, lessonRepo)
+			if pushDispatcher != nil {
+				pipelineConsumer.SetPushDispatcher(pushDispatcher)
+			}
 		}
 		if redisErr != nil {
 			log.Printf("Warning: Initial Redis ping failed, producer and pipeline consumer initialized for automatic reconnection: %v", redisErr)
@@ -222,27 +243,25 @@ func main() {
 	// Forward Redis task event notifications to pipeline orchestrator and WebSocket hub
 	if rdb != nil {
 		go func() {
-			pubsub := rdb.Subscribe(context.Background(), queue.ChannelTaskEvents)
+			pubsub := rdb.Subscribe(context.Background(), queue.ChannelTaskEvents, queue.TopicProgressEvents)
 			defer pubsub.Close()
 			ch := pubsub.Channel()
 			for msg := range ch {
+				if msg.Channel == queue.TopicProgressEvents {
+					var progressEvt orchestrator.ProgressBroadcastEvent
+					if err := json.Unmarshal([]byte(msg.Payload), &progressEvt); err == nil {
+						hub.BroadcastProgress(progressEvt)
+					}
+					continue
+				}
+
 				var evt orchestrator.WorkerEvent
 				if err := json.Unmarshal([]byte(msg.Payload), &evt); err == nil {
-					taskID := evt.TaskID
-					if taskID == "" {
-						taskID = evt.JobID
-					}
 					if pipelineConsumer != nil {
 						if _, err := pipelineConsumer.HandleWorkerEvent(context.Background(), evt); err != nil {
 							log.Printf("Pipeline event handler error: %v", err)
 						}
 					}
-					hub.BroadcastProgress(orchestrator.ProgressBroadcastEvent{
-						JobID:     taskID,
-						LessonID:  evt.LessonID,
-						Message:   string(evt.Type),
-						Timestamp: time.Now(),
-					})
 				}
 			}
 		}()
@@ -285,3 +304,39 @@ func main() {
 
 	log.Println("MeowShadow Gateway Core shutdown complete.")
 }
+
+// ensureSeedFiles ensures that seed audio and subtitle assets referenced in dev seeds exist on disk.
+func ensureSeedFiles(storageDir string) {
+	if storageDir == "" {
+		return
+	}
+	_ = os.MkdirAll(storageDir, 0755)
+	_ = os.MkdirAll(filepath.Join(storageDir, "audio"), 0755)
+	_ = os.MkdirAll(filepath.Join(storageDir, "srt"), 0755)
+
+	// Minimal valid MP3 silent frame (MPEG-1 Layer 3, 128 kbps, 44.1 kHz, stereo)
+	silentMP3 := []byte{
+		0xFF, 0xFB, 0x90, 0x64, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}
+
+	seedFiles := []string{"seed_sample.mp3", "lesson_02.mp3", "lesson_03.mp3"}
+	for _, f := range seedFiles {
+		p := filepath.Join(storageDir, f)
+		if _, err := os.Stat(p); os.IsNotExist(err) {
+			_ = os.WriteFile(p, silentMP3, 0644)
+		}
+	}
+
+	sampleSrt := "1\n00:00:00,000 --> 00:00:04,000\nKiên trì là bí mật lớn nhất của mọi thành công.\n\n2\n00:00:04,500 --> 00:00:08,000\nPersistence is the greatest secret of all success.\n"
+	srtFiles := []string{"seed_sample.srt", "lesson_02.srt", "lesson_03.srt"}
+	for _, f := range srtFiles {
+		p := filepath.Join(storageDir, f)
+		if _, err := os.Stat(p); os.IsNotExist(err) {
+			_ = os.WriteFile(p, []byte(sampleSrt), 0644)
+		}
+	}
+}
+

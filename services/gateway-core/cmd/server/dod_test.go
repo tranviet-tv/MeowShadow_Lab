@@ -179,6 +179,11 @@ func (m *mockDoDLessonService) SyncProgress(ctx context.Context, userID string, 
 	return nil
 }
 
+func (m *mockDoDLessonService) SyncBatchProgress(ctx context.Context, userID string, req domain.SyncBatchProgressRequest) error {
+	return nil
+}
+
+
 func TestSprint7_DefinitionOfDone_IntegrationFlow(t *testing.T) {
 	cfg := config.LoadConfig()
 	cfg.JWTSecret = "dod_secret_key_testing_123456789012"

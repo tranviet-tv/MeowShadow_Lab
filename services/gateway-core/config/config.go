@@ -19,6 +19,7 @@ type Config struct {
 	CORSAllowOrigins         string
 	RateLimitMaxRequests     int
 	RateLimitExpirationSec   int
+	TTSEngineURL             string
 }
 
 // LoadConfig reads environment variables and returns a populated Config struct with fallback defaults.
@@ -35,6 +36,7 @@ func LoadConfig() *Config {
 		CORSAllowOrigins:       getEnv("CORS_ALLOW_ORIGINS", "*"),
 		RateLimitMaxRequests:   getEnvAsInt("RATE_LIMIT_MAX", 100),
 		RateLimitExpirationSec: getEnvAsInt("RATE_LIMIT_EXPIRATION_SEC", 60),
+		TTSEngineURL:           getEnv("TTS_ENGINE_URL", "http://tts-engine-service:8002"),
 	}
 }
 

@@ -28,6 +28,7 @@ func (h *LessonHandler) Create(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid Request Body", err.Error())
 	}
+	req.Normalize()
 
 	userID := middleware.GetAuthUserID(c)
 	isGuest := middleware.IsGuestUser(c)

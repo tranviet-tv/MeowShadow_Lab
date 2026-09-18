@@ -74,6 +74,11 @@ func (m *mockLessonService) SyncProgress(ctx context.Context, userID string, req
 	return nil
 }
 
+func (m *mockLessonService) SyncBatchProgress(ctx context.Context, userID string, req domain.SyncBatchProgressRequest) error {
+	return nil
+}
+
+
 func TestLessonHandler_CRUD(t *testing.T) {
 	cfg := &config.Config{
 		JWTSecret: "test_secret_for_lessons_12345678",

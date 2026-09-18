@@ -37,6 +37,10 @@ func (m *mockLessonSvcForStream) GetProgress(ctx context.Context, userID, lesson
 func (m *mockLessonSvcForStream) SyncProgress(ctx context.Context, userID string, req domain.SyncProgressRequest) error {
 	return nil
 }
+func (m *mockLessonSvcForStream) SyncBatchProgress(ctx context.Context, userID string, req domain.SyncBatchProgressRequest) error {
+	return nil
+}
+
 
 func setupStreamApp(t *testing.T) (*fiber.App, string) {
 	tempDir := t.TempDir()

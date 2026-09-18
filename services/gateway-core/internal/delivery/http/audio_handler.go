@@ -2,7 +2,13 @@
 package http
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -15,15 +21,21 @@ import (
 
 // AudioHandler handles audio generation and rendering orchestration endpoints.
 type AudioHandler struct {
-	lessonSvc services.LessonService
-	consumer  orchestrator.PipelineConsumer
+	lessonSvc    services.LessonService
+	consumer     orchestrator.PipelineConsumer
+	ttsEngineURL string
 }
 
 // NewAudioHandler constructs a new AudioHandler.
-func NewAudioHandler(lessonSvc services.LessonService, consumer orchestrator.PipelineConsumer) *AudioHandler {
+func NewAudioHandler(lessonSvc services.LessonService, consumer orchestrator.PipelineConsumer, ttsEngineURL ...string) *AudioHandler {
+	url := "http://tts-engine-service:8002"
+	if len(ttsEngineURL) > 0 && ttsEngineURL[0] != "" {
+		url = ttsEngineURL[0]
+	}
 	return &AudioHandler{
-		lessonSvc: lessonSvc,
-		consumer:  consumer,
+		lessonSvc:    lessonSvc,
+		consumer:     consumer,
+		ttsEngineURL: strings.TrimRight(url, "/"),
 	}
 }
 
@@ -82,6 +94,13 @@ func (h *AudioHandler) Generate(c *fiber.Ctx) error {
 		req.PacingConfig,
 	)
 
+	// Propagate user TTS engine choice with intelligent voice prefix fallback
+	if req.TtsEngine != "" {
+		job.TtsEngine = req.TtsEngine
+	} else if strings.HasPrefix(req.PacingConfig.TargetVoice, "kokoro-") || strings.HasPrefix(req.PacingConfig.ViVoice, "kokoro-") {
+		job.TtsEngine = "kokoro"
+	}
+
 	// Attach transcript chunks if provided in request or fetch from existing lesson
 	if len(req.TranscriptChunks) > 0 {
 		job.TranscriptChunks = req.TranscriptChunks
@@ -100,16 +119,74 @@ func (h *AudioHandler) Generate(c *fiber.Ctx) error {
 	}
 
 	resp := domain.GenerateAudioResponse{
-		TaskID:     taskID,
-		Status:     "QUEUED",
-		Message:    "Tác vụ tạo audio đã được đưa vào hàng đợi.",
-		WsEndpoint: fmt.Sprintf("/ws/progress?job_id=%s", taskID),
+		TaskID:        taskID,
+		TaskIDCamel:   taskID,
+		LessonID:      lessonID,
+		LessonIDCamel: lessonID,
+		Status:        "QUEUED",
+		Message:       "Tác vụ tạo audio đã được đưa vào hàng đợi.",
+		WsEndpoint:    fmt.Sprintf("/ws/progress?job_id=%s&lesson_id=%s", taskID, lessonID),
 	}
 
 	return response.Success(c, fiber.StatusAccepted, "Tác vụ tạo audio đã được đưa vào hàng đợi", resp)
 }
 
+// SynthesizePreview proxies single-sentence speech synthesis requests to the TTS engine.
+func (h *AudioHandler) SynthesizePreview(c *fiber.Ctx) error {
+	var body map[string]interface{}
+	if err := c.BodyParser(&body); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid Request Body", err.Error())
+	}
+
+	// Normalize voice_id from voiceId if needed
+	if _, ok := body["voice_id"]; !ok {
+		if v, exists := body["voiceId"]; exists {
+			body["voice_id"] = v
+		}
+	}
+
+	targetURL := fmt.Sprintf("%s/api/v1/synthesize", h.ttsEngineURL)
+
+	reqBytes, err := json.Marshal(body)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Serialization Error", err.Error())
+	}
+
+	httpReq, err := http.NewRequestWithContext(c.Context(), http.MethodPost, targetURL, bytes.NewReader(reqBytes))
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Proxy Request Failed", err.Error())
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadGateway, "TTS Engine Unreachable", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return response.Error(c, resp.StatusCode, "TTS Synthesis Failed", string(respBody))
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "audio/mpeg"
+	}
+	c.Set("Content-Type", contentType)
+	c.Status(fiber.StatusOK)
+
+	audioBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Read Error", err.Error())
+	}
+	return c.Send(audioBytes)
+}
+
 // RegisterRoutes registers audio generation endpoints onto the Fiber router.
 func (h *AudioHandler) RegisterRoutes(router fiber.Router, authMiddleware fiber.Handler) {
 	router.Post("/audio/generate", authMiddleware, h.Generate)
+	router.Post("/audio/preview", h.SynthesizePreview)
+	router.Post("/tts/preview", h.SynthesizePreview)
 }

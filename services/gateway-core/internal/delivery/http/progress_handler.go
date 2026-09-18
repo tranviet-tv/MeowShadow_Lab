@@ -67,9 +67,33 @@ func (h *ProgressHandler) Sync(c *fiber.Ctx) error {
 	})
 }
 
+// SyncBatch handles bulk progress synchronization from mobile offline stores.
+func (h *ProgressHandler) SyncBatch(c *fiber.Ctx) error {
+	var req domain.SyncBatchProgressRequest
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid Request Body", err.Error())
+	}
+
+	userID := middleware.GetAuthUserID(c)
+	if userID == "" {
+		return response.Error(c, fiber.StatusUnauthorized, "Unauthorized", "Authentication required to sync progress")
+	}
+
+	if err := h.lessonService.SyncBatchProgress(c.Context(), userID, req); err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Batch Sync Failed", err.Error())
+	}
+
+	return response.Success(c, fiber.StatusOK, "Batch learning progress synced successfully", fiber.Map{
+		"synced_count": len(req.Records),
+		"status":       "synced",
+	})
+}
+
 // RegisterRoutes registers progress endpoints onto the router.
 func (h *ProgressHandler) RegisterRoutes(router fiber.Router, authMiddleware fiber.Handler) {
 	group := router.Group("/progress", authMiddleware)
 	group.Get("/:lessonId", h.Get)
 	group.Post("/sync", h.Sync)
+	group.Post("/sync-batch", h.SyncBatch)
 }
+

@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"meowshadow/gateway-core/internal/domain"
+	"meowshadow/gateway-core/internal/notifications"
 	"meowshadow/gateway-core/internal/queue"
 	"meowshadow/gateway-core/internal/repository"
 	"meowshadow/gateway-core/internal/repository/db"
@@ -35,6 +36,7 @@ type WorkerEvent struct {
 	LessonID         string                 `json:"lesson_id"`
 	Type             WorkerEventType        `json:"type"`
 	Event            string                 `json:"event,omitempty"`
+	Status           string                 `json:"status,omitempty"`
 	TranscriptChunks []domain.ScriptChunk   `json:"transcript_chunks,omitempty"`
 	AudioClipPaths   []string               `json:"audio_clip_paths,omitempty"`
 	AudioFilePath    string                 `json:"audio_file_path,omitempty"`
@@ -43,17 +45,24 @@ type WorkerEvent struct {
 	TotalWords       int                    `json:"total_words,omitempty"`
 	ErrorMessage     string                 `json:"error_message,omitempty"`
 	Error            string                 `json:"error,omitempty"`
+	ProgressPercent  float64                `json:"progress_percent,omitempty"`
+	CompletedChunks  int                    `json:"completed_chunks,omitempty"`
+	TotalChunks      int                    `json:"total_chunks,omitempty"`
 	Result           map[string]interface{} `json:"result,omitempty"`
 }
 
-// ProgressBroadcastEvent represents a real-time event sent across the system.
+// ProgressBroadcastEvent represents a real-time event sent across the system with camelCase client compatibility.
 type ProgressBroadcastEvent struct {
 	JobID                 string    `json:"job_id"`
+	TaskIDCamel           string    `json:"taskId,omitempty"`
 	LessonID              string    `json:"lesson_id"`
+	ResultLessonIDCamel   string    `json:"resultLessonId,omitempty"`
 	Status                JobState  `json:"status"`
 	Progress              int       `json:"progress"`
+	ProgressPercent       int       `json:"progressPercent,omitempty"`
 	EstimatedRemainingSec float64   `json:"estimated_remaining_sec"`
 	Message               string    `json:"message"`
+	CurrentStepMessage    string    `json:"currentStepMessage,omitempty"`
 	AudioFilePath         string    `json:"audio_file_path,omitempty"`
 	SrtFilePath           string    `json:"srt_file_path,omitempty"`
 	Timestamp             time.Time `json:"timestamp"`
@@ -69,13 +78,15 @@ type PipelineConsumer interface {
 	StartPipeline(ctx context.Context, job *RenderJob) error
 	GetJob(jobID string) (*RenderJob, error)
 	HandleWorkerEvent(ctx context.Context, event WorkerEvent) (*RenderJob, error)
+	SetPushDispatcher(dispatcher notifications.PushDispatcher)
 }
 
 type pipelineConsumer struct {
-	mu         sync.RWMutex
-	jobs       map[string]*RenderJob
-	producer   queue.RedisProducer
-	lessonRepo repository.LessonRepository
+	mu             sync.RWMutex
+	jobs           map[string]*RenderJob
+	producer       queue.RedisProducer
+	lessonRepo     repository.LessonRepository
+	pushDispatcher notifications.PushDispatcher
 }
 
 // NewPipelineConsumer initializes a PipelineConsumer with Redis and DB repository access.
@@ -85,6 +96,13 @@ func NewPipelineConsumer(producer queue.RedisProducer, lessonRepo repository.Les
 		producer:   producer,
 		lessonRepo: lessonRepo,
 	}
+}
+
+// SetPushDispatcher attaches push notification dispatcher to the consumer.
+func (c *pipelineConsumer) SetPushDispatcher(dispatcher notifications.PushDispatcher) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.pushDispatcher = dispatcher
 }
 
 // RegisterJob adds a newly created RenderJob to the consumer cache.
@@ -108,12 +126,30 @@ func (c *pipelineConsumer) StartPipeline(ctx context.Context, job *RenderJob) er
 			return err
 		}
 		if c.producer != nil {
+			ttsEngine := job.TtsEngine
+			if ttsEngine == "" {
+				ttsEngine = "edge-tts"
+			}
+			// Populate chunk speed rates if not already specified
+			for idx := range job.TranscriptChunks {
+				if job.TranscriptChunks[idx].SpeedRate == 0 {
+					if job.TranscriptChunks[idx].Lang == "vi" && job.PacingConfig.ViSpeed > 0 {
+						job.TranscriptChunks[idx].SpeedRate = job.PacingConfig.ViSpeed
+					} else if job.PacingConfig.TargetSpeed > 0 {
+						job.TranscriptChunks[idx].SpeedRate = job.PacingConfig.TargetSpeed
+					}
+				}
+			}
+
 			ttsPayload := map[string]interface{}{
 				"lesson_id":            job.LessonID,
 				"task_id":              job.ID,
+				"engine":               ttsEngine,
 				"chunks":               job.TranscriptChunks,
 				"default_voice_vi":     job.PacingConfig.ViVoice,
 				"default_voice_target": job.PacingConfig.TargetVoice,
+				"default_speed_vi":     job.PacingConfig.ViSpeed,
+				"default_speed_target": job.PacingConfig.TargetSpeed,
 			}
 			_ = c.producer.PushToQueue(ctx, queue.QueueTtsSynthesis, ttsPayload)
 			_ = c.producer.PublishEvent(ctx, queue.TopicTtsSynthesize, ttsPayload)
@@ -133,6 +169,7 @@ func (c *pipelineConsumer) StartPipeline(ctx context.Context, job *RenderJob) er
 			"source_text":     job.RawText,
 			"target_language": job.TargetLanguage,
 		}
+		_ = c.producer.PushToQueue(ctx, queue.QueueScriptParse, parsePayload)
 		_ = c.producer.PublishEvent(ctx, queue.TopicScriptParse, parsePayload)
 		_ = c.producer.SaveJobState(ctx, job.ID, job.GetSnapshot(), 24*time.Hour)
 		c.broadcastProgress(ctx, job)
@@ -186,9 +223,55 @@ func (c *pipelineConsumer) HandleWorkerEvent(ctx context.Context, event WorkerEv
 				if _, ok := event.Result["audio_path"]; ok {
 					event.Type = EventMasteringDone
 				} else if _, ok := event.Result["clips"]; ok {
-					event.Type = EventTtsDone
+					hasMissingClip := false
+					if clips, ok := event.Result["clips"].([]interface{}); ok {
+						for _, item := range clips {
+							if clipMap, ok := item.(map[string]interface{}); ok {
+								fp, _ := clipMap["file_path"].(string)
+								if fp == "" {
+									hasMissingClip = true
+									break
+								}
+							}
+						}
+					}
+					if hasMissingClip || event.Status == "partial" {
+						event.Type = EventWorkerFailed
+						if event.ErrorMessage == "" {
+							event.ErrorMessage = "TTS synthesis was incomplete: one or more audio clips failed to generate."
+						}
+					} else {
+						event.Type = EventTtsDone
+					}
+				} else if _, ok := event.Result["chunks"]; ok {
+					event.Type = EventParsingDone
+				} else if _, ok := event.Result["formatted_script"]; ok {
+					event.Type = EventParsingDone
 				}
 			}
+			if len(event.TranscriptChunks) > 0 {
+				event.Type = EventParsingDone
+			}
+		case "TASK_PROGRESS":
+			// Intermediate progress reporting (e.g. from TTS synthesis or audio mastering)
+			if job.GetState() == StateSynthesizing {
+				pct := event.ProgressPercent
+				if pct == 0 && event.Result != nil {
+					if p, ok := event.Result["progress_percent"].(float64); ok {
+						pct = p
+					}
+				}
+				if pct > 0 {
+					// Map TTS chunk progress (0-100%) into synthesis progress window (15% - 85%)
+					job.ProgressPercent = 15 + int(pct*0.7)
+				}
+				job.Description = fmt.Sprintf("Synthesizing voice clips (%d%%)", job.ProgressPercent)
+				if c.producer != nil {
+					_ = c.producer.SaveJobState(ctx, job.ID, job.GetSnapshot(), 24*time.Hour)
+					c.broadcastProgress(ctx, job)
+				}
+			}
+			return job, nil
 		case "TASK_FAILED":
 			event.Type = EventWorkerFailed
 		}
@@ -220,6 +303,22 @@ func (c *pipelineConsumer) HandleWorkerEvent(ctx context.Context, event WorkerEv
 				}
 			}
 		}
+		if chunks, ok := event.Result["chunks"].([]interface{}); ok && len(event.TranscriptChunks) == 0 {
+			for _, item := range chunks {
+				if chunkMap, ok := item.(map[string]interface{}); ok {
+					id, _ := chunkMap["id"].(string)
+					orderFloat, _ := chunkMap["order"].(float64)
+					lang, _ := chunkMap["lang"].(string)
+					text, _ := chunkMap["text"].(string)
+					event.TranscriptChunks = append(event.TranscriptChunks, domain.ScriptChunk{
+						ID:    id,
+						Order: int(orderFloat),
+						Lang:  lang,
+						Text:  text,
+					})
+				}
+			}
+		}
 	}
 	if event.ErrorMessage == "" && event.Error != "" {
 		event.ErrorMessage = event.Error
@@ -241,12 +340,30 @@ func (c *pipelineConsumer) HandleWorkerEvent(ctx context.Context, event WorkerEv
 
 		// Dispatch synthesis job to Redis queue and pub/sub
 		if c.producer != nil {
+			ttsEngine := job.TtsEngine
+			if ttsEngine == "" {
+				ttsEngine = "edge-tts"
+			}
+			// Populate chunk speed rates if not already specified
+			for idx := range job.TranscriptChunks {
+				if job.TranscriptChunks[idx].SpeedRate == 0 {
+					if job.TranscriptChunks[idx].Lang == "vi" && job.PacingConfig.ViSpeed > 0 {
+						job.TranscriptChunks[idx].SpeedRate = job.PacingConfig.ViSpeed
+					} else if job.PacingConfig.TargetSpeed > 0 {
+						job.TranscriptChunks[idx].SpeedRate = job.PacingConfig.TargetSpeed
+					}
+				}
+			}
+
 			ttsPayload := map[string]interface{}{
 				"lesson_id":            job.LessonID,
 				"task_id":              job.ID,
+				"engine":               ttsEngine,
 				"chunks":               job.TranscriptChunks,
 				"default_voice_vi":     job.PacingConfig.ViVoice,
 				"default_voice_target": job.PacingConfig.TargetVoice,
+				"default_speed_vi":     job.PacingConfig.ViSpeed,
+				"default_speed_target": job.PacingConfig.TargetSpeed,
 			}
 			_ = c.producer.PushToQueue(ctx, queue.QueueTtsSynthesis, ttsPayload)
 			_ = c.producer.PublishEvent(ctx, queue.TopicTtsSynthesize, ttsPayload)
@@ -280,13 +397,42 @@ func (c *pipelineConsumer) HandleWorkerEvent(ctx context.Context, event WorkerEv
 					"audio_path": clipPath,
 				})
 			}
+			// Ensure default pacing values if unset
+			silenceVi := job.PacingConfig.SilenceAfterViSec
+			if silenceVi <= 0 {
+				silenceVi = 1.5
+			}
+			silenceTarget := job.PacingConfig.SilenceAfterTargetSec
+			if silenceTarget <= 0 {
+				silenceTarget = 3.5
+			}
+			silenceBetween := job.PacingConfig.SilenceBetweenSentencesSec
+			if silenceBetween <= 0 {
+				silenceBetween = 0.5
+			}
+			exportFormat := job.PacingConfig.ExportFormat
+			if exportFormat == "" {
+				exportFormat = "mp3"
+			}
+			audioBitrate := job.PacingConfig.AudioBitrate
+			if audioBitrate == "" {
+				audioBitrate = "192k"
+			}
+
 			masteringPayload := map[string]interface{}{
 				"task_id":          job.ID,
 				"lesson_id":        job.LessonID,
 				"title":            job.Title,
 				"clips":            clips,
 				"audio_clip_paths": job.AudioClipPaths,
-				"pacing_config":    job.PacingConfig,
+				"pacing_config": map[string]interface{}{
+					"silence_after_vi_sec":          silenceVi,
+					"silence_after_target_sec":      silenceTarget,
+					"silence_between_sentences_sec": silenceBetween,
+					"insert_cue_sound":              job.PacingConfig.InsertCueSound,
+					"export_format":                 exportFormat,
+					"audio_bitrate":                 audioBitrate,
+				},
 			}
 			_ = c.producer.PushToQueue(ctx, queue.QueueAudioMastering, masteringPayload)
 			_ = c.producer.PublishEvent(ctx, queue.TopicAudioMaster, masteringPayload)
@@ -348,6 +494,10 @@ func (c *pipelineConsumer) HandleWorkerEvent(ctx context.Context, event WorkerEv
 			c.broadcastProgress(ctx, job)
 		}
 
+		if c.pushDispatcher != nil && job.UserID != "" {
+			_, _ = c.pushDispatcher.DispatchLessonCompleted(ctx, job.UserID, job.LessonID, job.Title)
+		}
+
 	case EventWorkerFailed:
 		// Advance to FAILED
 		_ = job.TransitionTo(StateFailed, event.ErrorMessage)
@@ -366,6 +516,10 @@ func (c *pipelineConsumer) HandleWorkerEvent(ctx context.Context, event WorkerEv
 			_ = c.producer.SaveJobState(ctx, job.ID, job.GetSnapshot(), 24*time.Hour)
 			c.broadcastProgress(ctx, job)
 		}
+
+		if c.pushDispatcher != nil && job.UserID != "" {
+			_, _ = c.pushDispatcher.DispatchLessonFailed(ctx, job.UserID, job.LessonID, job.Title, event.ErrorMessage)
+		}
 	}
 
 	return job, nil
@@ -378,11 +532,15 @@ func (c *pipelineConsumer) broadcastProgress(ctx context.Context, job *RenderJob
 
 	event := ProgressBroadcastEvent{
 		JobID:                 job.ID,
+		TaskIDCamel:           job.ID,
 		LessonID:              job.LessonID,
+		ResultLessonIDCamel:   job.LessonID,
 		Status:                job.CurrentState,
 		Progress:              job.ProgressPercent,
+		ProgressPercent:       job.ProgressPercent,
 		EstimatedRemainingSec: job.EstimatedRemainingSec(100),
 		Message:               job.Description,
+		CurrentStepMessage:    job.Description,
 		AudioFilePath:         job.AudioFilePath,
 		SrtFilePath:           job.SrtFilePath,
 		Timestamp:             time.Now().UTC(),

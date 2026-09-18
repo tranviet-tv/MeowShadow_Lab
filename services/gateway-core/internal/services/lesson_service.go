@@ -28,6 +28,7 @@ type LessonService interface {
 	DeleteLesson(ctx context.Context, id string) error
 	GetProgress(ctx context.Context, userID, lessonID string) (*domain.LearningProgressDTO, error)
 	SyncProgress(ctx context.Context, userID string, req domain.SyncProgressRequest) error
+	SyncBatchProgress(ctx context.Context, userID string, req domain.SyncBatchProgressRequest) error
 }
 
 type lessonService struct {
@@ -226,7 +227,7 @@ func (s *lessonService) ListLessons(
 				_ = json.Unmarshal(r.TranscriptChunks, &chunks)
 				durFloat, _ := r.DurationSec.Float64Value()
 
-				lessons = append(lessons, domain.LessonResponse{
+				lesson := domain.LessonResponse{
 					ID:               uuid.UUID(r.ID.Bytes).String(),
 					UserID:           userID,
 					Title:            r.Title,
@@ -241,7 +242,9 @@ func (s *lessonService) ListLessons(
 					Status:           r.Status,
 					CreatedAt:        r.CreatedAt.Time.Format(time.RFC3339),
 					UpdatedAt:        r.UpdatedAt.Time.Format(time.RFC3339),
-				})
+				}
+				lesson.PopulateCamelCase()
+				lessons = append(lessons, lesson)
 			}
 			return lessons, total, nil
 		}
@@ -374,3 +377,13 @@ func (s *lessonService) SyncProgress(ctx context.Context, userID string, req dom
 		Version:              pgtype.Int4{Int32: version, Valid: true},
 	})
 }
+
+func (s *lessonService) SyncBatchProgress(ctx context.Context, userID string, req domain.SyncBatchProgressRequest) error {
+	for _, record := range req.Records {
+		if err := s.SyncProgress(ctx, userID, record); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
