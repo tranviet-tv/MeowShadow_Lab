@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeowShadow Studio - Cấu Hình &amp; Presets Hệ Thống</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="../assets/logo/favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+<div class="ambient-glow"></div>
+
+  <div class="app-container">
+
+    <!-- Global Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <a href="../studio/index.html" class="logo-badge" title="MeowShadow Lab Studio">
+          <img class="brand-logo-img" src="../assets/logo/logo_dark_mode.svg" alt="MeowShadow Logo">
+        </a>
+        <div class="brand-info">
+          <div class="brand-title-row">
+            <span class="brand-name">MeowShadow Studio</span>
+            <span class="brand-version">v3.2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="engine-status-pill">
+        <span class="status-dot"></span>
+        <span>Trung Tâm Cấu Hình</span>
+        <span style="color:var(--text-secondary); font-family:var(--font-mono)">• Edge-TTS + Ollama Local</span>
+      </div>
+
+      <div class="header-actions">
+        <a href="../studio/index.html" class="header-nav-btn">
+          <span>Về Studio Soạn Thảo</span>
+        </a>
+
+        <div class="user-avatar-btn">
+          <div class="avatar-circle">TV</div>
+          <span class="avatar-label">Trần Việt</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-body">
+
+      <!-- Left Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="sidebar-section-label">Không gian làm việc</div>
+          <nav class="nav-menu">
+            <a href="../studio/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                <span>Studio Soạn Thảo</span>
+              </div>
+              <span class="nav-badge">Bản nháp</span>
+            </a>
+
+            <a href="../player/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+                  <path
+                    d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+                </svg>
+                <span>Trình Phát Shadowing</span>
+              </div>
+              <span class="nav-badge" style="background:rgba(99,102,241,0.25); color:var(--primary-light)">Live</span>
+            </a>
+
+            <a href="../library/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+                <span>Thư Viện Bài Học</span>
+              </div>
+              <span class="nav-badge">24</span>
+            </a>
+
+            <a href="../settings/index.html" class="nav-item active">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span>Cấu Hình &amp; Presets</span>
+              </div>
+            </a>
+
+            <a href="../queue/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span>Hàng Đợi Render</span>
+              </div>
+              <span class="nav-badge">Idle</span>
+            </a>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Main Settings View -->
+      <section class="settings-page-view">
+
+        <!-- Section 1: TTS Engines -->
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              </svg>
+            </div>
+            <div>
+              <span class="settings-card-title">Hạ Tầng Giọng Nói (Speech Synthesis Engines)</span>
+              <p class="settings-card-desc">Lựa chọn công cụ chuyển văn bản thành giọng nói trên đám mây hoặc chạy
+                offline cục bộ</p>
+            </div>
+          </div>
+
+          <div class="settings-grid-options">
+            <div class="engine-option-box active">
+              <div class="engine-name-row">
+                <span class="engine-name">Microsoft Edge Neural TTS</span>
+                <span class="engine-tag">Mặc định • Miễn phí</span>
+              </div>
+              <p class="engine-desc">Độ trễ thấp, chất lượng âm thanh General American và tiếng Việt tự nhiên nhất.</p>
+            </div>
+
+            <div class="engine-option-box">
+              <div class="engine-name-row">
+                <span class="engine-name">Kokoro-TTS v1.0 (Local AI)</span>
+                <span class="engine-tag" style="background:rgba(99,102,241,0.15); color:var(--primary-light)">Siêu tốc
+                  Offline</span>
+              </div>
+              <p class="engine-desc">Mô hình AI 82M tham số, render offline cục bộ tốc độ 10x thời gian thực.</p>
+            </div>
+
+            <div class="engine-option-box">
+              <div class="engine-name-row">
+                <span class="engine-name">Fish-Speech 1.5 &amp; F5-TTS</span>
+                <span class="engine-tag" style="background:rgba(245,158,11,0.15); color:#fbbf24">Voice Cloning</span>
+              </div>
+              <p class="engine-desc">Hỗ trợ nhân bản giọng đọc cá nhân hóa từ mẫu âm thanh 5 giây.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Local LLM Ollama -->
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                <line x1="6" y1="6" x2="6.01" y2="6" />
+                <line x1="6" y1="18" x2="6.01" y2="18" />
+              </svg>
+            </div>
+            <div>
+              <span class="settings-card-title">Mô Hình Dịch &amp; Phân Đoạn (Local LLM Ollama)</span>
+              <p class="settings-card-desc">Cấu hình kết nối tới server suy luận nội bộ để bảo mật 100% dữ liệu</p>
+            </div>
+          </div>
+
+          <div class="settings-input-row">
+            <div class="settings-input-group">
+              <span class="settings-label">Địa chỉ Ollama API Endpoint:</span>
+              <input type="text" class="settings-input" value="http://localhost:11434" />
+            </div>
+
+            <div class="settings-input-group">
+              <span class="settings-label">Mô hình phân đoạn:</span>
+              <select class="settings-select">
+                <option value="qwen3:8b">Qwen 3 (8B) - Khuyến nghị dịch song ngữ</option>
+                <option value="llama3.1:8b">Llama 3.1 (8B)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="ollama-test-row">
+            <button class="ollama-test-btn" id="btnTestOllama" type="button">
+              <span class="btn-spinner" id="ollamaSpinner" style="display:none;"></span>
+              <svg class="test-icon" id="ollamaTestIcon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <span id="btnTestOllamaText">Kiểm tra kết nối</span>
+            </button>
+            <div class="connection-status-result" id="ollamaStatusResult" style="display:none;"></div>
+          </div>
+        </div>
+
+        <!-- Section 3: Audio Standards -->
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
+            <div>
+              <span class="settings-card-title">Tiêu Chuẩn Âm Thanh Podcast (EBU R128)</span>
+              <p class="settings-card-desc">Đảm bảo độ lớn đồng đều tuyệt đối giữa hai ngôn ngữ</p>
+            </div>
+          </div>
+
+          <div class="settings-input-row">
+            <div class="settings-input-group">
+              <span class="settings-label">Mục tiêu âm lượng chuẩn:</span>
+              <select class="settings-select">
+                <option value="-16">-16 LUFS (Chuẩn quốc tế Podcast &amp; Audio Drama)</option>
+                <option value="-14">-14 LUFS (Âm thanh lớn, chống ồn)</option>
+                <option value="-18">-18 LUFS (Âm thanh nhẹ nhàng thư giãn)</option>
+              </select>
+            </div>
+
+            <div class="settings-input-group">
+              <span class="settings-label">Định dạng nén MP3:</span>
+              <select class="settings-select">
+                <option value="320">320 kbps (Chất lượng âm thanh phòng thu cao nhất)</option>
+                <option value="192">192 kbps (Tiết kiệm dung lượng bộ nhớ)</option>
+                <option value="wav">WAV 44.1kHz 16-bit Lossless</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global Sticky Save Bar (Fix Issue 9: Scope Ambiguity & Auto-save indication) -->
+        <div class="settings-sticky-savebar" id="settingsStickyBar">
+          <div class="savebar-info">
+            <span class="savebar-status" id="savebarStatus">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span id="autoSaveText">✓ Đã tự động lưu tất cả thay đổi lúc 05:48</span>
+            </span>
+            <span class="savebar-scope">Áp dụng cho toàn bộ Engine TTS, Local LLM &amp; Chuẩn Audio</span>
+          </div>
+          <div class="savebar-actions">
+            <button class="reset-settings-btn" id="btnResetSettings" type="button">Khôi phục mặc định</button>
+            <button class="save-all-settings-btn" id="btnSaveAllSettings" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              Lưu Tất Cả Cấu Hình
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="./app.js"></script>
+</body>
+
+</html>

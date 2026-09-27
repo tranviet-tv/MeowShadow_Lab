@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeowShadow Studio - Hàng Đợi Render Batch Audio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="../assets/logo/favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+<div class="ambient-glow"></div>
+
+  <div class="app-container">
+
+    <!-- Global Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <a href="../studio/index.html" class="logo-badge" title="MeowShadow Lab Studio">
+          <img class="brand-logo-img" src="../assets/logo/logo_dark_mode.svg" alt="MeowShadow Logo">
+        </a>
+        <div class="brand-info">
+          <div class="brand-title-row">
+            <span class="brand-name">MeowShadow Studio</span>
+            <span class="brand-version">v3.2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="engine-status-pill">
+        <span class="status-dot"></span>
+        <span>Hàng Đợi Hoạt Động</span>
+        <span style="color:var(--text-secondary); font-family:var(--font-mono)">• Worker Pool: 4 Threads Active</span>
+      </div>
+
+      <div class="header-actions">
+        <a href="../studio/index.html" class="header-nav-btn">
+          <span>Về Studio Soạn Thảo</span>
+        </a>
+
+        <div class="user-avatar-btn">
+          <div class="avatar-circle">TV</div>
+          <span class="avatar-label">Trần Việt</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-body">
+
+      <!-- Left Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="sidebar-section-label">Không gian làm việc</div>
+          <nav class="nav-menu">
+            <a href="../studio/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                <span>Studio Soạn Thảo</span>
+              </div>
+              <span class="nav-badge">Bản nháp</span>
+            </a>
+
+            <a href="../player/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+                  <path
+                    d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+                </svg>
+                <span>Trình Phát Shadowing</span>
+              </div>
+              <span class="nav-badge" style="background:rgba(99,102,241,0.25); color:var(--primary-light)">Live</span>
+            </a>
+
+            <a href="../library/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+                <span>Thư Viện Bài Học</span>
+              </div>
+              <span class="nav-badge">24</span>
+            </a>
+
+            <a href="../settings/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span>Cấu Hình &amp; Presets</span>
+              </div>
+            </a>
+
+            <a href="../queue/index.html" class="nav-item active">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span>Hàng Đợi Render</span>
+              </div>
+              <span class="nav-badge" style="background:rgba(16,185,129,0.25); color:#6ee7b7">Active</span>
+            </a>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Main Queue View -->
+      <section class="queue-page-view">
+        <div class="queue-header-banner">
+          <div>
+            <span class="queue-banner-title">Hàng Đợi Xử Lý Batch Audio</span>
+            <p class="queue-banner-sub">Theo dõi trạng thái tổng hợp song song các bài học Podcast đa ngôn ngữ</p>
+          </div>
+          <span class="standard-badge">Worker Pool: 4 Threads Active</span>
+        </div>
+
+        <div class="queue-table-card">
+          <table class="queue-table">
+            <thead>
+              <tr>
+                <th>Mã Tác Vụ</th>
+                <th>Tiêu Đề Bài Học</th>
+                <th>Cặp Ngôn Ngữ</th>
+                <th>Tiến Trình</th>
+                <th>Trạng Thái</th>
+                <th>Thời Gian</th>
+                <th>Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-family:var(--font-mono)">#JOB-9821</td>
+                <td><strong style="color:var(--text-primary)">Bài học Shadowing - Giao tiếp hàng ngày</strong></td>
+                <td>VI ➔ EN</td>
+                <td>
+                  <div class="progress-cell-wrapper">
+                    <div class="progress-meta-row">
+                      <span class="progress-percentage-val">100%</span>
+                      <span class="progress-step-detail">Đã ghép 5/5 câu</span>
+                    </div>
+                    <div class="queue-progress-bar">
+                      <div class="queue-progress-fill" style="width:100%"></div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="queue-status-badge completed">✓ Hoàn thành</span></td>
+                <td>
+                  <div class="time-stat-cell">
+                    <span class="time-main">2.8s</span>
+                    <span class="time-sub">Render chuẩn EBU</span>
+                  </div>
+                </td>
+                <td>
+                  <a href="../player/index.html" class="table-action-btn primary-action">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    <span>Luyện Ngay</span>
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--font-mono)">#JOB-9822</td>
+                <td><strong style="color:var(--text-primary)">Phỏng Vấn &amp; Thuyết Trình Công Sở</strong></td>
+                <td>VI ➔ EN</td>
+                <td>
+                  <div class="progress-cell-wrapper">
+                    <div class="progress-meta-row">
+                      <span class="progress-percentage-val">100%</span>
+                      <span class="progress-step-detail">Đã ghép 4/4 câu</span>
+                    </div>
+                    <div class="queue-progress-bar">
+                      <div class="queue-progress-fill" style="width:100%"></div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="queue-status-badge completed">✓ Hoàn thành</span></td>
+                <td>
+                  <div class="time-stat-cell">
+                    <span class="time-main">3.2s</span>
+                    <span class="time-sub">Render chuẩn EBU</span>
+                  </div>
+                </td>
+                <td>
+                  <a href="../player/index.html" class="table-action-btn primary-action">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    <span>Luyện Ngay</span>
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--font-mono)">#JOB-9823</td>
+                <td><strong style="color:var(--text-primary)">Giao Tiếp Tiếng Nhật Quán Ăn &amp; Du Lịch</strong></td>
+                <td>VI ➔ JA</td>
+                <td>
+                  <!-- Fix Issue 11: Quantified progress with percentage & step breakdown -->
+                  <div class="progress-cell-wrapper">
+                    <div class="progress-meta-row">
+                      <span class="progress-percentage-val" id="activeProgressPct">68%</span>
+                      <span class="progress-step-detail" id="activeProgressStep">Đang ghép câu 3/5</span>
+                    </div>
+                    <div class="queue-progress-bar">
+                      <div class="queue-progress-fill" id="activeJobProgress" style="width:68%"></div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="queue-status-badge processing" id="activeJobStatus">⚡ Đang render</span></td>
+                <td>
+                  <div class="time-stat-cell">
+                    <span class="time-main" id="activeElapsedTime">1.4s</span>
+                    <span class="time-eta" id="activeEta">ETA: 1.2s</span>
+                  </div>
+                </td>
+                <td>
+                  <a href="../player/index.html" class="table-action-btn" id="activeJobAction">
+                    <span>Xem Tiến Trình</span>
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+
+</html>

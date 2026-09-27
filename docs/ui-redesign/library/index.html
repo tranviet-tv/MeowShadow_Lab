@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeowShadow Studio - Thư Viện Bài Học Shadowing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="../assets/logo/favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+<div class="ambient-glow"></div>
+
+  <div class="app-container">
+
+    <!-- Global Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <a href="../studio/index.html" class="logo-badge" title="MeowShadow Lab Studio">
+          <img class="brand-logo-img" src="../assets/logo/logo_dark_mode.svg" alt="MeowShadow Logo">
+        </a>
+        <div class="brand-info">
+          <div class="brand-title-row">
+            <span class="brand-name">MeowShadow Studio</span>
+            <span class="brand-version">v3.2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="engine-status-pill">
+        <span class="status-dot"></span>
+        <span>Thư Viện Bài Học Đồng Bộ</span>
+        <span style="color:var(--text-secondary); font-family:var(--font-mono)">• 24 Bài Học Sẵn Sàng</span>
+      </div>
+
+      <div class="header-actions">
+        <a href="../studio/index.html" class="header-nav-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          <span>Tạo Bài Mới (Studio)</span>
+        </a>
+
+        <div class="user-avatar-btn">
+          <div class="avatar-circle">TV</div>
+          <span class="avatar-label">Trần Việt</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-body">
+
+      <!-- Left Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="sidebar-section-label">Không gian làm việc</div>
+          <nav class="nav-menu">
+            <a href="../studio/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                <span>Studio Soạn Thảo</span>
+              </div>
+              <span class="nav-badge">Bản nháp</span>
+            </a>
+
+            <a href="../player/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+                  <path
+                    d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+                </svg>
+                <span>Trình Phát Shadowing</span>
+              </div>
+              <span class="nav-badge" style="background:rgba(99,102,241,0.25); color:var(--primary-light)">Live</span>
+            </a>
+
+            <a href="../library/index.html" class="nav-item active">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+                <span>Thư Viện Bài Học</span>
+              </div>
+              <span class="nav-badge">24</span>
+            </a>
+
+            <a href="../settings/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span>Cấu Hình &amp; Presets</span>
+              </div>
+            </a>
+
+            <a href="../queue/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span>Hàng Đợi Render</span>
+              </div>
+              <span class="nav-badge">Idle</span>
+            </a>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Main Library View -->
+      <section class="library-page-view">
+
+        <!-- Stats Banner -->
+        <div class="library-header-banner">
+          <div>
+            <span class="library-banner-title">Thư Viện Bài Học Shadowing</span>
+            <p class="library-banner-sub">Lưu trữ, quản lý và đồng bộ toàn bộ file âm thanh luyện nghe chất lượng cao
+            </p>
+          </div>
+
+          <div class="library-stats-pills">
+            <div class="stat-box">
+              <span class="stat-value">24</span>
+              <span class="stat-label">Bài học</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value">3.8h</span>
+              <span class="stat-label">Thời lượng</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" style="color:var(--accent-emerald)">100%</span>
+              <span class="stat-label">Sync Mobile</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="library-filter-bar">
+          <div class="search-input-wrapper">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" class="library-search-input"
+              placeholder="Tìm kiếm bài học theo tiêu đề hoặc từ khóa..." />
+          </div>
+
+          <div class="library-filter-pills">
+            <button class="filter-pill active">Tất cả bài học</button>
+            <button class="filter-pill">Anh - Việt (EN)</button>
+            <button class="filter-pill">Nhật - Việt (JA)</button>
+            <button class="filter-pill">Đã tải về Offline</button>
+          </div>
+        </div>
+
+        <!-- Cards Grid -->
+        <div class="library-cards-grid">
+
+          <!-- Card 1 -->
+          <div class="lesson-card">
+            <div class="lesson-card-top">
+              <div class="lesson-badge-group">
+                <span class="lesson-lang-badge">VI ➔ EN</span>
+                <span class="level-badge easy">Dễ</span>
+                <span class="status-badge-done">✓ Đã Render</span>
+              </div>
+              <div class="card-menu-anchor">
+                <button class="card-more-btn" title="Tuỳ chọn thêm">•••</button>
+                <div class="card-context-dropdown">
+                  <a href="../studio/index.html" class="dropdown-item">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                    <span>Chỉnh sửa kịch bản</span>
+                  </a>
+                  <a href="../player/index.html" class="dropdown-item">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    <span>Luyện tập Shadowing</span>
+                  </a>
+                  <button class="dropdown-item btn-card-action" data-action="rerender">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="1 4 1 10 7 10" />
+                      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                    </svg>
+                    <span>Render lại audio</span>
+                  </button>
+                  <button class="dropdown-item destructive btn-card-action" data-action="delete">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    <span>Xoá bài học</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <span class="lesson-card-title">Bài học Shadowing - Giao tiếp hàng ngày</span>
+            <p class="lesson-card-excerpt">Phương pháp rèn luyện phát âm tự nhiên qua các ngữ cảnh giao tiếp đời sống
+              hàng ngày...</p>
+            <div class="lesson-card-meta">
+              <span>⏱ 10 phút 24 giây</span>
+              <span>🎙 Hoài My &amp; Jenny</span>
+            </div>
+
+            <!-- Learning Progress Section (Week 2 Pro Feature) -->
+            <div class="lesson-learning-progress">
+              <div class="progress-info-row">
+                <span class="progress-label">Tiến độ: <strong>4/5 chu kỳ</strong></span>
+                <span class="progress-score">🏆 <strong>92%</strong> Match</span>
+              </div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" style="width:80%"></div>
+              </div>
+            </div>
+
+            <div class="lesson-card-actions">
+              <a href="../player/index.html" class="play-lesson-btn full-width">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                <span>Luyện Tập Ngay Trên Trình Phát</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="lesson-card">
+            <div class="lesson-card-top">
+              <div class="lesson-badge-group">
+                <span class="lesson-lang-badge">VI ➔ EN</span>
+                <span class="level-badge medium">Trung bình</span>
+                <span class="status-badge-done">✓ Đã Render</span>
+              </div>
+              <div class="card-menu-anchor">
+                <button class="card-more-btn" title="Tuỳ chọn thêm">•••</button>
+                <div class="card-context-dropdown">
+                  <a href="../studio/index.html" class="dropdown-item">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                    <span>Chỉnh sửa kịch bản</span>
+                  </a>
+                  <a href="../player/index.html" class="dropdown-item">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    <span>Luyện tập Shadowing</span>
+                  </a>
+                  <button class="dropdown-item btn-card-action" data-action="rerender">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="1 4 1 10 7 10" />
+                      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                    </svg>
+                    <span>Render lại audio</span>
+                  </button>
+                  <button class="dropdown-item destructive btn-card-action" data-action="delete">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    <span>Xoá bài học</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <span class="lesson-card-title">Phỏng Vấn &amp; Thuyết Trình Công Sở</span>
+            <p class="lesson-card-excerpt">Tổng hợp các mẫu câu phản xạ nhanh khi đàm phán hợp đồng và trả lời phỏng vấn
+              chuyên nghiệp...</p>
+            <div class="lesson-card-meta">
+              <span>⏱ 12 phút 15 giây</span>
+              <span>🎙 Nam Minh &amp; Guy</span>
+            </div>
+
+            <!-- Learning Progress Section (Week 2 Pro Feature) -->
+            <div class="lesson-learning-progress">
+              <div class="progress-info-row">
+                <span class="progress-label">Tiến độ: <strong>2/5 chu kỳ</strong></span>
+                <span class="progress-score">🏆 <strong>85%</strong> Match</span>
+              </div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" style="width:40%"></div>
+              </div>
+            </div>
+
+            <div class="lesson-card-actions">
+              <a href="../player/index.html" class="play-lesson-btn full-width">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                <span>Luyện Tập Ngay Trên Trình Phát</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="lesson-card">
+            <div class="lesson-card-top">
+              <div class="lesson-badge-group">
+                <span class="lesson-lang-badge"
+                  style="color:#f472b6; border-color:rgba(244,114,182,0.3); background:rgba(244,114,182,0.1)">VI ➔
+                  JA</span>
+                <span class="level-badge easy">Dễ</span>
+                <span class="status-badge-done">✓ Đã Render</span>
+              </div>
+              <div class="card-menu-anchor">
+                <button class="card-more-btn" title="Tuỳ chọn thêm">•••</button>
+                <div class="card-context-dropdown">
+                  <a href="../studio/index.html" class="dropdown-item">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                    <span>Chỉnh sửa kịch bản</span>
+                  </a>
+                  <a href="../player/index.html" class="dropdown-item">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    <span>Luyện tập Shadowing</span>
+                  </a>
+                  <button class="dropdown-item btn-card-action" data-action="rerender">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="1 4 1 10 7 10" />
+                      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                    </svg>
+                    <span>Render lại audio</span>
+                  </button>
+                  <button class="dropdown-item destructive btn-card-action" data-action="delete">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    <span>Xoá bài học</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <span class="lesson-card-title">Giao Tiếp Tiếng Nhật Quán Ăn &amp; Du Lịch</span>
+            <p class="lesson-card-excerpt">Luyện ngữ điệu Tokyo chuẩn xác khi đặt bàn, gọi món và hỏi đường tại Nhật
+              Bản...</p>
+            <div class="lesson-card-meta">
+              <span>⏱ 08 phút 50 giây</span>
+              <span>🎙 Hoài My &amp; Nanami</span>
+            </div>
+
+            <!-- Learning Progress Section (Week 2 Pro Feature) -->
+            <div class="lesson-learning-progress">
+              <div class="progress-info-row">
+                <span class="progress-label">Tiến độ: <strong>5/5 chu kỳ (Hoàn thành)</strong></span>
+                <span class="progress-score">🏆 <strong>96%</strong> Match</span>
+              </div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" style="width:100%; background:var(--accent-emerald)"></div>
+              </div>
+            </div>
+
+            <div class="lesson-card-actions">
+              <a href="../player/index.html" class="play-lesson-btn full-width">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                <span>Luyện Tập Ngay Trên Trình Phát</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="lesson-card">
+            <div class="lesson-card-top">
+              <div class="lesson-badge-group">
+                <span class="lesson-lang-badge">VI ➔ EN</span>
+                <span class="level-badge challenge">Thử thách</span>
+                <span class="status-badge-done">✓ Đã Render</span>
+              </div>
+              <div class="card-menu-anchor">
+                <button class="card-more-btn" title="Tuỳ chọn thêm">•••</button>
+                <div class="card-context-dropdown">
+                  <a href="../studio/index.html" class="dropdown-item">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                    <span>Chỉnh sửa kịch bản</span>
+                  </a>
+                  <a href="../player/index.html" class="dropdown-item">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    <span>Luyện tập Shadowing</span>
+                  </a>
+                  <button class="dropdown-item btn-card-action" data-action="rerender">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="1 4 1 10 7 10" />
+                      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                    </svg>
+                    <span>Render lại audio</span>
+                  </button>
+                  <button class="dropdown-item destructive btn-card-action" data-action="delete">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    <span>Xoá bài học</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <span class="lesson-card-title">Từ Vựng Công Nghệ &amp; Trí Tuệ Nhân Tạo</span>
+            <p class="lesson-card-excerpt">Học cách phát âm chuẩn các thuật ngữ AI, Machine Learning và công nghệ đám
+              mây hiện đại...</p>
+            <div class="lesson-card-meta">
+              <span>⏱ 14 phút 30 giây</span>
+              <span>🎙 Nam Minh &amp; Brian</span>
+            </div>
+
+            <!-- Learning Progress Section (Week 2 Pro Feature) -->
+            <div class="lesson-learning-progress">
+              <div class="progress-info-row">
+                <span class="progress-label">Tiến độ: <strong>1/5 chu kỳ</strong></span>
+                <span class="progress-score">🏆 <strong>78%</strong> Match</span>
+              </div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" style="width:20%"></div>
+              </div>
+            </div>
+
+            <div class="lesson-card-actions">
+              <a href="../player/index.html" class="play-lesson-btn full-width">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                <span>Luyện Tập Ngay Trên Trình Phát</span>
+              </a>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+
+</html>

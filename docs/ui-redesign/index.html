@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=./studio/index.html">
+  <title>MeowShadow Studio v3.2 - Chuyển hướng tới Studio</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/logo/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0a0d14;
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    .redirect-card {
+      background: #101522;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 32px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .logo-badge {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
+      color: #fff;
+      overflow: hidden;
+      flex-shrink: 0;
+      text-decoration: none;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .logo-badge:hover {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 8px 22px rgba(99, 102, 241, 0.65);
+    }
+
+    .brand-logo-img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      transition: transform 0.18s ease;
+    }
+
+    .logo-badge:hover .brand-logo-img {
+      transform: scale(1.06);
+    }
+
+    .btn-link {
+      background: #6366f1;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Unified Brand Logo Vector Symbol -->
+<div class="redirect-card">
+    <div class="logo-badge">
+      <img class="brand-logo-img" src="./assets/logo/logo_dark_mode.svg" alt="MeowShadow Logo">
+    </div>
+    <h2>MeowShadow Studio v3.2</h2>
+    <p style="color:#94a3b8">Đang chuyển hướng bạn tới Studio Soạn Thảo...</p>
+    <a href="./studio/index.html" class="btn-link">Nhấp vào đây nếu không tự chuyển</a>
+  </div>
+  <script>
+    window.location.href = "./studio/index.html";
+  </script>
+</body>
+
+</html>

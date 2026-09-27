@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeowShadow Studio - Soạn Thảo Kịch Bản &amp; Tạo Audio Shadowing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="../assets/logo/favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+<div class="ambient-glow"></div>
+  <div class="ambient-glow-secondary"></div>
+
+  <div class="app-container">
+
+    <!-- Global Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <a href="./index.html" class="logo-badge" title="MeowShadow Lab Studio">
+          <img class="brand-logo-img" src="../assets/logo/logo_dark_mode.svg" alt="MeowShadow Logo">
+        </a>
+        <div class="brand-info">
+          <div class="brand-title-row">
+            <span class="brand-name">MeowShadow Studio</span>
+            <span class="brand-version">v3.2</span>
+          </div>
+          <span class="brand-tagline">AI Bilingual Shadowing &amp; Audio Synthesizer</span>
+        </div>
+      </div>
+
+      <div class="engine-status-pill">
+        <span class="status-dot"></span>
+        <span>Hệ thống Sẵn sàng</span>
+        <span style="color:var(--text-secondary); font-family:var(--font-mono)">• Qwen 3 (8B) + Edge-TTS (18ms)</span>
+      </div>
+
+      <div class="header-actions">
+        <!-- Direct Link to Dedicated Player -->
+        <a href="../player/index.html" class="header-nav-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+          <span>Trình Phát Shadowing</span>
+        </a>
+
+        <div class="user-avatar-btn">
+          <div class="avatar-circle">TV</div>
+          <span class="avatar-label">Trần Việt</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main 3-Column Studio Layout -->
+    <main class="main-body">
+
+      <!-- Left Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="sidebar-section-label">Không gian làm việc</div>
+          <nav class="nav-menu">
+            <a href="../studio/index.html" class="nav-item active">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                <span>Studio Soạn Thảo</span>
+              </div>
+              <span class="nav-badge">Bản nháp</span>
+            </a>
+
+            <a href="../player/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+                  <path
+                    d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+                </svg>
+                <span>Trình Phát Shadowing</span>
+              </div>
+              <span class="nav-badge" style="background:rgba(99,102,241,0.25); color:var(--primary-light)">Live</span>
+            </a>
+
+            <a href="../library/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+                <span>Thư Viện Bài Học</span>
+              </div>
+              <span class="nav-badge">24</span>
+            </a>
+
+            <a href="../settings/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span>Cấu Hình &amp; Presets</span>
+              </div>
+            </a>
+
+            <a href="../queue/index.html" class="nav-item">
+              <div class="nav-item-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span>Hàng Đợi Render</span>
+              </div>
+              <span class="nav-badge">Idle</span>
+            </a>
+          </nav>
+        </div>
+
+      </aside>
+
+      <!-- Center Workspace -->
+      <section class="workspace">
+        <div class="workspace-header">
+          <div class="title-input-group">
+            <div class="session-context">
+              <span>Studio Soạn Thảo</span>
+              <span>/</span>
+              <span style="color:var(--primary-light)">Bài học mới</span>
+            </div>
+            <div class="editable-title-wrapper">
+              <input type="text" class="title-input" id="lessonTitleInput"
+                value="Bài học Shadowing - Giao tiếp hàng ngày" />
+              <svg class="edit-icon-hint" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="header-tools-right">
+            <div class="target-language-selector">
+              <button class="lang-tab active" data-lang="en">
+                <span>🇺🇸 Tiếng Anh (EN)</span>
+              </button>
+              <button class="lang-tab" data-lang="ja">
+                <span>🇯🇵 Tiếng Nhật (JA)</span>
+              </button>
+            </div>
+
+            <!-- Shadowing Pedagogy Popover Trigger -->
+            <div class="rules-popover-anchor">
+              <button class="rules-info-pill-btn" id="btnShadowingRules" title="Xem quy chuẩn chu kỳ Shadowing">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <span>Quy chuẩn Shadowing</span>
+              </button>
+
+              <div class="rules-popover-card" id="rulesPopoverCard">
+                <div class="popover-inner-header">
+                  <div class="popover-title-row">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      style="color:var(--accent-purple)">
+                      <polygon
+                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                    <span class="popover-title">Quy Chuẩn Chu Kỳ Shadowing</span>
+                  </div>
+                  <button class="popover-close-btn" id="btnCloseRulesPopover" type="button" title="Đóng">✕</button>
+                </div>
+                <div class="pedagogy-flow-diagram">
+                  <div class="flow-step"><span class="flow-tag vi">[VI] Câu mẹ đẻ</span><span class="flow-meta">Hiểu
+                      nghĩa trọn vẹn</span></div>
+                  <div class="flow-step"><span class="flow-tag cue">🔔 Chime (1.5s)</span><span class="flow-meta">Báo
+                      chuyển pha âm</span></div>
+                  <div class="flow-step"><span class="flow-tag en">[EN] Bản ngữ</span><span class="flow-meta">Nghe chuẩn
+                      ngữ điệu</span></div>
+                  <div class="flow-step"><span class="flow-meta" style="color:#a5b4fc">⏳ Lặng 3.5s Shadowing</span><span
+                      class="flow-meta">Nhại lại tức thì</span></div>
+                </div>
+                <div class="chime-toggle-row">
+                  <span>Chuông ngắt đoạn (Ding)</span>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="chimeTogglePopover" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1: AI Intake (with Accordion Collapse Mechanics) -->
+        <div class="ai-intake-card" id="aiIntakeCard">
+          <div class="ai-card-glow"></div>
+          <div class="ai-intake-header">
+            <div class="ai-title-wrap">
+              <div class="ai-sparkle-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                </svg>
+              </div>
+              <div class="ai-meta">
+                <div class="ai-title">
+                  <span>Bước 1: Nạp bài viết thô &amp; Dịch tự động</span>
+                  <span class="magic-badge">1-Click AI</span>
+                </div>
+                <span class="ai-subtitle">Dán bài viết từ 1.300 - 1.500 từ, AI tự động tách 3-4 câu song ngữ theo cấu
+                  trúc Shadowing chuẩn</span>
+              </div>
+            </div>
+            <div class="ai-header-controls">
+              <div class="ai-model-pill">
+                <span class="model-dot"></span>
+                <span>Qwen 3 (8B) Local LLM</span>
+              </div>
+              <button class="btn-collapse-toggle" id="btnToggleIntake" title="Thu gọn / Mở rộng khối nạp bài">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Collapsed Summary Row (Visible when .collapsed) -->
+          <div class="ai-collapsed-summary" id="aiCollapsedSummary">
+            <div class="summary-left">
+              <span class="summary-check-pill">✓ Đã nạp bài</span>
+              <span class="summary-title" id="aiSummaryTitle">Bài viết mẫu (84 từ • 3 cặp câu song ngữ)</span>
+              <span class="summary-hint">• Đã phân đoạn xong kịch bản bên dưới</span>
+            </div>
+            <button class="btn-expand-action" id="btnExpandIntake">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              <span>Sửa bài thô</span>
+            </button>
+          </div>
+
+          <div class="ai-intake-body" id="aiIntakeBody">
+            <div class="raw-textarea-wrapper">
+              <textarea class="raw-textarea" id="rawInputText"
+                placeholder="Dán đoạn văn bản cần chuyển thành bài học Shadowing vào đây..."></textarea>
+            </div>
+            <div class="ai-action-bar">
+              <div class="word-count-indicator">
+                <span id="rawWordCount">0 từ</span>
+                <span>• Khuyến nghị: 1.300 - 1.500 từ cho Podcast 10 phút</span>
+              </div>
+              <div class="ai-button-group">
+                <button class="secondary-action-btn" id="btnPasteSample">Dán bài mẫu</button>
+                <button class="primary-ai-btn" id="btnAiProcess">Phân đoạn &amp; Dịch tự động</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Script Editor -->
+        <div class="editor-container">
+          <div class="editor-header-bar">
+            <div class="editor-view-tabs">
+              <button class="view-tab-btn active" id="viewTabSyntax">Thẻ Toàn Văn (Syntax Script)</button>
+              <button class="view-tab-btn" id="viewTabCards">Thẻ Cặp Câu (Interactive Cards)</button>
+            </div>
+
+            <div class="editor-utility-tools">
+              <button class="tool-btn" id="btnCopyScript">Sao chép</button>
+              <button class="tool-btn" id="btnFormatScript">Căn lề chuẩn</button>
+              <button class="tool-btn destructive" id="btnClearScript">Xóa hết</button>
+            </div>
+          </div>
+
+          <div class="syntax-helper-bar">
+            <span class="helper-label">Chèn thẻ nhanh:</span>
+            <div class="tag-pills-row">
+              <button class="syntax-pill-btn pill-vi" id="pillInsertVI">+ [VI] Tiếng Việt</button>
+              <button class="syntax-pill-btn pill-en" id="pillInsertEN">+ [EN/JA] Ngoại ngữ</button>
+              <button class="syntax-pill-btn pill-cue" id="pillInsertCUE">+ [CUE] Chuông ngắt</button>
+            </div>
+          </div>
+
+          <div class="syntax-code-editor" id="syntaxCodeEditor">
+            <div class="line-numbers-gutter" id="lineNumbersGutter"></div>
+            <div class="editor-content-area" id="editorContentArea" contenteditable="true" spellcheck="false"></div>
+          </div>
+
+          <div class="interactive-cards-container" id="interactiveCardsContainer"></div>
+
+          <div class="editor-footer-metrics">
+            <div class="metrics-left">
+              <div class="metric-item"><span>Tổng số cặp câu:</span> <span class="metric-val"
+                  id="metricChunkCount">3</span></div>
+              <div class="metric-item"><span>Số từ:</span> <span class="metric-val" id="metricWordCount">84</span></div>
+              <div class="metric-item"><span>Thời lượng dự tính:</span> <span class="metric-val" id="metricDuration"
+                  style="color:var(--accent-emerald)">1m 42s</span></div>
+            </div>
+            <span style="font-size:11px; color:var(--text-tertiary)">Chuẩn định dạng: [VI] ➔ Lặng + CUE ➔ [EN/JA] ➔
+              Shadowing</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Config Panel (Step 3: Voice & Pacing) -->
+      <aside class="config-panel">
+        <section class="panel-section">
+          <div class="panel-header-row">
+            <span class="section-title">Lựa Chọn Giọng Đọc Song Ngữ</span>
+            <span class="section-hint">Edge Neural TTS</span>
+          </div>
+
+          <!-- Dual Voice Active Display -->
+          <div class="dual-voice-channels">
+            <!-- VI Voice Channel -->
+            <div class="voice-channel-card" id="channelVI">
+              <div class="channel-label-row">
+                <span class="channel-tag vi">🎙️ GIỌNG TIẾNG VIỆT (DẪN NHẬP)</span>
+                <span class="channel-role">Mẹ đẻ</span>
+              </div>
+              <div class="channel-select-row">
+                <select class="channel-voice-select" id="selectVoiceVI">
+                  <option value="vi-hoaimy" selected>Hoài My (Nữ) - Chuẩn Bắc Bộ, truyền cảm</option>
+                  <option value="vi-namminh">Nam Minh (Nam) - Trầm ấm, rõ chữ</option>
+                </select>
+                <button class="channel-test-btn" id="btnTestVoiceVI" title="Nghe thử giọng này">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </button>
+              </div>
+              <div class="voice-quick-chips" id="quickChipsVI">
+                <button class="quick-chip active" data-voice="vi-hoaimy">Hoài My (Nữ)</button>
+                <button class="quick-chip" data-voice="vi-namminh">Nam Minh (Nam)</button>
+              </div>
+            </div>
+
+            <!-- Foreign Voice Channel -->
+            <div class="voice-channel-card" id="channelForeign">
+              <div class="channel-label-row">
+                <span class="channel-tag en" id="foreignChannelTag">🎙️ GIỌNG NGOẠI NGỮ (SHADOWING)</span>
+                <span class="channel-role">Bản ngữ</span>
+              </div>
+              <div class="channel-select-row">
+                <select class="channel-voice-select" id="selectVoiceForeign">
+                  <option value="en-jenny" selected>Jenny (Natural) - Nữ, American chuẩn</option>
+                  <option value="en-guy">Guy (Natural) - Nam, American tự nhiên</option>
+                  <option value="en-aria">Aria (Expressive) - Nữ, Biểu cảm cao</option>
+                </select>
+                <button class="channel-test-btn" id="btnTestVoiceForeign" title="Nghe thử giọng này">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </button>
+              </div>
+              <div class="voice-quick-chips" id="quickChipsForeign">
+                <button class="quick-chip active" data-voice="en-jenny">Jenny (Nữ)</button>
+                <button class="quick-chip" data-voice="en-guy">Guy (Nam)</button>
+                <button class="quick-chip" data-voice="en-aria">Aria (Nữ)</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="panel-header-row">
+            <span class="section-title">Bảng Điều Khiển Nhịp Điệu (Pacing)</span>
+            <span class="section-hint">Chọn 1-click</span>
+          </div>
+
+          <div class="pacing-presets-grid">
+            <div class="preset-card active" data-preset="standard">
+              <span class="preset-name">Shadowing Chuẩn</span>
+              <span class="preset-duration">3.5s Lặng</span>
+              <span class="preset-desc">Khoảng nghỉ vàng để nhắc lại trọn câu.</span>
+            </div>
+            <div class="preset-card" data-preset="fast">
+              <span class="preset-name">Luyện Nghe Nhanh</span>
+              <span class="preset-duration">2.0s Lặng</span>
+              <span class="preset-desc">Duy trì nhịp phản xạ nghe thụ động.</span>
+            </div>
+            <div class="preset-card" data-preset="focus">
+              <span class="preset-name">Tập Phát Âm</span>
+              <span class="preset-duration">4.5s • 0.9x</span>
+              <span class="preset-desc">Tốc độ chậm hơn, nhại chi tiết âm đuôi.</span>
+            </div>
+          </div>
+
+          <div class="slider-control-group">
+            <div class="slider-item">
+              <div class="slider-label-row">
+                <span class="slider-title"><span style="color:var(--accent-emerald)">●</span> Khoảng lặng sau tiếng Việt
+                  [VI]:</span>
+                <div class="slider-input-badge">
+                  <input type="text" class="number-input" id="inputSilenceVI" value="1.5" />
+                  <span class="unit-label">giây</span>
+                </div>
+              </div>
+              <input type="range" class="modern-range" id="sliderSilenceVI" min="0.5" max="5.0" step="0.1"
+                value="1.5" />
+              <div class="range-scale-labels"><span>0.5s</span><span>Mặc định: 1.5s</span><span>5.0s</span></div>
+            </div>
+
+            <div class="slider-item">
+              <div class="slider-label-row">
+                <span class="slider-title"><span style="color:var(--accent-cyan)">●</span> Khoảng lặng nhại giọng
+                  [EN/JA]:</span>
+                <div class="slider-input-badge">
+                  <input type="text" class="number-input" id="inputSilenceEN" value="3.5" />
+                  <span class="unit-label">giây</span>
+                </div>
+              </div>
+              <input type="range" class="modern-range" id="sliderSilenceEN" min="1.0" max="8.0" step="0.1"
+                value="3.5" />
+              <div class="range-scale-labels"><span>1.0s</span><span>Mặc định: 3.5s</span><span>8.0s</span></div>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+    </main>
+
+    <!-- Sticky Bottom Action Bar (Step 4 Primary CTA) -->
+    <footer class="bottom-action-bar">
+      <div class="generation-summary-left">
+        <div class="summary-pill-group">
+          <div class="summary-item">
+            <span class="summary-label">Độ dài Audio ước tính</span>
+            <span class="summary-value" id="bottomEstimatedDuration" style="color:var(--accent-emerald)">1m 42s</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Quy mô kịch bản</span>
+            <span class="summary-value" id="bottomChunkSummary">3 cặp câu (84 từ)</span>
+          </div>
+        </div>
+        <div class="standard-badge">✓ EBU R128 (-16 LUFS) • 320kbps MP3</div>
+      </div>
+
+      <div class="generation-cta-right">
+        <button class="synthesize-cta-button" id="btnPrimarySynthesize">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+          <span>Tạo Audio Bài Học</span>
+          <span class="hotkey-badge">⌘ + Enter</span>
+        </button>
+      </div>
+    </footer>
+
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="./app.js"></script>
+</body>
+
+</html>
